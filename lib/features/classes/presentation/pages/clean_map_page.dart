@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roda/features/teacher/providers/schedule_providers.dart';
+import 'package:roda/features/auth/providers/auth_provider.dart';
+import 'package:roda/features/groups/providers/group_providers.dart';
 import 'package:roda/core/models/schedule_template.dart';
+import 'package:roda/core/utils/venmo_helper.dart';
 import 'package:roda/debug_database.dart';
 import 'package:roda/core/config/app_config.dart';
 import 'dart:async';
@@ -495,77 +499,245 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Group name and event type
+                Text(
+                  classData.groupName.isNotEmpty ? classData.groupName : (isRoda ? 'Roda' : 'Class'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                // Date and time
                 Row(
                   children: [
-                    Text(
-                      isRoda ? 'Roda' : 'Class',
-                      style: TextStyle(
-                        fontSize: 12,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
                         color: isRoda ? Colors.orange : Colors.blue,
-                        fontWeight: FontWeight.bold,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        isRoda ? 'RODA' : 'CLASS',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      dateFormat.format(classData.scheduledDate),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Text(
+                        '${dateFormat.format(classData.scheduledDate)} • ${classData.startTime} - ${classData.endTime}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${classData.startTime} - ${classData.endTime}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[700],
-                  ),
+                const SizedBox(height: 2),
+                // Teacher name and price
+                Row(
+                  children: [
+                    if (classData.teacherName.isNotEmpty)
+                      Expanded(
+                        child: Text(
+                          'by ${classData.teacherName}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    if (classData.price != null)
+                      Text(
+                        '\$${classData.price!.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
                 ),
-                if (classData.groupName.isNotEmpty)
-                  Text(
-                    classData.groupName,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
               ],
             ),
           ),
           
-          // Register button
-          ElevatedButton(
-            onPressed: () => _handleRegister(classData),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isRoda ? Colors.orange : Colors.blue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-            child: const Text(
-              'Register',
-              style: TextStyle(fontSize: 13),
-            ),
+          // Register/Cancel/Pay buttons
+          Consumer(
+            builder: (context, ref, child) {
+              final currentUser = ref.watch(currentUserProvider).value;
+              final isRegistered = currentUser != null && 
+                  classData.instance.attendingStudentIds.contains(currentUser.id);
+              
+              if (!isRegistered) {
+                // Show Register button
+                return ElevatedButton(
+                  onPressed: () => _handleRegister(classData, isRegistered),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isRoda ? Colors.orange : Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: const Text(
+                    'Register',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                );
+              } else {
+                // Show Cancel and Pay buttons
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Pay button
+                    if (classData.price != null && classData.price! > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: OutlinedButton(
+                          onPressed: () => _handlePayment(classData),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.green[700],
+                            side: BorderSide(color: Colors.green[700]!),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.attach_money, size: 16),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'Pay',
+                                style: TextStyle(fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    // Cancel button
+                    ElevatedButton(
+                      onPressed: () => _handleRegister(classData, isRegistered),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                );
+              }
+            },
           ),
         ],
       ),
     );
   }
   
-  void _handleRegister(FullClassData classData) {
-    // TODO: Implement registration logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Registered for ${classData.eventType == EventType.roda ? "Roda" : "Class"} on ${DateFormat('MMM d').format(classData.scheduledDate)}',
+  void _handlePayment(FullClassData classData) async {
+    // Get the group's Venmo handle
+    final groupAsync = await ref.read(groupByIdProvider(classData.template.groupId).future);
+    
+    if (groupAsync == null || groupAsync.venmoHandle == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment information not available for this class'),
+          backgroundColor: Colors.orange,
         ),
-        backgroundColor: classData.eventType == EventType.roda ? Colors.orange : Colors.blue,
-      ),
+      );
+      return;
+    }
+    
+    final eventType = classData.eventType == EventType.roda ? 'Roda' : 'Class';
+    final dateStr = DateFormat('MMM d').format(classData.scheduledDate);
+    final note = '$eventType - $dateStr - ${classData.groupName}';
+    
+    final success = await VenmoHelper.launchVenmoPayment(
+      venmoHandle: groupAsync.venmoHandle!,
+      amount: classData.price,
+      note: note,
     );
+    
+    if (!success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open Venmo. Please install the Venmo app.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+  void _handleRegister(FullClassData classData, bool isRegistered) async {
+    final currentUser = ref.read(currentUserProvider).value;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in to register for classes'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    print('🎯 Registration: User ${currentUser.id} ${isRegistered ? "cancelling" : "registering"} for class ${classData.instance.id}');
+    
+    try {
+      // Update the class_instances document to add or remove the user from attendingStudentIds
+      await FirebaseFirestore.instance
+          .collection('class_instances')
+          .doc(classData.instance.id)
+          .update({
+        'attendingStudentIds': isRegistered 
+            ? FieldValue.arrayRemove([currentUser.id])
+            : FieldValue.arrayUnion([currentUser.id]),
+      });
+      
+      final action = isRegistered ? 'Cancelled registration for' : 'Successfully registered for';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$action ${classData.eventType == EventType.roda ? "Roda" : "Class"} on ${DateFormat('MMM d').format(classData.scheduledDate)}',
+          ),
+          backgroundColor: isRegistered ? Colors.red : Colors.green,
+        ),
+      );
+      
+      // Update the local instance data to reflect the change
+      if (isRegistered) {
+        classData.instance.attendingStudentIds.remove(currentUser.id);
+      } else {
+        classData.instance.attendingStudentIds.add(currentUser.id);
+      }
+      
+      // Refresh the UI
+      setState(() {});
+    } catch (e) {
+      print('Error updating registration: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update registration: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
   
   Widget _buildEventCard({

@@ -20,6 +20,8 @@ class FullClassData {
   double? get longitude => template.longitude;
   String get groupName => template.groupName;
   String get teacherId => template.teacherId;
+  String get teacherName => template.teacherName;
+  double? get price => template.price;
   
   // Instance-specific data
   DateTime get scheduledDate => instance.scheduledDate;
@@ -101,23 +103,49 @@ final activeTemplatesProvider = StreamProvider<List<ScheduleTemplate>>((ref) {
 });
 
 // Get upcoming classes/rodas that a user is registered for
-final userRegisteredClassesProvider = FutureProvider.family<List<FullClassData>, String>(
+final userRegisteredClassesProvider = FutureProvider.family.autoDispose<List<FullClassData>, String>(
   (ref, userId) async {
     try {
+      print('🔍 Fetching registered classes for user: $userId');
       final db = FirebaseFirestore.instance;
-      final now = DateTime.now();
-      final endDate = now.add(const Duration(days: 30));
+      // Look 30 days back and 365 days ahead to find all registered classes
+      final startDate = DateTime.now().subtract(const Duration(days: 30));
+      final endDate = DateTime.now().add(const Duration(days: 365));
+      
+      print('📅 Date range: ${startDate.toIso8601String()} to ${endDate.toIso8601String()}');
       
       // Get all instances where user is in attendingStudentIds
+      print('🔄 Querying class_instances where attendingStudentIds contains $userId');
+      
+      // First try to get ALL instances this user is registered for (no date filter)
+      final allUserInstances = await db
+          .collection('class_instances')
+          .where('attendingStudentIds', arrayContains: userId)
+          .get();
+      print('📊 User is registered for ${allUserInstances.docs.length} classes TOTAL (no date filter)');
+      
+      // Debug: Print details of ALL registered classes
+      for (final doc in allUserInstances.docs) {
+        final data = doc.data();
+        final date = (data['scheduledDate'] as Timestamp).toDate();
+        print('  - Class ${doc.id}: ${date.toIso8601String()}, attendees: ${data['attendingStudentIds']}');
+      }
+      
+      // Now try with date filter
       final instancesSnapshot = await db
           .collection('class_instances')
           .where('attendingStudentIds', arrayContains: userId)
-          .where('scheduledDate', isGreaterThanOrEqualTo: Timestamp.fromDate(now))
+          .where('scheduledDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('scheduledDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy('scheduledDate')
           .get();
       
-      if (instancesSnapshot.docs.isEmpty) return [];
+      print('✅ Found ${instancesSnapshot.docs.length} registered classes with date filter');
+      
+      if (instancesSnapshot.docs.isEmpty) {
+        print('❌ No instances found after date filter, returning empty');
+        return [];
+      }
       
       // Get unique template IDs
       final templateIds = instancesSnapshot.docs
@@ -125,18 +153,27 @@ final userRegisteredClassesProvider = FutureProvider.family<List<FullClassData>,
           .toSet()
           .toList();
       
+      print('📋 Template IDs to fetch: $templateIds');
+      
       // Fetch templates
       final templates = <String, ScheduleTemplate>{};
       for (final templateId in templateIds) {
+        print('  🔍 Fetching template: $templateId');
         final templateDoc = await db
             .collection('schedule_templates')
             .doc(templateId)
             .get();
         
         if (templateDoc.exists) {
-          templates[templateId] = ScheduleTemplate.fromFirestore(templateDoc);
+          final template = ScheduleTemplate.fromFirestore(templateDoc);
+          templates[templateId] = template;
+          print('    ✅ Template found: ${template.location}, isActive: ${template.isActive}');
+        } else {
+          print('    ❌ Template NOT FOUND in database!');
         }
       }
+      
+      print('📊 Templates fetched: ${templates.length} out of ${templateIds.length}');
       
       // Join instances with templates
       final fullClasses = <FullClassData>[];
@@ -149,9 +186,13 @@ final userRegisteredClassesProvider = FutureProvider.family<List<FullClassData>,
             instance: instance,
             template: template,
           ));
+          print('  ✅ Added class: ${template.location} on ${instance.scheduledDate}');
+        } else {
+          print('  ❌ SKIPPED instance ${doc.id} - template ${instance.templateId} not in templates map');
         }
       }
       
+      print('🎯 FINAL RESULT: Returning ${fullClasses.length} classes to profile');
       return fullClasses;
     } catch (e) {
       print('Error fetching user registered classes: $e');

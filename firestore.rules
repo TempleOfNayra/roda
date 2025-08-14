@@ -1,64 +1,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    function isTeacher() {
-      return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
-    }
-    
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    // Users collection
+    // Allow authenticated users to read/write their own user document
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow read: if request.auth != null;  // Allow any authenticated user to read any user doc
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      // Allow any authenticated user to delete (for admin cleanup) 
+      allow delete: if request.auth != null;
+    }
+
+    // Allow authenticated users to read/write classes
+    match /classes/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to read/write groups
+    match /groups/{document=**} {
+      allow read, write: if request.auth != null;
     }
     
-    // Groups collection
-    match /groups/{groupId} {
-      allow read: if isAuthenticated();
-      allow create: if isTeacher();
-      allow update, delete: if isTeacher() && 
-        resource.data.teacherId == request.auth.uid;
+    // Allow anyone to read capoeira_groups, authenticated to write
+    match /capoeira_groups/{document=**} {
+      allow read: if true;  // Public read
+      allow write: if request.auth != null;
+    }
+
+    // Allow authenticated users to read/write attendance
+    match /attendance/{document=**} {
+      allow read, write: if request.auth != null;
     }
     
-    // Schedule templates - only teachers can manage their own templates
-    match /schedule_templates/{templateId} {
-      allow read: if isAuthenticated();
-      allow create: if isTeacher() && 
-        request.resource.data.teacherId == request.auth.uid;
-      allow update, delete: if isTeacher() && 
-        resource.data.teacherId == request.auth.uid;
+    // Allow authenticated users to read/write schedule templates
+    match /schedule_templates/{document=**} {
+      allow read, write: if request.auth != null;
     }
-    
-    // Class instances - linked to templates
-    match /class_instances/{instanceId} {
-      allow read: if isAuthenticated();
-      // Only allow creation/updates if user owns the template
-      allow create: if isTeacher() && 
-        exists(/databases/$(database)/documents/schedule_templates/$(request.resource.data.templateId)) &&
-        get(/databases/$(database)/documents/schedule_templates/$(request.resource.data.templateId)).data.teacherId == request.auth.uid;
-      allow update: if isTeacher() && 
-        exists(/databases/$(database)/documents/schedule_templates/$(resource.data.templateId)) &&
-        get(/databases/$(database)/documents/schedule_templates/$(resource.data.templateId)).data.teacherId == request.auth.uid;
-      allow delete: if isTeacher() && 
-        exists(/databases/$(database)/documents/schedule_templates/$(resource.data.templateId)) &&
-        get(/databases/$(database)/documents/schedule_templates/$(resource.data.templateId)).data.teacherId == request.auth.uid;
-    }
-    
-    // Legacy classes collection (for backward compatibility)
-    match /classes/{classId} {
-      allow read: if isAuthenticated();
-      allow create: if isTeacher();
-      allow update, delete: if isTeacher() && 
-        resource.data.teacherId == request.auth.uid;
+
+    // Allow authenticated users to read/write class instances
+    match /class_instances/{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

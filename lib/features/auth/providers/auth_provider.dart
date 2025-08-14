@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/features/auth/repositories/user_repository.dart';
+import 'package:roda/features/groups/providers/group_providers.dart';
 import 'package:roda/main.dart'; // For useMockMode flag
 
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
@@ -131,6 +132,10 @@ class AuthService {
     required DateTime dateOfBirth,
     required UserRole role,
     String? groupName,
+    String? groupAffiliation,
+    String? groupCity,
+    String? groupCountry,
+    String? groupVenmo,
     String? teacherName,
   }) async {
     try {
@@ -141,21 +146,22 @@ class AuthService {
       
       // If this is a teacher and they provided a group name, create the group
       if (role == UserRole.teacher && groupName != null && groupName.isNotEmpty) {
-        // Create a new group for the teacher
-        final groupDoc = await FirebaseFirestore.instance.collection('groups').add({
-          'name': groupName,
-          'teacherId': user.uid,
-          'teacherName': capoeiraName,
-          'location': {
-            'latitude': 0.0,  // TODO: Add location picker
-            'longitude': 0.0,
-          },
-          'memberCount': 1,
-          'schedule': [],
-          'createdAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-        groupId = groupDoc.id;
+        // Use the GroupService to create the group properly
+        final groupService = _ref.read(groupServiceProvider);
+        
+        // Create location string from city and country
+        final location = groupCity != null && groupCountry != null 
+            ? '$groupCity, $groupCountry'
+            : groupCity ?? '';
+        
+        groupId = await groupService.createGroup(
+          name: groupName,
+          branch: groupAffiliation,
+          description: null,
+          location: location,
+          venmoHandle: groupVenmo,
+          createdBy: user.uid,
+        );
       }
       
       final newUser = UserModel(
@@ -165,6 +171,7 @@ class AuthService {
         capoeiraName: capoeiraName,
         dateOfBirth: dateOfBirth,
         role: role,
+        teachingGroupIds: groupId != null ? [groupId] : [],
         groupId: groupId,
         groupName: groupName,
         teacherName: teacherName,

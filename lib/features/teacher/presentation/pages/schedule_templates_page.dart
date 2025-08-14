@@ -37,6 +37,7 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
   
   // Form fields
   final _locationController = TextEditingController();
+  final _priceController = TextEditingController();
   int _selectedDay = 1;
   TimeOfDay _startTime = const TimeOfDay(hour: 18, minute: 0);
   TimeOfDay _endTime = const TimeOfDay(hour: 19, minute: 30);
@@ -62,6 +63,7 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
   void dispose() {
     _tabController.dispose();
     _locationController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
   
@@ -143,12 +145,19 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
           ? _classRecurrence 
           : _rodaRecurrence;
       
+      // Parse price from controller
+      double? price;
+      if (_priceController.text.isNotEmpty) {
+        price = double.tryParse(_priceController.text);
+      }
+      
       // Create the template
       final template = ScheduleTemplate(
         id: '',
         teacherId: user.id,
+        teacherName: user.capoeiraName.isNotEmpty ? user.capoeiraName : user.fullName,
         groupId: user.groupId ?? '',
-        groupName: user.groupName ?? '',
+        groupName: user.groupName ?? 'Independent',
         eventType: _currentEventType,
         recurrenceType: recurrenceType,
         dayOfWeek: _selectedDay,
@@ -158,6 +167,7 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
         location: _locationController.text,
         latitude: _latitude,
         longitude: _longitude,
+        price: price,
         createdAt: DateTime.now(),
       );
       
@@ -253,6 +263,7 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
       // Reset form
       setState(() {
         _locationController.clear();
+        _priceController.clear();
         _selectedDay = 1;
         _startTime = const TimeOfDay(hour: 18, minute: 0);
         _endTime = const TimeOfDay(hour: 19, minute: 30);
@@ -395,6 +406,29 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
                   ),
                   const SizedBox(height: 12),
                   
+                  // Price input field
+                  TextFormField(
+                    controller: _priceController,
+                    decoration: InputDecoration(
+                      labelText: 'Price (USD)',
+                      hintText: 'e.g., 20.00',
+                      prefixText: '\$',
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        final price = double.tryParse(value);
+                        if (price == null || price < 0) {
+                          return 'Please enter a valid price';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  
                   // Recurrence selection based on tab
                   if (_currentEventType == EventType.class_) ...[
                     // Classes are always weekly - no selection needed
@@ -527,6 +561,7 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           _currentEventType == EventType.class_ 
@@ -563,13 +598,28 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(template.location),
-                            Text(
-                              template.recurrenceLabel,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                                fontStyle: FontStyle.italic,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  template.recurrenceLabel,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                if (template.price != null) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '• \$${template.price!.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.green[700],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),

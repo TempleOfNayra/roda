@@ -20,10 +20,11 @@ class ClassInstance {
     required this.templateId,
     required this.scheduledDate,
     this.status = ClassStatus.scheduled,
-    this.attendingStudentIds = const [],
-    this.presentStudentIds = const [],
+    List<String>? attendingStudentIds,
+    List<String>? presentStudentIds,
     this.notes,
-  });
+  }) : attendingStudentIds = attendingStudentIds ?? [],
+       presentStudentIds = presentStudentIds ?? [];
   
   factory ClassInstance.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;

@@ -16,8 +16,9 @@ enum RecurrenceType {
 class ScheduleTemplate {
   final String id;
   final String teacherId;
-  final String groupId;
-  final String groupName;
+  final String teacherName; // Display name of the teacher
+  final String groupId; // The capoeira group ID
+  final String groupName; // Display name of the group (e.g., "ABADA SF")
   final EventType eventType;
   final RecurrenceType recurrenceType;
   final int? dayOfWeek; // 1-7 (Monday-Sunday) - null for one-time events
@@ -27,12 +28,14 @@ class ScheduleTemplate {
   final String location;
   final double? latitude;
   final double? longitude;
+  final double? price; // Price in USD
   final DateTime createdAt;
   final bool isActive;
   
   ScheduleTemplate({
     required this.id,
     required this.teacherId,
+    required this.teacherName,
     required this.groupId,
     required this.groupName,
     required this.eventType,
@@ -44,6 +47,7 @@ class ScheduleTemplate {
     required this.location,
     this.latitude,
     this.longitude,
+    this.price,
     required this.createdAt,
     this.isActive = true,
   });
@@ -53,6 +57,7 @@ class ScheduleTemplate {
     return ScheduleTemplate(
       id: doc.id,
       teacherId: data['teacherId'],
+      teacherName: data['teacherName'] ?? '',
       groupId: data['groupId'],
       groupName: data['groupName'],
       eventType: data['eventType'] == 'roda' ? EventType.roda : EventType.class_,
@@ -69,6 +74,7 @@ class ScheduleTemplate {
       location: data['location'],
       latitude: data['latitude']?.toDouble(),
       longitude: data['longitude']?.toDouble(),
+      price: data['price']?.toDouble(),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       isActive: data['isActive'] ?? true,
     );
@@ -77,6 +83,7 @@ class ScheduleTemplate {
   Map<String, dynamic> toFirestore() {
     return {
       'teacherId': teacherId,
+      'teacherName': teacherName,
       'groupId': groupId,
       'groupName': groupName,
       'eventType': eventType == EventType.roda ? 'roda' : 'class_',
@@ -88,6 +95,7 @@ class ScheduleTemplate {
       'location': location,
       'latitude': latitude,
       'longitude': longitude,
+      'price': price,
       'createdAt': Timestamp.fromDate(createdAt),
       'isActive': isActive,
     };

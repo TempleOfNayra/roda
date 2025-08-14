@@ -1,0 +1,414 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:roda/core/models/user_model.dart';
+import 'package:roda/features/auth/providers/auth_provider.dart';
+import 'package:roda/features/groups/providers/group_providers.dart';
+import 'package:roda/core/models/capoeira_group.dart';
+
+class EditProfilePage extends ConsumerStatefulWidget {
+  const EditProfilePage({super.key});
+
+  @override
+  ConsumerState<EditProfilePage> createState() => _EditProfilePageState();
+}
+
+class _EditProfilePageState extends ConsumerState<EditProfilePage> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _fullNameController;
+  late TextEditingController _capoeiraNameController;
+  late TextEditingController _groupNameController;
+  late TextEditingController _venmoController;
+  DateTime? _dateOfBirth;
+  bool _isLoading = false;
+  bool _isInitialized = false;
+  CapoeiraGroup? _userGroup;
+
+  @override
+  void initState() {
+    super.initState();
+    _fullNameController = TextEditingController();
+    _capoeiraNameController = TextEditingController();
+    _groupNameController = TextEditingController();
+    _venmoController = TextEditingController();
+  }
+
+  void _initializeControllers(UserModel user) {
+    if (!_isInitialized) {
+      _fullNameController.text = user.fullName;
+      _capoeiraNameController.text = user.capoeiraName;
+      _groupNameController.text = user.groupName ?? '';
+      _dateOfBirth = user.dateOfBirth;
+      _isInitialized = true;
+      
+      // Load group data if user has teaching groups
+      if (user.teachingGroupIds.isNotEmpty) {
+        _loadUserGroup(user.teachingGroupIds.first);
+      }
+    }
+  }
+  
+  Future<void> _loadUserGroup(String groupId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('capoeira_groups')
+          .doc(groupId)
+          .get();
+      
+      if (doc.exists) {
+        setState(() {
+          _userGroup = CapoeiraGroup.fromFirestore(doc);
+          _venmoController.text = _userGroup?.venmoHandle ?? '';
+        });
+      }
+    } catch (e) {
+      print('Error loading group: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Edit Profile'),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => context.pop(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : () => _saveProfile(context, ref),
+            child: const Text(
+              'Save',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: currentUser.when(
+        data: (user) {
+          if (user == null) {
+            return const Center(child: Text('No user data'));
+          }
+          
+          _initializeControllers(user);
+          
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Picture Section
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                          child: Text(
+                            user.capoeiraName.isNotEmpty 
+                                ? user.capoeiraName[0].toUpperCase() 
+                                : 'U',
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).primaryColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              size: 20,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Full Name
+                  TextFormField(
+                    controller: _fullNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Full Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your full name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Capoeira Name
+                  TextFormField(
+                    controller: _capoeiraNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Capoeira Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your Capoeira name';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Date of Birth
+                  InkWell(
+                    onTap: () => _selectDateOfBirth(context),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Date of Birth',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Text(
+                        _dateOfBirth != null
+                            ? DateFormat('MMMM dd, yyyy').format(_dateOfBirth!)
+                            : 'Select date',
+                        style: TextStyle(
+                          color: _dateOfBirth != null ? null : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Group Name (read-only for now)
+                  if (user.groupName != null) ...[
+                    TextFormField(
+                      controller: _groupNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Group',
+                        border: OutlineInputBorder(),
+                      ),
+                      enabled: false, // Can't change group for now
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  
+                  // Venmo Handle (for teachers/group owners)
+                  if (user.teachingGroupIds.isNotEmpty) ...[
+                    TextFormField(
+                      controller: _venmoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Venmo Handle',
+                        border: OutlineInputBorder(),
+                        prefixText: '@',
+                        hintText: 'your-venmo-handle',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  
+                  // Role Display
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          user.role == UserRole.teacher ? Icons.school : Icons.person,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Account Type',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            Text(
+                              user.role == UserRole.teacher ? 'Teacher' : 'Student',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Save Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : () => _saveProfile(context, ref),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text(
+                              'Save Changes',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text('Error: $error')),
+      ),
+    );
+  }
+  
+  Future<void> _selectDateOfBirth(BuildContext context) async {
+    final currentYear = DateTime.now().year;
+    final initialYear = _dateOfBirth?.year ?? currentYear - 25;
+    
+    // First show year picker
+    final selectedYear = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Birth Year'),
+        content: SizedBox(
+          width: double.minPositive,
+          height: 300,
+          child: YearPicker(
+            firstDate: DateTime(1900),
+            lastDate: DateTime.now(),
+            selectedDate: DateTime(initialYear),
+            onChanged: (DateTime dateTime) {
+              Navigator.pop(context, dateTime.year);
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+    
+    if (selectedYear != null) {
+      // Then show date picker
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime(selectedYear, _dateOfBirth?.month ?? 6, _dateOfBirth?.day ?? 15),
+        firstDate: DateTime(selectedYear, 1, 1),
+        lastDate: DateTime(selectedYear, 12, 31),
+        initialDatePickerMode: DatePickerMode.day,
+      );
+      
+      if (picked != null) {
+        setState(() {
+          _dateOfBirth = picked;
+        });
+      }
+    }
+  }
+  
+  Future<void> _saveProfile(BuildContext context, WidgetRef ref) async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_dateOfBirth == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select your date of birth')),
+      );
+      return;
+    }
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final user = ref.read(currentUserProvider).value!;
+      
+      // Update user document
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id)
+          .update({
+        'fullName': _fullNameController.text,
+        'capoeiraName': _capoeiraNameController.text,
+        'dateOfBirth': Timestamp.fromDate(_dateOfBirth!),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      // Update group Venmo if user has a group
+      if (_userGroup != null && user.teachingGroupIds.isNotEmpty) {
+        final venmoHandle = _venmoController.text.replaceAll('@', '');
+        await FirebaseFirestore.instance
+            .collection('capoeira_groups')
+            .doc(user.teachingGroupIds.first)
+            .update({
+          'venmoHandle': venmoHandle.isNotEmpty ? venmoHandle : null,
+        });
+      }
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+    
+    setState(() => _isLoading = false);
+  }
+  
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _capoeiraNameController.dispose();
+    _groupNameController.dispose();
+    _venmoController.dispose();
+    super.dispose();
+  }
+}

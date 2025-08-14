@@ -78,29 +78,32 @@ class TeacherDashboardPage extends ConsumerWidget {
   ) {
     if (classes.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.calendar_today,
-              size: 64,
-              color: Colors.grey,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'No upcoming classes',
-              style: TextStyle(
-                fontSize: 18,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.calendar_today,
+                size: 64,
                 color: Colors.grey,
               ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => _showScheduleSetupDialog(context, ref),
-              icon: const Icon(Icons.add),
-              label: const Text('Set Up Schedule'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              const Text(
+                'No upcoming classes',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => _showScheduleSetupDialog(context, ref),
+                icon: const Icon(Icons.add),
+                label: const Text('Set Up Schedule'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -291,6 +294,17 @@ class TeacherDashboardPage extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.green[700],
+                            ),
+                          ),
+                        ],
+                        if (classSession.price != null) ...[
+                          const Spacer(),
+                          Text(
+                            '\$${classSession.price!.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],

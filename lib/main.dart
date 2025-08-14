@@ -35,8 +35,8 @@ class RodaApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'RODA',
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      darkTheme: AppTheme.lightTheme,  // Use light theme for dark mode too
+      themeMode: ThemeMode.light,  // Always use light theme
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

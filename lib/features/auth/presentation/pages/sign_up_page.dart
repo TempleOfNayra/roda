@@ -20,10 +20,14 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   final _fullNameController = TextEditingController();
   final _capoeiraNameController = TextEditingController();
   final _groupNameController = TextEditingController();
+  final _groupAffiliationController = TextEditingController();
+  final _groupCityController = TextEditingController();
+  final _groupVenmoController = TextEditingController();
   final _teacherNameController = TextEditingController();
   
   DateTime? _dateOfBirth;
   UserRole _selectedRole = UserRole.student;
+  String _selectedCountry = 'US';
   bool _isLoading = false;
   bool _isSigningIn = false;
 
@@ -162,6 +166,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           const SizedBox(height: 24),
           TextFormField(
             controller: _fullNameController,
+            autocorrect: false,
             decoration: const InputDecoration(
               labelText: 'Full Name',
               border: OutlineInputBorder(),
@@ -176,6 +181,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _capoeiraNameController,
+            autocorrect: false,
             decoration: const InputDecoration(
               labelText: 'Capoeira Name',
               border: OutlineInputBorder(),
@@ -228,8 +234,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           if (_selectedRole == UserRole.teacher) ...[
             TextFormField(
               controller: _groupNameController,
+              autocorrect: false,
               decoration: const InputDecoration(
-                labelText: 'Group Name',
+                labelText: 'Group Name (e.g., Filhos De Dunga)',
                 border: OutlineInputBorder(),
               ),
               validator: (value) {
@@ -241,8 +248,73 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               },
             ),
             const SizedBox(height: 16),
+            TextFormField(
+              controller: _groupAffiliationController,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'Affiliation/Branch (e.g., Capoeira Angola Center of Mestre João Grande)',
+                border: OutlineInputBorder(),
+                hintText: 'Optional',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _groupCityController,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'City',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (_selectedRole == UserRole.teacher && 
+                    (value == null || value.isEmpty)) {
+                  return 'Please enter your city';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedCountry,
+              decoration: const InputDecoration(
+                labelText: 'Country',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'US',
+                  child: Text('United States'),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedCountry = value!;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _groupVenmoController,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'Venmo Handle (for payments)',
+                border: OutlineInputBorder(),
+                hintText: '@your-venmo-handle',
+                prefixText: '@',
+              ),
+              validator: (value) {
+                if (value != null && value.isNotEmpty) {
+                  // Remove @ if user included it (since we have prefixText)
+                  if (value.startsWith('@')) {
+                    _groupVenmoController.text = value.substring(1);
+                  }
+                }
+                return null; // Optional field
+              },
+            ),
+            const SizedBox(height: 16),
             const Text(
-              'Note: You\'ll set up your class schedule and location after signing up.',
+              'Note: You\'ll set up your class schedule after signing up.',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
@@ -287,17 +359,51 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   }
 
   Future<void> _selectDateOfBirth() async {
-    final picked = await showDatePicker(
+    // Start with year selection for birthdays
+    final currentYear = DateTime.now().year;
+    final initialYear = currentYear - 25; // Default to 25 years ago
+    
+    // First show a dialog to select the year
+    final selectedYear = await showDialog<int>(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      builder: (context) => AlertDialog(
+        title: const Text('Select Birth Year'),
+        content: SizedBox(
+          width: double.minPositive,
+          height: 300,
+          child: YearPicker(
+            firstDate: DateTime(1900),
+            lastDate: DateTime.now(),
+            selectedDate: DateTime(initialYear),
+            onChanged: (DateTime dateTime) {
+              Navigator.pop(context, dateTime.year);
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
     );
     
-    if (picked != null) {
-      setState(() {
-        _dateOfBirth = picked;
-      });
+    if (selectedYear != null) {
+      // Then show date picker with the selected year
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime(selectedYear, 6, 15), // Mid-year default
+        firstDate: DateTime(selectedYear, 1, 1),
+        lastDate: DateTime(selectedYear, 12, 31),
+        initialDatePickerMode: DatePickerMode.day,
+      );
+      
+      if (picked != null) {
+        setState(() {
+          _dateOfBirth = picked;
+        });
+      }
     }
   }
 
@@ -356,31 +462,32 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   }
 
   Future<void> _debugSignInAsFirstUser() async {
-    setState(() => _isSigningIn = true);
-    
+    // Sign in anonymously first
     try {
-      // Sign in anonymously for testing
-      final credential = await FirebaseAuth.instance.signInAnonymously();
+      await FirebaseAuth.instance.signInAnonymously();
       
-      // Create user profile as teacher
-      final authService = ref.read(authServiceProvider);
-      await authService.createUser(
-        fullName: 'Test Teacher',
-        capoeiraName: 'Mestre Test',
-        dateOfBirth: DateTime(1980, 1, 1),
-        role: UserRole.teacher,
-        groupName: 'Test Academy',
-      );
+      // Pre-fill the form with test data
+      setState(() {
+        _fullNameController.text = 'Test User';
+        _capoeiraNameController.text = 'Mestre Test';
+        _selectedRole = UserRole.teacher;
+        _groupNameController.text = 'Test Academy';
+        _dateOfBirth = DateTime(1990, 1, 1);
+      });
       
       if (mounted) {
-        context.go(Routes.main);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Signed in anonymously. Form pre-filled - review and submit.'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Debug sign in failed: $e\nEnable Anonymous auth in Firebase Console')),
         );
-        setState(() => _isSigningIn = false);
       }
     }
   }
@@ -406,6 +513,16 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         role: _selectedRole,
         groupName: _groupNameController.text.isNotEmpty 
             ? _groupNameController.text 
+            : null,
+        groupAffiliation: _groupAffiliationController.text.isNotEmpty
+            ? _groupAffiliationController.text
+            : null,
+        groupCity: _groupCityController.text.isNotEmpty
+            ? _groupCityController.text
+            : null,
+        groupCountry: _selectedCountry,
+        groupVenmo: _groupVenmoController.text.isNotEmpty
+            ? _groupVenmoController.text
             : null,
         teacherName: _teacherNameController.text.isNotEmpty
             ? _teacherNameController.text
@@ -436,6 +553,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     _fullNameController.dispose();
     _capoeiraNameController.dispose();
     _groupNameController.dispose();
+    _groupAffiliationController.dispose();
+    _groupCityController.dispose();
+    _groupVenmoController.dispose();
     _teacherNameController.dispose();
     super.dispose();
   }
