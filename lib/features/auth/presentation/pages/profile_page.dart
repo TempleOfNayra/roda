@@ -71,16 +71,21 @@ class ProfilePage extends ConsumerWidget {
                     CircleAvatar(
                       radius: 40,
                       backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                      child: Text(
-                        user.capoeiraName.isNotEmpty 
-                            ? user.capoeiraName[0].toUpperCase() 
-                            : 'U',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
+                      backgroundImage: user.profilePictureUrl != null 
+                          ? NetworkImage(user.profilePictureUrl!) 
+                          : null,
+                      child: user.profilePictureUrl == null
+                          ? Text(
+                              user.capoeiraName.isNotEmpty 
+                                  ? user.capoeiraName[0].toUpperCase() 
+                                  : 'U',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(

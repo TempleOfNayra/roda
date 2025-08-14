@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/groups/providers/group_providers.dart';
 import 'package:roda/core/models/capoeira_group.dart';
+import 'package:roda/core/services/r2_storage_service.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -25,6 +28,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   bool _isLoading = false;
   bool _isInitialized = false;
   CapoeiraGroup? _userGroup;
+  XFile? _selectedImage;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -110,39 +115,45 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 children: [
                   // Profile Picture Section
                   Center(
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                          child: Text(
-                            user.capoeiraName.isNotEmpty 
-                                ? user.capoeiraName[0].toUpperCase() 
-                                : 'U',
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).primaryColor,
+                    child: GestureDetector(
+                      onTap: _selectProfilePicture,
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                            backgroundImage: _getProfileImage(user),
+                            child: _getProfileImage(user) == null
+                                ? Text(
+                                    user.capoeiraName.isNotEmpty 
+                                        ? user.capoeiraName[0].toUpperCase() 
+                                        : 'U',
+                                    style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).primaryColor,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                size: 20,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              size: 20,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -295,6 +306,69 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     );
   }
   
+  ImageProvider? _getProfileImage(UserModel user) {
+    if (_selectedImage != null) {
+      return FileImage(File(_selectedImage!.path));
+    } else if (user.profilePictureUrl != null) {
+      return NetworkImage(user.profilePictureUrl!);
+    }
+    return null;
+  }
+  
+  Future<void> _selectProfilePicture() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.cancel),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+    
+    if (source != null) {
+      try {
+        final pickedImage = await _imagePicker.pickImage(
+          source: source,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 85,
+        );
+        
+        if (pickedImage != null) {
+          setState(() {
+            _selectedImage = pickedImage;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to select image: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+  
   Future<void> _selectDateOfBirth(BuildContext context) async {
     final currentYear = DateTime.now().year;
     final initialYear = _dateOfBirth?.year ?? currentYear - 25;
@@ -358,16 +432,43 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     try {
       final user = ref.read(currentUserProvider).value!;
       
-      // Update user document
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id)
-          .update({
+      String? profilePictureUrl;
+      
+      // Upload profile picture if selected
+      if (_selectedImage != null) {
+        profilePictureUrl = await R2StorageService.uploadProfilePicture(
+          userId: user.id,
+          imageFile: _selectedImage!,
+        );
+        
+        if (profilePictureUrl == null && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload profile picture'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+      
+      // Prepare update data
+      final updateData = <String, dynamic>{
         'fullName': _fullNameController.text,
         'capoeiraName': _capoeiraNameController.text,
         'dateOfBirth': Timestamp.fromDate(_dateOfBirth!),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+      
+      // Add profile picture URL if uploaded
+      if (profilePictureUrl != null) {
+        updateData['profilePictureUrl'] = profilePictureUrl;
+      }
+      
+      // Update user document
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id)
+          .update(updateData);
       
       // Update group Venmo if user has a group
       if (_userGroup != null && user.teachingGroupIds.isNotEmpty) {

@@ -15,6 +15,7 @@ class UserModel extends Equatable {
   final String? groupId; // Legacy - to be removed
   final String? groupName; // Legacy - to be removed
   final String? teacherName; // For students - their teacher's name
+  final String? profilePictureUrl; // Profile picture URL from R2
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -30,6 +31,7 @@ class UserModel extends Equatable {
     this.groupId,
     this.groupName,
     this.teacherName,
+    this.profilePictureUrl,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -50,6 +52,7 @@ class UserModel extends Equatable {
       groupId: map['groupId'],
       groupName: map['groupName'],
       teacherName: map['teacherName'],
+      profilePictureUrl: map['profilePictureUrl'],
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
@@ -67,6 +70,7 @@ class UserModel extends Equatable {
       'groupId': groupId,
       'groupName': groupName,
       'teacherName': teacherName,
+      'profilePictureUrl': profilePictureUrl,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -84,6 +88,7 @@ class UserModel extends Equatable {
     String? groupId,
     String? groupName,
     String? teacherName,
+    String? profilePictureUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -99,6 +104,7 @@ class UserModel extends Equatable {
       groupId: groupId ?? this.groupId,
       groupName: groupName ?? this.groupName,
       teacherName: teacherName ?? this.teacherName,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -117,6 +123,7 @@ class UserModel extends Equatable {
         groupId,
         groupName,
         teacherName,
+        profilePictureUrl,
         createdAt,
         updatedAt,
       ];

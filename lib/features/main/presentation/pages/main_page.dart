@@ -28,11 +28,13 @@ class MainPage extends ConsumerWidget {
             ),
             // Main content
             Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                     const Text(
                       'RODA',
                       style: TextStyle(
@@ -73,6 +75,7 @@ class MainPage extends ConsumerWidget {
                     ),
                   ],
                 ),
+                ),
               ),
             ),
           ],
@@ -83,6 +86,7 @@ class MainPage extends ConsumerWidget {
 
   Widget _buildSignedOutButtons(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         _buildMainButton(
           context: context,
@@ -114,6 +118,7 @@ class MainPage extends ConsumerWidget {
     final isTeacher = userData.role == UserRole.teacher;
     
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Welcome, ${userData.capoeiraName}!',
