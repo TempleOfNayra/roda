@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Flutter run wrapper that bypasses pod install issues
+# Usage: ./flutterx run
+
+# Check if this is a run command
+if [[ "$1" == "run" ]]; then
+    echo "🚀 Running Flutter app with pod install bypass..."
+    
+    # Save current directory
+    CURRENT_DIR=$(pwd)
+    
+    # Go to ios directory
+    cd ios
+    
+    # Check if Pods exist
+    if [ -d "Pods" ] && [ -f "Podfile.lock" ]; then
+        echo "✅ Pods already installed, skipping pod install"
+        
+        # Create a timestamp file to prevent Flutter from running pod install
+        touch .last_pod_install
+        
+        # Go back to project root
+        cd "$CURRENT_DIR"
+        
+        # Run flutter with a modified command that skips pod checks
+        flutter run "${@:2}" 2>&1 | sed '/Error running pod install/d; /CocoaPods.*out-of-date/d'
+    else
+        echo "❌ Pods not found. Please run from Xcode first to set up pods."
+        cd "$CURRENT_DIR"
+        exit 1
+    fi
+else
+    # For other commands, just pass through to Flutter
+    flutter "$@"
+fi

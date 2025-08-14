@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isTeacher() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    // Groups collection
+    match /groups/{groupId} {
+      allow read: if isAuthenticated();
+      allow create: if isTeacher();
+      allow update, delete: if isTeacher() && 
+        resource.data.teacherId == request.auth.uid;
+    }
+    
+    // Schedule templates - only teachers can manage their own templates
+    match /schedule_templates/{templateId} {
+      allow read: if isAuthenticated();
+      allow create: if isTeacher() && 
+        request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isTeacher() && 
+        resource.data.teacherId == request.auth.uid;
+    }
+    
+    // Class instances - linked to templates
+    match /class_instances/{instanceId} {
+      allow read: if isAuthenticated();
+      // Only allow creation/updates if user owns the template
+      allow create: if isTeacher() && 
+        exists(/databases/$(database)/documents/schedule_templates/$(request.resource.data.templateId)) &&
+        get(/databases/$(database)/documents/schedule_templates/$(request.resource.data.templateId)).data.teacherId == request.auth.uid;
+      allow update: if isTeacher() && 
+        exists(/databases/$(database)/documents/schedule_templates/$(resource.data.templateId)) &&
+        get(/databases/$(database)/documents/schedule_templates/$(resource.data.templateId)).data.teacherId == request.auth.uid;
+      allow delete: if isTeacher() && 
+        exists(/databases/$(database)/documents/schedule_templates/$(resource.data.templateId)) &&
+        get(/databases/$(database)/documents/schedule_templates/$(resource.data.templateId)).data.teacherId == request.auth.uid;
+    }
+    
+    // Legacy classes collection (for backward compatibility)
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow create: if isTeacher();
+      allow update, delete: if isTeacher() && 
+        resource.data.teacherId == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,3 @@
+# Xcode optimization settings for faster builds
+export COMPILER_INDEX_STORE_ENABLE=NO
+export GCC_OPTIMIZATION_LEVEL=0

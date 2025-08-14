@@ -1,0 +1,35 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "roda-33c6f",
+          "appId": "1:491672145228:android:88d1fb0fd935d5d319d3e9",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "roda-33c6f",
+          "appId": "1:491672145228:ios:9f3805f82ace6c9c19d3e9",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "roda-33c6f",
+          "configurations": {
+            "android": "1:491672145228:android:88d1fb0fd935d5d319d3e9",
+            "ios": "1:491672145228:ios:9f3805f82ace6c9c19d3e9",
+            "web": "1:491672145228:web:2ca0a0d80c1103f619d3e9"
+          }
+        }
+      }
+    }
+  }
+}

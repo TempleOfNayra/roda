@@ -1,0 +1,55 @@
+name: roda
+description: A Capoeira class and Roda tracker app
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.5.1
+  
+  # Routing
+  go_router: ^13.2.0
+  
+  # Firebase
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.1
+  cloud_firestore: ^6.0.0
+  google_sign_in: ^6.2.2
+  sign_in_with_apple: ^6.1.4
+  
+  # Maps
+  google_maps_flutter: ^2.5.3
+  geolocator: ^11.0.0
+  geocoding: ^3.0.0
+  flutter_typeahead: ^4.8.0
+  google_places_sdk: ^1.0.0
+  http: ^1.2.0
+  
+  # UI & Utilities
+  intl: ^0.19.0
+  equatable: ^2.0.5
+  flutter_svg: ^2.0.10
+  
+  # Payment Links
+  url_launcher: ^6.2.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  fake_cloud_firestore: ^4.0.0
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/

@@ -1,0 +1,23 @@
+{
+  "version": 0,
+  "use-external-names": false,
+  "case-sensitive": false,
+  "roots": [{
+    "type": "directory",
+    "name": "/Users/aliemami/prod/roda/ios/ios/build/Build/Products/Debug-iphonesimulator/Google-Maps-iOS-Utils/GoogleMapsUtils.framework/Modules",
+    "contents": [{
+      "type": "file",
+      "name": "module.modulemap",
+      "external-contents": "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/Google-Maps-iOS-Utils.build/unextended-module.modulemap",
+    }]
+    },
+    {
+    "type": "directory",
+    "name": "/Users/aliemami/prod/roda/ios/ios/build/Build/Products/Debug-iphonesimulator/Google-Maps-iOS-Utils/GoogleMapsUtils.framework/Headers",
+    "contents": [{
+      "type": "file",
+      "name": "GoogleMapsUtils-Swift.h",
+      "external-contents": "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/Google-Maps-iOS-Utils.build/unextended-interface-header.h",
+    }]
+  }]
+}

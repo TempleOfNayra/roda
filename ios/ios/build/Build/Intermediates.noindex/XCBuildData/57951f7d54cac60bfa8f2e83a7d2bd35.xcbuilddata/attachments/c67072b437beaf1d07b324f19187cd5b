@@ -1,0 +1,48 @@
+{
+  "" : {
+    "diagnostics" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/sign_in_with_apple-master.dia",
+    "emit-module-dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/sign_in_with_apple-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/sign_in_with_apple-master-emit-module.dia",
+    "swift-dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/sign_in_with_apple-master.swiftdeps"
+  },
+  "/Users/aliemami/.pub-cache/hosted/pub.dev/sign_in_with_apple-5.0.0/ios/Classes/SignInWithAppleAvailablePlugin.swift" : {
+    "const-values" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleAvailablePlugin.swiftconstvalues",
+    "dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleAvailablePlugin.d",
+    "diagnostics" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleAvailablePlugin.dia",
+    "index-unit-output-path" : "/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleAvailablePlugin.o",
+    "llvm-bc" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleAvailablePlugin.bc",
+    "object" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleAvailablePlugin.o",
+    "swift-dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleAvailablePlugin.swiftdeps",
+    "swiftmodule" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleAvailablePlugin~partial.swiftmodule"
+  },
+  "/Users/aliemami/.pub-cache/hosted/pub.dev/sign_in_with_apple-5.0.0/ios/Classes/SignInWithAppleError.swift" : {
+    "const-values" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleError.swiftconstvalues",
+    "dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleError.d",
+    "diagnostics" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleError.dia",
+    "index-unit-output-path" : "/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleError.o",
+    "llvm-bc" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleError.bc",
+    "object" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleError.o",
+    "swift-dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleError.swiftdeps",
+    "swiftmodule" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleError~partial.swiftmodule"
+  },
+  "/Users/aliemami/.pub-cache/hosted/pub.dev/sign_in_with_apple-5.0.0/ios/Classes/SignInWithAppleUnavailablePlugin.swift" : {
+    "const-values" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleUnavailablePlugin.swiftconstvalues",
+    "dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleUnavailablePlugin.d",
+    "diagnostics" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleUnavailablePlugin.dia",
+    "index-unit-output-path" : "/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleUnavailablePlugin.o",
+    "llvm-bc" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleUnavailablePlugin.bc",
+    "object" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleUnavailablePlugin.o",
+    "swift-dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleUnavailablePlugin.swiftdeps",
+    "swiftmodule" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SignInWithAppleUnavailablePlugin~partial.swiftmodule"
+  },
+  "/Users/aliemami/.pub-cache/hosted/pub.dev/sign_in_with_apple-5.0.0/ios/Classes/SwiftSignInWithApplePlugin.swift" : {
+    "const-values" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SwiftSignInWithApplePlugin.swiftconstvalues",
+    "dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SwiftSignInWithApplePlugin.d",
+    "diagnostics" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SwiftSignInWithApplePlugin.dia",
+    "index-unit-output-path" : "/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SwiftSignInWithApplePlugin.o",
+    "llvm-bc" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SwiftSignInWithApplePlugin.bc",
+    "object" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SwiftSignInWithApplePlugin.o",
+    "swift-dependencies" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SwiftSignInWithApplePlugin.swiftdeps",
+    "swiftmodule" : "/Users/aliemami/prod/roda/ios/ios/build/Build/Intermediates.noindex/Pods.build/Debug-iphonesimulator/sign_in_with_apple.build/Objects-normal/x86_64/SwiftSignInWithApplePlugin~partial.swiftmodule"
+  }
+}

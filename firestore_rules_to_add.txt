@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read/write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow authenticated users to read/write classes
+    match /classes/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to read/write groups
+    match /groups/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Allow authenticated users to read/write attendance
+    match /attendance/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // ADD THESE NEW RULES FOR THE CLEAN ARCHITECTURE:
+    
+    // Allow authenticated users to read/write schedule templates
+    match /schedule_templates/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to read/write class instances
+    match /class_instances/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

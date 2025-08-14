@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "491672145228",
+    "project_id": "roda-33c6f",
+    "storage_bucket": "roda-33c6f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:491672145228:android:88d1fb0fd935d5d319d3e9",
+        "android_client_info": {
+          "package_name": "com.example.roda"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "491672145228-53kh5915bb19bbed47q9c2irukrja3e3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD0RWCliozfGpgzQX-cJDFFHV224-bNwGY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "491672145228-53kh5915bb19bbed47q9c2irukrja3e3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "491672145228-7uf8pravalin6i8je1d63jhj3esesr1a.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.roda"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
