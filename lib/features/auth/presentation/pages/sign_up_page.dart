@@ -6,6 +6,7 @@ import 'package:roda/core/models/user_model.dart';
 import 'package:roda/core/routing/routes.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/auth/presentation/widgets/auth_button.dart';
+import 'package:roda/core/widgets/birthday_picker.dart';
 import 'package:intl/intl.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
@@ -34,23 +35,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   @override
   void initState() {
     super.initState();
-    _checkAuthState();
-  }
-
-  void _checkAuthState() {
-    final authState = ref.read(authStateProvider);
-    authState.whenData((user) {
-      if (user != null && !_isSigningIn) {
-        // User is authenticated, check if they have a profile
-        final currentUser = ref.read(currentUserProvider);
-        currentUser.whenData((userData) {
-          if (userData != null) {
-            // User has a profile, redirect to main
-            context.go(Routes.main);
-          }
-        });
-      }
-    });
+    // Remove auth state checking - it's overthinking the flow
   }
 
   @override
@@ -61,6 +46,16 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       appBar: AppBar(
         title: const Text('Sign Up'),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            // Sign out first to prevent redirect loop
+            await FirebaseAuth.instance.signOut();
+            if (context.mounted) {
+              context.go(Routes.main);
+            }
+          },
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -146,23 +141,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 16),
-          // Add sign out option if stuck
-          ElevatedButton.icon(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                context.go(Routes.main);
-              }
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text('SIGN OUT - START OVER'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 50),
-            ),
-          ),
           const SizedBox(height: 24),
           TextFormField(
             controller: _fullNameController,
@@ -194,22 +172,14 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             },
           ),
           const SizedBox(height: 16),
-          InkWell(
-            onTap: _selectDateOfBirth,
-            child: InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Date of Birth',
-                border: OutlineInputBorder(),
-              ),
-              child: Text(
-                _dateOfBirth != null
-                    ? DateFormat('MMM dd, yyyy').format(_dateOfBirth!)
-                    : 'Select date',
-                style: TextStyle(
-                  color: _dateOfBirth != null ? null : Colors.grey,
-                ),
-              ),
-            ),
+          BirthdayPicker(
+            initialDate: _dateOfBirth,
+            onDateSelected: (date) {
+              setState(() {
+                _dateOfBirth = date;
+              });
+            },
+            labelText: 'Date of Birth',
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<UserRole>(
@@ -232,6 +202,15 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           ),
           const SizedBox(height: 16),
           if (_selectedRole == UserRole.teacher) ...[
+            const Divider(height: 32),
+            const Text(
+              'Complete Your Group Info',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _groupNameController,
               autocorrect: false,
@@ -299,7 +278,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               decoration: const InputDecoration(
                 labelText: 'Venmo Handle (for payments)',
                 border: OutlineInputBorder(),
-                hintText: '@your-venmo-handle',
+                hintText: 'your-venmo-handle',
                 prefixText: '@',
               ),
               validator: (value) {
@@ -358,54 +337,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     );
   }
 
-  Future<void> _selectDateOfBirth() async {
-    // Start with year selection for birthdays
-    final currentYear = DateTime.now().year;
-    final initialYear = currentYear - 25; // Default to 25 years ago
-    
-    // First show a dialog to select the year
-    final selectedYear = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Birth Year'),
-        content: SizedBox(
-          width: double.minPositive,
-          height: 300,
-          child: YearPicker(
-            firstDate: DateTime(1900),
-            lastDate: DateTime.now(),
-            selectedDate: DateTime(initialYear),
-            onChanged: (DateTime dateTime) {
-              Navigator.pop(context, dateTime.year);
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-    
-    if (selectedYear != null) {
-      // Then show date picker with the selected year
-      final picked = await showDatePicker(
-        context: context,
-        initialDate: DateTime(selectedYear, 6, 15), // Mid-year default
-        firstDate: DateTime(selectedYear, 1, 1),
-        lastDate: DateTime(selectedYear, 12, 31),
-        initialDatePickerMode: DatePickerMode.day,
-      );
-      
-      if (picked != null) {
-        setState(() {
-          _dateOfBirth = picked;
-        });
-      }
-    }
-  }
 
   Future<void> _signInWithGoogle() async {
     setState(() => _isSigningIn = true);
@@ -415,10 +346,10 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       final user = await authService.signInWithGoogle();
       
       if (user != null && mounted) {
-        // User exists, go to main
-        context.go(Routes.main);
+        // User exists, go to profile
+        context.go(Routes.profile);
       } else {
-        // User is null, they need to complete sign-up
+        // User is null, they need to complete profile
         // The auth state will trigger a rebuild showing the form
         if (mounted) {
           setState(() => _isSigningIn = false);
@@ -442,10 +373,10 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       final user = await authService.signInWithApple();
       
       if (user != null && mounted) {
-        // User exists, go to main
-        context.go(Routes.main);
+        // User exists, go to profile
+        context.go(Routes.profile);
       } else {
-        // User is null, they need to complete sign-up
+        // User is null, they need to complete profile
         // The auth state will trigger a rebuild showing the form
         if (mounted) {
           setState(() => _isSigningIn = false);
@@ -530,12 +461,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       );
       
       if (mounted) {
-        if (_selectedRole == UserRole.teacher) {
-          // TODO: Navigate to teacher setup flow
-          context.go(Routes.profile);
-        } else {
-          context.go(Routes.main);
-        }
+        // Always go to profile after sign up
+        context.go(Routes.profile);
       }
     } catch (e) {
       if (mounted) {

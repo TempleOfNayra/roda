@@ -11,6 +11,7 @@ class UserModel extends Equatable {
   final DateTime dateOfBirth;
   final UserRole role;
   final List<String> teachingGroupIds; // Groups this teacher teaches for
+  final List<String> joinedGroupIds; // Groups user has joined as member
   final String? affiliationGroupId; // Student's affiliated group (future feature)
   final String? groupId; // Legacy - to be removed
   final String? groupName; // Legacy - to be removed
@@ -27,6 +28,7 @@ class UserModel extends Equatable {
     required this.dateOfBirth,
     required this.role,
     this.teachingGroupIds = const [],
+    this.joinedGroupIds = const [],
     this.affiliationGroupId,
     this.groupId,
     this.groupName,
@@ -48,6 +50,7 @@ class UserModel extends Equatable {
         orElse: () => UserRole.student,
       ),
       teachingGroupIds: List<String>.from(map['teachingGroupIds'] ?? []),
+      joinedGroupIds: List<String>.from(map['joinedGroupIds'] ?? []),
       affiliationGroupId: map['affiliationGroupId'],
       groupId: map['groupId'],
       groupName: map['groupName'],
@@ -66,6 +69,7 @@ class UserModel extends Equatable {
       'dateOfBirth': Timestamp.fromDate(dateOfBirth),
       'role': role.name,
       'teachingGroupIds': teachingGroupIds,
+      'joinedGroupIds': joinedGroupIds,
       'affiliationGroupId': affiliationGroupId,
       'groupId': groupId,
       'groupName': groupName,
@@ -84,6 +88,7 @@ class UserModel extends Equatable {
     DateTime? dateOfBirth,
     UserRole? role,
     List<String>? teachingGroupIds,
+    List<String>? joinedGroupIds,
     String? affiliationGroupId,
     String? groupId,
     String? groupName,
@@ -100,6 +105,7 @@ class UserModel extends Equatable {
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       role: role ?? this.role,
       teachingGroupIds: teachingGroupIds ?? this.teachingGroupIds,
+      joinedGroupIds: joinedGroupIds ?? this.joinedGroupIds,
       affiliationGroupId: affiliationGroupId ?? this.affiliationGroupId,
       groupId: groupId ?? this.groupId,
       groupName: groupName ?? this.groupName,
@@ -119,6 +125,7 @@ class UserModel extends Equatable {
         dateOfBirth,
         role,
         teachingGroupIds,
+        joinedGroupIds,
         affiliationGroupId,
         groupId,
         groupName,

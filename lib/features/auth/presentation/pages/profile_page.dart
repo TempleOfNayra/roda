@@ -7,7 +7,9 @@ import 'package:roda/core/models/schedule_template.dart';
 import 'package:roda/core/models/class_instance.dart';
 import 'package:roda/core/routing/routes.dart';
 import 'package:roda/core/utils/venmo_helper.dart';
+import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
+import 'package:roda/features/auth/presentation/widgets/payment_button.dart';
 import 'package:roda/features/teacher/providers/schedule_providers.dart';
 import 'package:roda/features/groups/providers/group_providers.dart';
 import 'package:intl/intl.dart';
@@ -19,7 +21,7 @@ class ProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
     
-    return Scaffold(
+    return SafeScaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         leading: IconButton(
@@ -47,11 +49,13 @@ class ProfilePage extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => context.push(Routes.editProfile),
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () => context.push(Routes.settings),
           ),
         ],
       ),
+      bottomNavigationBar: _buildBottomAppBar(context, ref),
       body: currentUser.when(
         data: (user) {
           if (user == null) {
@@ -131,6 +135,25 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
               
+              // My Groups Card
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  leading: const Icon(Icons.group, color: Colors.blue, size: 28),
+                  title: const Text(
+                    'My Groups',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    user.joinedGroupIds.isEmpty 
+                        ? 'Join groups to connect'
+                        : '${user.joinedGroupIds.length} group${user.joinedGroupIds.length == 1 ? '' : 's'} joined',
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () => context.push(Routes.myGroups),
+                ),
+              ),
+              
               // Section header
               Container(
                 width: double.infinity,
@@ -145,7 +168,7 @@ class ProfilePage extends ConsumerWidget {
               ),
               
               // List of registered classes
-              Expanded(
+              Flexible(
                 child: registeredClasses.when(
                   data: (classes) {
                     if (classes.isEmpty) {
@@ -170,7 +193,7 @@ class ProfilePage extends ConsumerWidget {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Visit the map to find and register for classes',
+                                'Find and register for classes near you',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[500],
@@ -180,7 +203,13 @@ class ProfilePage extends ConsumerWidget {
                               ElevatedButton.icon(
                                 onPressed: () => context.push(Routes.map),
                                 icon: const Icon(Icons.map),
-                                label: const Text('Go to Map'),
+                                label: const Text('Browse Classes'),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -358,47 +387,9 @@ class ProfilePage extends ConsumerWidget {
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.only(right: 8),
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              // Get the group's Venmo handle
-                              final groupAsync = await ref.read(groupByIdProvider(classData.template.groupId).future);
-                              
-                              if (groupAsync == null || groupAsync.venmoHandle == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Payment information not available'),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                                return;
-                              }
-                              
-                              final eventType = classData.eventType == EventType.roda ? 'Roda' : 'Class';
-                              final dateStr = DateFormat('MMM d').format(classData.scheduledDate);
-                              final note = '$eventType - $dateStr - ${classData.groupName}';
-                              
-                              final success = await VenmoHelper.launchVenmoPayment(
-                                venmoHandle: groupAsync.venmoHandle!,
-                                amount: classData.price,
-                                note: note,
-                              );
-                              
-                              if (!success && context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Could not open Venmo'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
-                            icon: const Icon(Icons.attach_money, size: 18),
-                            label: const Text('Pay with Venmo'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.green[700],
-                              side: BorderSide(color: Colors.green.shade400),
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                            ),
+                          child: PaymentButton(
+                            classData: classData,
+                            userId: userId,
                           ),
                         ),
                       ),
@@ -406,13 +397,59 @@ class ProfilePage extends ConsumerWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          // Show confirmation dialog
+                          // Check if user has paid for this class
+                          final paymentInfo = classData.instance.paymentConfirmations[userId];
+                          final hasPaid = paymentInfo != null && 
+                              (paymentInfo.status == PaymentStatus.confirmed || 
+                               paymentInfo.status == PaymentStatus.verified);
+                          
+                          // Show appropriate confirmation dialog
                           final shouldCancel = await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(
-                              title: Text('Cancel Registration?'),
-                              content: Text(
-                                'Are you sure you want to cancel your registration for this ${isRoda ? "roda" : "class"}?',
+                              title: const Text('Cancel Registration?'),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (hasPaid) ...[
+                                    const Row(
+                                      children: [
+                                        Icon(Icons.warning, color: Colors.orange),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Important:',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.orange,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'You have already paid for this class. If you cancel:',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      '• You will need to contact the instructor directly for a refund',
+                                    ),
+                                    const Text(
+                                      '• Refunds are not automatic',
+                                    ),
+                                    const Text(
+                                      '• The instructor\'s refund policy applies',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Are you sure you want to cancel your registration for this ${isRoda ? "roda" : "class"}?',
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ] else
+                                    Text(
+                                      'Are you sure you want to cancel your registration for this ${isRoda ? "roda" : "class"}?',
+                                    ),
+                                ],
                               ),
                               actions: [
                                 TextButton(
@@ -424,7 +461,7 @@ class ProfilePage extends ConsumerWidget {
                                   style: TextButton.styleFrom(
                                     foregroundColor: Colors.red,
                                   ),
-                                  child: const Text('Cancel Registration'),
+                                  child: Text(hasPaid ? 'Cancel Anyway' : 'Cancel Registration'),
                                 ),
                               ],
                             ),
@@ -441,8 +478,12 @@ class ProfilePage extends ConsumerWidget {
                               });
                               
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Registration cancelled'),
+                                SnackBar(
+                                  content: Text(
+                                    hasPaid 
+                                        ? 'Registration cancelled. Please contact instructor for refund.'
+                                        : 'Registration cancelled',
+                                  ),
                                   backgroundColor: Colors.orange,
                                 ),
                               );
@@ -621,6 +662,149 @@ class ProfilePage extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+  
+  Widget _buildBottomAppBar(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).value;
+    final isTeacher = user?.role == UserRole.teacher || 
+                     (user?.teachingGroupIds.isNotEmpty ?? false);
+    
+    return BottomAppBar(
+      elevation: 8,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // Home button
+            InkWell(
+              onTap: () => context.go(Routes.main),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.home),
+                    Text(
+                      'Home',
+                      style: TextStyle(fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Map button
+            InkWell(
+              onTap: () => context.push(Routes.map),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.map),
+                    Text(
+                      'Map',
+                      style: TextStyle(fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Calendar/Schedule button
+            InkWell(
+              onTap: () {
+                // TODO: Navigate to schedule/calendar view
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Schedule view coming soon'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.calendar_today),
+                    Text(
+                      'Schedule',
+                      style: TextStyle(fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Groups button
+            InkWell(
+              onTap: () {
+                // TODO: Navigate to groups view
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Groups view coming soon'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.group),
+                    Text(
+                      'Groups',
+                      style: TextStyle(fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Teacher Dashboard (if teacher) or Settings
+            if (isTeacher)
+              InkWell(
+                onTap: () => context.push(Routes.teacherDashboard),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.school),
+                      Text(
+                        'Teach',
+                        style: TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              InkWell(
+                onTap: () => context.push(Routes.editProfile),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.settings),
+                      Text(
+                        'Settings',
+                        style: TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

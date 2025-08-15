@@ -39,30 +39,29 @@ class VenmoHelper {
         ? venmoHandle.substring(1) 
         : venmoHandle;
     
-    // Try native app first on iOS
-    if (Platform.isIOS) {
-      final venmoUrl = generateVenmoUrl(
-        venmoHandle: venmoHandle,
-        amount: amount,
-        note: note,
+    // Try native app first for both iOS and Android
+    final venmoUrl = generateVenmoUrl(
+      venmoHandle: venmoHandle,
+      amount: amount,
+      note: note,
+    );
+    
+    final uri = Uri.parse(venmoUrl);
+    
+    try {
+      // Try to launch the Venmo app directly
+      // This will attempt to open the app if installed
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
       );
       
-      final uri = Uri.parse(venmoUrl);
-      
-      try {
-        // Try to launch the Venmo app directly without checking canLaunchUrl
-        // because canLaunchUrl may return false even if app is installed
-        final launched = await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
-        
-        if (launched) {
-          return true;
-        }
-      } catch (e) {
-        print('Could not launch Venmo app: $e');
+      if (launched) {
+        return true;
       }
+    } catch (e) {
+      print('Could not launch Venmo app: $e');
+      // Continue to web fallback
     }
     
     // Fallback to web URL with proper parameters

@@ -41,6 +41,7 @@ class LocationGroup {
 
 // Provider that groups classes by location for map display
 final mapLocationGroupsProvider = FutureProvider<Map<String, LocationGroup>>((ref) async {
+  // Back to original provider that works
   final allClasses = await ref.watch(mapUpcomingClassesProvider.future);
   
   final groups = <String, LocationGroup>{};
@@ -90,14 +91,16 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
   void initState() {
     super.initState();
     _getCurrentLocation();
-    // Run database debug
-    runDebug();
+    // Run database debug only in debug mode
+    if (AppConfig.enableDebugMode) {
+      runDebug();
+    }
     
     // Set up auto-refresh timer
     _refreshTimer = Timer.periodic(
-      Duration(seconds: AppConfig.mapRefreshInterval),
+      const Duration(seconds: 30),
       (_) {
-        print('🔄 Auto-refreshing map data (every ${AppConfig.mapRefreshInterval}s)');
+        print('🔄 Auto-refreshing map data');
         // Invalidate the provider to force fresh data
         ref.invalidate(mapLocationGroupsProvider);
         ref.invalidate(mapUpcomingClassesProvider);
@@ -122,6 +125,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
       setState(() {
         _currentPosition = position;
       });
+      
       
       _mapController?.animateCamera(
         CameraUpdate.newLatLng(
@@ -245,6 +249,11 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                       _fitAllMarkers();
                     });
                   }
+                },
+                onCameraIdle: () async {
+                  // Refresh data when camera stops moving
+                  ref.invalidate(mapUpcomingClassesProvider);
+                  ref.invalidate(mapLocationGroupsProvider);
                 },
                 initialCameraPosition: CameraPosition(
                   target: _currentPosition != null
@@ -652,8 +661,14 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
   }
   
   void _handlePayment(FullClassData classData) async {
-    // Get the group's Venmo handle
-    final groupAsync = await ref.read(groupByIdProvider(classData.template.groupId).future);
+    // Get the group's Venmo handle - always fetch latest data
+    final groupAsyncValue = ref.read(groupByIdProvider(classData.template.groupId));
+    
+    final groupAsync = groupAsyncValue.when(
+      data: (data) => data,
+      loading: () => null,
+      error: (_, __) => null,
+    );
     
     if (groupAsync == null || groupAsync.venmoHandle == null) {
       ScaffoldMessenger.of(context).showSnackBar(

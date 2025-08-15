@@ -10,6 +10,7 @@ import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/groups/providers/group_providers.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/services/r2_storage_service.dart';
+import 'package:roda/core/widgets/birthday_picker.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -191,22 +192,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   const SizedBox(height: 16),
                   
                   // Date of Birth
-                  InkWell(
-                    onTap: () => _selectDateOfBirth(context),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Date of Birth',
-                        border: OutlineInputBorder(),
-                      ),
-                      child: Text(
-                        _dateOfBirth != null
-                            ? DateFormat('MMMM dd, yyyy').format(_dateOfBirth!)
-                            : 'Select date',
-                        style: TextStyle(
-                          color: _dateOfBirth != null ? null : Colors.grey,
-                        ),
-                      ),
-                    ),
+                  BirthdayPicker(
+                    initialDate: _dateOfBirth,
+                    onDateSelected: (date) {
+                      setState(() {
+                        _dateOfBirth = date;
+                      });
+                    },
+                    labelText: 'Date of Birth',
                   ),
                   const SizedBox(height: 16),
                   
@@ -369,53 +362,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     }
   }
   
-  Future<void> _selectDateOfBirth(BuildContext context) async {
-    final currentYear = DateTime.now().year;
-    final initialYear = _dateOfBirth?.year ?? currentYear - 25;
-    
-    // First show year picker
-    final selectedYear = await showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Birth Year'),
-        content: SizedBox(
-          width: double.minPositive,
-          height: 300,
-          child: YearPicker(
-            firstDate: DateTime(1900),
-            lastDate: DateTime.now(),
-            selectedDate: DateTime(initialYear),
-            onChanged: (DateTime dateTime) {
-              Navigator.pop(context, dateTime.year);
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-    
-    if (selectedYear != null) {
-      // Then show date picker
-      final picked = await showDatePicker(
-        context: context,
-        initialDate: DateTime(selectedYear, _dateOfBirth?.month ?? 6, _dateOfBirth?.day ?? 15),
-        firstDate: DateTime(selectedYear, 1, 1),
-        lastDate: DateTime(selectedYear, 12, 31),
-        initialDatePickerMode: DatePickerMode.day,
-      );
-      
-      if (picked != null) {
-        setState(() {
-          _dateOfBirth = picked;
-        });
-      }
-    }
-  }
   
   Future<void> _saveProfile(BuildContext context, WidgetRef ref) async {
     if (!_formKey.currentState!.validate()) return;

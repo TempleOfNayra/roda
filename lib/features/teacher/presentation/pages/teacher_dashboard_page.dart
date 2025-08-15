@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/models/class_session_model.dart' hide EventType, RecurrenceType;
 import 'package:roda/core/models/schedule_template.dart';
+import 'package:roda/core/models/class_instance.dart' hide ClassStatus;
+import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/classes/providers/class_providers.dart';
 import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
+import 'package:roda/features/teacher/presentation/pages/class_attendance_page.dart';
 import 'package:roda/features/teacher/providers/schedule_providers.dart';
 import 'package:intl/intl.dart';
 
@@ -15,7 +18,7 @@ class TeacherDashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
     
-    return Scaffold(
+    return SafeScaffold(
       appBar: AppBar(
         title: const Text('Teacher Dashboard'),
         centerTitle: true,
@@ -95,12 +98,6 @@ class TeacherDashboardPage extends ConsumerWidget {
                   fontSize: 18,
                   color: Colors.grey,
                 ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => _showScheduleSetupDialog(context, ref),
-                icon: const Icon(Icons.add),
-                label: const Text('Set Up Schedule'),
               ),
             ],
           ),
@@ -210,6 +207,9 @@ class TeacherDashboardPage extends ConsumerWidget {
     final timeRange = '${classSession.startTime} - ${classSession.endTime}';
     final attendingCount = classSession.attendingStudentIds.length;
     final presentCount = classSession.presentStudentIds.length;
+    final paidCount = classSession.instance.paymentConfirmations.values
+        .where((p) => p.status == PaymentStatus.confirmed || p.status == PaymentStatus.verified)
+        .length;
     
     // Determine if this is a roda or class
     final isRoda = classSession.eventType == EventType.roda;
@@ -219,7 +219,11 @@ class TeacherDashboardPage extends ConsumerWidget {
     return Card(
       child: InkWell(
         onTap: () {
-          _showClassDetails(context, classSession);
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ClassAttendancePage(classData: classSession),
+            ),
+          );
         },
         borderRadius: BorderRadius.circular(8),
         child: Padding(
@@ -297,14 +301,19 @@ class TeacherDashboardPage extends ConsumerWidget {
                             ),
                           ),
                         ],
-                        if (classSession.price != null) ...[
-                          const Spacer(),
+                        if (classSession.price != null && classSession.price! > 0) ...[
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.attach_money,
+                            size: 16,
+                            color: Colors.orange[700],
+                          ),
+                          const SizedBox(width: 4),
                           Text(
-                            '\$${classSession.price!.toStringAsFixed(2)}',
+                            '$paidCount/$attendingCount paid',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.w600,
+                              color: Colors.orange[700],
                             ),
                           ),
                         ],
@@ -438,14 +447,6 @@ class TeacherDashboardPage extends ConsumerWidget {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _buildActionCard(
-            context,
-            'Schedule Class',
-            Icons.calendar_today,
-            Colors.blue,
-            () => _showScheduleSetupDialog(context, ref),
-          ),
-          const SizedBox(width: 12),
           _buildActionCard(
             context,
             'Take Attendance',

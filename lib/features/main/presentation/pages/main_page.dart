@@ -13,6 +13,9 @@ class MainPage extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final currentUser = ref.watch(currentUserProvider);
     
+    print('DEBUG: [MainPage.build] authState: ${authState.value != null ? "logged in" : "not logged in"}');
+    print('DEBUG: [MainPage.build] currentUser: ${currentUser.value != null ? "has profile" : "no profile"}');
+    
     return Scaffold(
       body: SafeArea(
         child: Stack(
@@ -55,14 +58,17 @@ class MainPage extends ConsumerWidget {
                 authState.when(
                   data: (user) {
                     if (user == null) {
+                      print('DEBUG: [MainPage] User not authenticated - showing sign out buttons');
                       return _buildSignedOutButtons(context);
                     } else {
                       return currentUser.when(
                         data: (userData) {
                           if (userData == null) {
                             // User authenticated but no profile yet
+                            print('DEBUG: [MainPage] User authenticated but no profile - showing complete profile button');
                             return _buildSignUpButton(context);
                           }
+                          print('DEBUG: [MainPage] User has profile - showing signed in buttons');
                           return _buildSignedInButtons(context, ref, userData);
                         },
                         loading: () => const CircularProgressIndicator(),

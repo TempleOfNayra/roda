@@ -8,4 +8,6 @@ class Routes {
   static const String teacherDashboard = '/teacher-dashboard';
   static const String map = '/map';
   static const String settings = '/settings';
+  static const String group = '/group';
+  static const String myGroups = '/my-groups';
 }

@@ -41,5 +41,7 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Query for Venmo app -->
+        <package android:name="com.venmo" />
     </queries>
 </manifest>

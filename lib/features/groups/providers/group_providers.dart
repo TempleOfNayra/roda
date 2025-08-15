@@ -23,15 +23,16 @@ final allGroupsProvider = StreamProvider<List<CapoeiraGroup>>((ref) {
   }
 });
 
-// Provider for a specific group
-final groupByIdProvider = FutureProvider.family<CapoeiraGroup?, String>((ref, groupId) async {
-  final doc = await FirebaseFirestore.instance
+// Provider for a specific group - uses Stream for real-time updates
+final groupByIdProvider = StreamProvider.family<CapoeiraGroup?, String>((ref, groupId) {
+  return FirebaseFirestore.instance
       .collection('capoeira_groups')
       .doc(groupId)
-      .get();
-  
-  if (!doc.exists) return null;
-  return CapoeiraGroup.fromFirestore(doc);
+      .snapshots()
+      .map((doc) {
+        if (!doc.exists) return null;
+        return CapoeiraGroup.fromFirestore(doc);
+      });
 });
 
 // Provider for groups that a teacher teaches for
@@ -67,6 +68,8 @@ class GroupService {
     String? location,
     String? venmoHandle,
     required String createdBy,
+    String? teacherName,
+    String? teacherProfilePicture,
   }) async {
     // Check if group with same name and branch exists
     final displayName = CapoeiraGroup.createDisplayName(name, branch);
@@ -90,12 +93,21 @@ class GroupService {
       location: location,
       venmoHandle: venmoHandle,
       teacherIds: [createdBy],
+      memberIds: [createdBy], // Teacher is automatically the first member
       createdBy: createdBy,
+      teacherName: teacherName,
+      teacherProfilePicture: teacherProfilePicture,
       createdAt: DateTime.now(),
       isActive: true,
     );
     
     final docRef = await _db.collection('capoeira_groups').add(group.toFirestore());
+    
+    // Also add the group to the teacher's joined groups
+    await _db.collection('users').doc(createdBy).update({
+      'joinedGroupIds': FieldValue.arrayUnion([docRef.id]),
+    });
+    
     return docRef.id;
   }
   

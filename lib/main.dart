@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -10,6 +11,13 @@ const bool useMockMode = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Just print overflow errors to console
+  FlutterError.onError = (details) {
+    if (details.exception.toString().contains('overflowed')) {
+      print('OVERFLOW: ${details.exception}');
+    }
+  };
   
   if (!useMockMode) {
     // Initialize Firebase with options
@@ -39,6 +47,15 @@ class RodaApp extends ConsumerWidget {
       themeMode: ThemeMode.light,  // Always use light theme
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return MediaQuery(
+          // Prevent text from scaling too much
+          data: MediaQuery.of(context).copyWith(
+            textScaleFactor: MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
+          ),
+          child: child!,
+        );
+      },
     );
   }
 }

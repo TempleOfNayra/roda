@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roda/core/models/schedule_template.dart';
 import 'package:roda/core/models/class_instance.dart';
+import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/teacher/presentation/widgets/google_places_address_field.dart';
 import 'package:intl/intl.dart';
@@ -364,7 +365,7 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
   Widget build(BuildContext context) {
     final templatesAsync = ref.watch(scheduleTemplatesProvider);
     
-    return Scaffold(
+    return SafeScaffold(
       appBar: AppBar(
         title: const Text('Schedule Templates'),
         centerTitle: true,
@@ -380,18 +381,23 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
         children: [
           // Form section
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.4,
             ),
-            child: Form(
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Form(
               key: _formKey,
               child: Column(
                 children: [
@@ -547,10 +553,12 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage>
                 ],
               ),
             ),
+              ),
+            ),
           ),
           
           // Templates list
-          Expanded(
+          Flexible(
             child: templatesAsync.when(
               data: (templates) {
                 final filtered = templates.where((t) => 

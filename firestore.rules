@@ -39,5 +39,16 @@ service cloud.firestore {
     match /class_instances/{document=**} {
       allow read, write: if request.auth != null;
     }
+    
+    // Allow authenticated users to read/write events
+    match /events/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // TEMPORARY FOR DEV: Allow any authenticated user to delete anything
+    // WARNING: Remove this rule in production!
+    match /{document=**} {
+      allow delete: if request.auth != null;
+    }
   }
 }

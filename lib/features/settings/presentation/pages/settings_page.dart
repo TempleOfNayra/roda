@@ -11,7 +11,8 @@ class SettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentUser = ref.watch(currentUserProvider);
+    final currentUser = ref.watch(currentUserProvider).value;  // Get value directly, might be null
+    final isTeacher = currentUser?.role == UserRole.teacher ?? false;
     
     return Scaffold(
       appBar: AppBar(
@@ -22,15 +23,7 @@ class SettingsPage extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
       ),
-      body: currentUser.when(
-        data: (user) {
-          if (user == null) {
-            return const Center(child: Text('No user data'));
-          }
-          
-          final isTeacher = user.role == UserRole.teacher;
-          
-          return ListView(
+      body: ListView(
             children: [
               // General Settings Section
               _buildSectionHeader('General'),
@@ -52,8 +45,8 @@ class SettingsPage extends ConsumerWidget {
               ),
               const Divider(),
               
-              // Admin Section - Only for teachers
-              if (isTeacher) ...[
+              // Admin Section - Always show for development
+              // if (isTeacher) ...[
                 _buildSectionHeader('Admin Tools'),
                 ListTile(
                   leading: const Icon(Icons.cleaning_services, color: Colors.orange),
@@ -70,7 +63,7 @@ class SettingsPage extends ConsumerWidget {
                   onTap: () => _showTotalCleanDialog(context, ref),
                 ),
                 const Divider(),
-              ],
+              // ],
               
               // App Info Section
               _buildSectionHeader('About'),
@@ -97,23 +90,20 @@ class SettingsPage extends ConsumerWidget {
               ),
               const Divider(),
               
-              // Sign Out
-              ListTile(
-                leading: const Icon(Icons.logout, color: Colors.red),
-                title: const Text('Sign Out'),
-                onTap: () async {
-                  await ref.read(authServiceProvider).signOut();
-                  if (context.mounted) {
-                    context.go(Routes.main);
-                  }
-                },
-              ),
+              // Sign Out - only show if user is logged in
+              if (currentUser != null)
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text('Sign Out'),
+                  onTap: () async {
+                    await ref.read(authServiceProvider).signOut();
+                    if (context.mounted) {
+                      context.go(Routes.main);
+                    }
+                  },
+                ),
             ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
-      ),
+          ),
     );
   }
   
@@ -356,6 +346,7 @@ class SettingsPage extends ConsumerWidget {
       'users',
       'groups',
       'capoeira_groups',
+      'events',
       'schedule_templates',
       'class_instances',
       'classes',
