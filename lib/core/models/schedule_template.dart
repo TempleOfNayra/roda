@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum EventType {
   class_,
@@ -52,54 +51,7 @@ class ScheduleTemplate {
     this.isActive = true,
   });
   
-  factory ScheduleTemplate.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return ScheduleTemplate(
-      id: doc.id,
-      teacherId: data['teacherId'],
-      teacherName: data['teacherName'] ?? '',
-      groupId: data['groupId'],
-      groupName: data['groupName'],
-      eventType: data['eventType'] == 'roda' ? EventType.roda : EventType.class_,
-      recurrenceType: RecurrenceType.values.firstWhere(
-        (r) => r.name == data['recurrenceType'],
-        orElse: () => RecurrenceType.weekly,
-      ),
-      dayOfWeek: data['dayOfWeek'],
-      oneTimeDate: data['oneTimeDate'] != null 
-          ? (data['oneTimeDate'] as Timestamp).toDate() 
-          : null,
-      startTime: data['startTime'],
-      endTime: data['endTime'],
-      location: data['location'],
-      latitude: data['latitude']?.toDouble(),
-      longitude: data['longitude']?.toDouble(),
-      price: data['price']?.toDouble(),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      isActive: data['isActive'] ?? true,
-    );
-  }
   
-  Map<String, dynamic> toFirestore() {
-    return {
-      'teacherId': teacherId,
-      'teacherName': teacherName,
-      'groupId': groupId,
-      'groupName': groupName,
-      'eventType': eventType == EventType.roda ? 'roda' : 'class_',
-      'recurrenceType': recurrenceType.name,
-      if (dayOfWeek != null) 'dayOfWeek': dayOfWeek,
-      if (oneTimeDate != null) 'oneTimeDate': Timestamp.fromDate(oneTimeDate!),
-      'startTime': startTime,
-      'endTime': endTime,
-      'location': location,
-      'latitude': latitude,
-      'longitude': longitude,
-      'price': price,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'isActive': isActive,
-    };
-  }
   
   String get dayName {
     if (dayOfWeek == null) return '';

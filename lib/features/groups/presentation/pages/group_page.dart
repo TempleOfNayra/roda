@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
-import 'package:roda/features/groups/providers/group_providers.dart';
+import 'package:roda/features/groups/providers/supabase_group_providers.dart';
+import 'package:roda/core/config/supabase_config.dart';
 import 'package:intl/intl.dart';
 
 class GroupPage extends ConsumerStatefulWidget {
@@ -30,21 +30,14 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     setState(() => _isJoining = true);
     
     try {
-      // Add user to group members
-      await FirebaseFirestore.instance
-          .collection('capoeira_groups')
-          .doc(widget.groupId)
-          .update({
-        'memberIds': FieldValue.arrayUnion([user.id]),
-      });
-      
-      // Add group to user's joined groups
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id)
-          .update({
-        'joinedGroupIds': FieldValue.arrayUnion([widget.groupId]),
-      });
+      // Add user to group using Supabase
+      await SupabaseConfig.client
+          .from('group_members')
+          .insert({
+            'group_id': widget.groupId,
+            'user_id': user.id,
+            'role': 'member',
+          });
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -96,21 +89,12 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     if (confirmed != true) return;
     
     try {
-      // Remove user from group members
-      await FirebaseFirestore.instance
-          .collection('capoeira_groups')
-          .doc(widget.groupId)
-          .update({
-        'memberIds': FieldValue.arrayRemove([user.id]),
-      });
-      
-      // Remove group from user's joined groups
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id)
-          .update({
-        'joinedGroupIds': FieldValue.arrayRemove([widget.groupId]),
-      });
+      // Remove user from group using Supabase
+      await SupabaseConfig.client
+          .from('group_members')
+          .delete()
+          .eq('group_id', widget.groupId)
+          .eq('user_id', user.id);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -146,6 +130,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
           
           final isMember = group.memberIds.contains(currentUser?.id);
           final isTeacher = group.teacherIds.contains(currentUser?.id);
+          final isAdmin = group.adminIds.contains(currentUser?.id);
           
           return CustomScrollView(
             slivers: [
@@ -153,6 +138,56 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               SliverAppBar(
                 expandedHeight: 200,
                 pinned: true,
+                actions: isAdmin ? [
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert),
+                    onSelected: (value) async {
+                      switch (value) {
+                        case 'manage_members':
+                          _showManageMembersDialog(context, group, currentUser!.id);
+                          break;
+                        case 'manage_teachers':
+                          _showManageTeachersDialog(context, group, currentUser!.id);
+                          break;
+                        case 'edit_group':
+                          _showEditGroupDialog(context, group);
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'manage_members',
+                        child: Row(
+                          children: [
+                            Icon(Icons.people, size: 20),
+                            SizedBox(width: 8),
+                            Text('Manage Members'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'manage_teachers',
+                        child: Row(
+                          children: [
+                            Icon(Icons.school, size: 20),
+                            SizedBox(width: 8),
+                            Text('Manage Teachers'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'edit_group',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, size: 20),
+                            SizedBox(width: 8),
+                            Text('Edit Group Info'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ] : null,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Stack(
                     fit: StackFit.expand,
@@ -262,12 +297,34 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  'Group Leader',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Group Leader',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    if (group.adminIds.contains(group.createdBy)) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.purple,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text(
+                                          'ADMIN',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 if (group.location != null) ...[
                                   const SizedBox(height: 4),
@@ -546,6 +603,217 @@ class _GroupPageState extends ConsumerState<GroupPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+  
+  void _showManageMembersDialog(BuildContext context, CapoeiraGroup group, String adminId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Manage Members'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: SupabaseConfig.client
+                .from('group_members')
+                .select('users(*)')
+                .eq('group_id', widget.groupId),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              final members = snapshot.data!;
+              
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: members.length,
+                itemBuilder: (context, index) {
+                  final member = members[index];
+                  final memberId = member['users']['id'];
+                  final memberData = member['users'] as Map<String, dynamic>;
+                  final isCurrentUserAdmin = memberId == adminId;
+                  final isMemberAdmin = group.adminIds.contains(memberId);
+                  final isMemberTeacher = group.teacherIds.contains(memberId);
+                  
+                  return ListTile(
+                    leading: CircleAvatar(
+                      child: Text(
+                        memberData['capoeiraName']?.substring(0, 1).toUpperCase() ?? 'U',
+                      ),
+                    ),
+                    title: Text(memberData['capoeiraName'] ?? 'Unknown'),
+                    subtitle: Row(
+                      children: [
+                        if (isMemberAdmin)
+                          Container(
+                            margin: const EdgeInsets.only(right: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.purple,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Admin',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        if (isMemberTeacher)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Teacher',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    trailing: !isCurrentUserAdmin ? PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        final groupService = ref.read(supabaseGroupServiceProvider);
+                        switch (value) {
+                          case 'make_teacher':
+                            await groupService.addTeacherToGroup(widget.groupId, memberId);
+                            break;
+                          case 'remove_teacher':
+                            await groupService.removeTeacherFromGroup(widget.groupId, memberId);
+                            break;
+                          case 'make_admin':
+                            await groupService.addAdminToGroup(widget.groupId, memberId);
+                            break;
+                          case 'remove_member':
+                            await groupService.removeMemberFromGroup(widget.groupId, memberId);
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        if (!isMemberTeacher)
+                          const PopupMenuItem(
+                            value: 'make_teacher',
+                            child: Text('Make Teacher'),
+                          ),
+                        if (isMemberTeacher && !isMemberAdmin)
+                          const PopupMenuItem(
+                            value: 'remove_teacher',
+                            child: Text('Remove Teacher Role'),
+                          ),
+                        if (!isMemberAdmin)
+                          const PopupMenuItem(
+                            value: 'make_admin',
+                            child: Text('Make Admin'),
+                          ),
+                        if (!isMemberAdmin)
+                          const PopupMenuItem(
+                            value: 'remove_member',
+                            child: Text('Remove from Group'),
+                          ),
+                      ],
+                    ) : null,
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showManageTeachersDialog(BuildContext context, CapoeiraGroup group, String adminId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Manage Teachers'),
+        content: const Text('Select members to add or remove as teachers'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showEditGroupDialog(BuildContext context, CapoeiraGroup group) {
+    final nameController = TextEditingController(text: group.name);
+    final branchController = TextEditingController(text: group.branch);
+    final locationController = TextEditingController(text: group.location);
+    final descriptionController = TextEditingController(text: group.description);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Group Info'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Group Name'),
+              ),
+              TextField(
+                controller: branchController,
+                decoration: const InputDecoration(labelText: 'Branch/Affiliation'),
+              ),
+              TextField(
+                controller: locationController,
+                decoration: const InputDecoration(labelText: 'Location'),
+              ),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: 'Description'),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final groupService = ref.read(supabaseGroupServiceProvider);
+              await groupService.updateGroupDetails(widget.groupId, {
+                'name': nameController.text,
+                'branch': branchController.text.isEmpty ? null : branchController.text,
+                'location': locationController.text.isEmpty ? null : locationController.text,
+                'description': descriptionController.text.isEmpty ? null : descriptionController.text,
+                'displayName': CapoeiraGroup.createDisplayName(
+                  nameController.text,
+                  branchController.text.isEmpty ? null : branchController.text,
+                ),
+              });
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Group info updated')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }

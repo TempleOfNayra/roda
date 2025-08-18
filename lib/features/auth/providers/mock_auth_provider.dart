@@ -1,8 +1,8 @@
 // Mock authentication provider for local development
-// This bypasses Firebase authentication
+// This bypasses Supabase authentication
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:roda/core/models/user_model.dart';
 
 // Override the auth state provider to return null (not signed in)

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roda/core/models/class_instance.dart';
 import 'package:roda/core/models/schedule_template.dart';
 import 'package:roda/core/utils/venmo_helper.dart';
-import 'package:roda/features/groups/providers/group_providers.dart';
-import 'package:roda/features/teacher/providers/schedule_providers.dart';
+import 'package:roda/features/groups/providers/supabase_group_providers.dart';
+import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:intl/intl.dart';
 
 class PaymentButton extends ConsumerStatefulWidget {
-  final FullClassData classData;
+  final dynamic classData; // TODO: Replace with proper ClassInstance type
   final String userId;
   
   const PaymentButton({
@@ -114,17 +114,8 @@ class _PaymentButtonState extends ConsumerState<PaymentButton> {
     });
     
     try {
-      // Update the payment confirmation in Firestore
-      await FirebaseFirestore.instance
-          .collection('class_instances')
-          .doc(widget.classData.instance.id)
-          .update({
-        'paymentConfirmations.${widget.userId}': {
-          'status': PaymentStatus.confirmed.name,
-          'confirmedAt': FieldValue.serverTimestamp(),
-          'paymentMethod': 'venmo',
-        }
-      });
+      // TODO: Update the payment confirmation in Supabase
+      // Need to update the class_instances table with payment confirmation
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

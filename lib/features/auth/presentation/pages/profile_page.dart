@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:roda/core/config/supabase_config.dart';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/core/models/schedule_template.dart';
-import 'package:roda/core/models/class_instance.dart';
+import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/routing/routes.dart';
-import 'package:roda/core/utils/venmo_helper.dart';
 import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
-import 'package:roda/features/auth/presentation/widgets/payment_button.dart';
-import 'package:roda/features/teacher/providers/schedule_providers.dart';
-import 'package:roda/features/groups/providers/group_providers.dart';
+import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:intl/intl.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -135,24 +132,169 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
               
-              // My Groups Card
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.group, color: Colors.blue, size: 28),
-                  title: const Text(
-                    'My Groups',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+              // My Groups Section
+              if (user.joinedGroupIds.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'My Groups',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (user.joinedGroupIds.length > 3)
+                        TextButton(
+                          onPressed: () => context.push(Routes.myGroups),
+                          child: const Text('See All'),
+                        ),
+                    ],
                   ),
-                  subtitle: Text(
-                    user.joinedGroupIds.isEmpty 
-                        ? 'Join groups to connect'
-                        : '${user.joinedGroupIds.length} group${user.joinedGroupIds.length == 1 ? '' : 's'} joined',
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => context.push(Routes.myGroups),
                 ),
-              ),
+                // Show up to 3 groups
+                SizedBox(
+                  height: 100,
+                  child: FutureBuilder<List<CapoeiraGroup>>(
+                    future: () async {
+                      if (user.joinedGroupIds.isEmpty) return <CapoeiraGroup>[];
+                      final response = await SupabaseConfig.client
+                          .from('groups')
+                          .select()
+                          .inFilter('id', user.joinedGroupIds.take(3).toList());
+                      return (response as List)
+                          .map((data) => CapoeiraGroup.fromMap(data))
+                          .toList();
+                    }(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      
+                      final groups = snapshot.data!;
+                      
+                      return ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: groups.length,
+                        itemBuilder: (context, index) {
+                          final group = groups[index];
+                          final isAdmin = group.adminIds.contains(user.id);
+                          final isTeacher = group.teacherIds.contains(user.id);
+                          
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: InkWell(
+                              onTap: () => context.push('${Routes.group}/${group.id}'),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 160,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade200),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 24,
+                                      backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                                      child: Text(
+                                        group.displayName.isNotEmpty 
+                                            ? group.displayName[0].toUpperCase()
+                                            : 'G',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                      child: Text(
+                                        group.displayName,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isAdmin)
+                                      Container(
+                                        margin: const EdgeInsets.only(top: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.purple.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Text(
+                                          'Admin',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.purple,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      )
+                                    else if (isTeacher)
+                                      Container(
+                                        margin: const EdgeInsets.only(top: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Text(
+                                          'Teacher',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.blue,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ] else
+                // Show empty state card
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.group, color: Colors.blue, size: 28),
+                    title: const Text(
+                      'My Groups',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: const Text('Join groups to connect'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => context.push(Routes.myGroups),
+                  ),
+                ),
               
               // Section header
               Container(
@@ -222,7 +364,8 @@ class ProfilePage extends ConsumerWidget {
                       itemCount: classes.length,
                       itemBuilder: (context, index) {
                         final classData = classes[index];
-                        return _buildClassCard(context, ref, classData, user.id);
+                        // TODO: Re-implement _buildClassCard with new data structure
+                        return Container(); // _buildClassCard(context, ref, classData, user.id);
                       },
                     );
                   },
@@ -241,6 +384,7 @@ class ProfilePage extends ConsumerWidget {
     );
   }
   
+  /* Temporarily disabled - needs FullClassData model
   Widget _buildClassCard(
     BuildContext context,
     WidgetRef ref,
@@ -470,7 +614,7 @@ class ProfilePage extends ConsumerWidget {
                           if (shouldCancel == true) {
                             try {
                               // Remove from attending list
-                              await FirebaseFirestore.instance
+                              await SupabaseConfig.client
                                   .collection('class_instances')
                                   .doc(classData.instance.id)
                                   .update({
@@ -517,11 +661,12 @@ class ProfilePage extends ConsumerWidget {
       ),
     );
   }
+  */
   
   void _showClassDetails(
     BuildContext context,
     WidgetRef ref,
-    FullClassData classData,
+    dynamic classData, // FullClassData
     String userId,
   ) {
     final isPresent = classData.presentStudentIds.contains(userId);
@@ -607,12 +752,8 @@ class ProfilePage extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       // Remove from attending list
-                      await FirebaseFirestore.instance
-                          .collection('class_instances')
-                          .doc(classData.instance.id)
-                          .update({
-                        'attendingStudentIds': FieldValue.arrayRemove([userId]),
-                      });
+                      // TODO: Implement removal from attending list with Supabase
+                      // Need to update the class_instances table
                       
                       if (context.mounted) {
                         Navigator.pop(context);

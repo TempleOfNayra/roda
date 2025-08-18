@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
+import 'package:roda/core/config/supabase_config.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
-import 'package:roda/features/groups/providers/group_providers.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/services/r2_storage_service.dart';
 import 'package:roda/core/widgets/birthday_picker.dart';
@@ -58,17 +56,16 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   
   Future<void> _loadUserGroup(String groupId) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('capoeira_groups')
-          .doc(groupId)
-          .get();
+      final response = await SupabaseConfig.client
+          .from('groups')
+          .select()
+          .eq('id', groupId)
+          .single();
       
-      if (doc.exists) {
-        setState(() {
-          _userGroup = CapoeiraGroup.fromFirestore(doc);
-          _venmoController.text = _userGroup?.venmoHandle ?? '';
-        });
-      }
+      setState(() {
+        _userGroup = CapoeiraGroup.fromMap(response);
+        _venmoController.text = _userGroup?.venmoHandle ?? '';
+      });
     } catch (e) {
       print('Error loading group: $e');
     }
@@ -401,8 +398,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       final updateData = <String, dynamic>{
         'fullName': _fullNameController.text,
         'capoeiraName': _capoeiraNameController.text,
-        'dateOfBirth': Timestamp.fromDate(_dateOfBirth!),
-        'updatedAt': FieldValue.serverTimestamp(),
+        'date_of_birth': _dateOfBirth!.toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
       };
       
       // Add profile picture URL if uploaded
@@ -411,20 +408,20 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       }
       
       // Update user document
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id)
-          .update(updateData);
+      await SupabaseConfig.client
+          .from('users')
+          .update(updateData)
+          .eq('id', user.id);
       
       // Update group Venmo if user has a group
       if (_userGroup != null && user.teachingGroupIds.isNotEmpty) {
         final venmoHandle = _venmoController.text.replaceAll('@', '');
-        await FirebaseFirestore.instance
-            .collection('capoeira_groups')
-            .doc(user.teachingGroupIds.first)
+        await SupabaseConfig.client
+            .from('groups')
             .update({
-          'venmoHandle': venmoHandle.isNotEmpty ? venmoHandle : null,
-        });
+          'venmo_handle': venmoHandle.isNotEmpty ? venmoHandle : null,
+        })
+            .eq('id', user.teachingGroupIds.first);
       }
       
       if (context.mounted) {

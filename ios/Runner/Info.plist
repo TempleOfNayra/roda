@@ -54,13 +54,16 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.491672145228-7ejmlraviqqo1prcp72kk7o1to8e45i8</string>
+				<string>io.nayra.roda</string>
+				<string>com.supabase.auth</string>
 			</array>
 		</dict>
 	</array>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>venmo</string>
+		<string>https</string>
+		<string>http</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to select a profile picture.</string>

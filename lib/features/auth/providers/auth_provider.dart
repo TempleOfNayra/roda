@@ -1,15 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:roda/core/models/user_model.dart';
-import 'package:roda/features/auth/repositories/user_repository.dart';
-import 'package:roda/features/groups/providers/group_providers.dart';
+import 'package:roda/features/auth/repositories/supabase_user_repository.dart';
+import 'package:roda/features/groups/providers/supabase_group_providers.dart';
+import 'package:roda/core/config/supabase_config.dart';
 import 'package:roda/main.dart'; // For useMockMode flag
 
-final firebaseAuthProvider = Provider<FirebaseAuth>((ref) {
-  return FirebaseAuth.instance;
+final supabaseAuthProvider = Provider<GoTrueClient>((ref) {
+  return SupabaseConfig.auth;
 });
 
 final authStateProvider = StreamProvider<User?>((ref) {
@@ -17,19 +15,20 @@ final authStateProvider = StreamProvider<User?>((ref) {
     // In mock mode, always return null (not signed in)
     return Stream.value(null);
   }
-  return ref.watch(firebaseAuthProvider).authStateChanges();
+  return ref.watch(supabaseAuthProvider).onAuthStateChange.map((event) => event.session?.user);
 });
 
 final currentUserProvider = StreamProvider<UserModel?>((ref) {
   final authState = ref.watch(authStateProvider);
-  final userRepository = ref.watch(userRepositoryProvider);
+  final userRepository = ref.watch(supabaseUserRepositoryProvider);
   
   return authState.when(
     data: (user) {
       if (user == null) {
         return Stream.value(null);
       }
-      return userRepository.getUserStream(user.uid);
+      // Use Supabase user ID
+      return userRepository.getUserStream(user.id);
     },
     loading: () => Stream.value(null),
     error: (_, __) => Stream.value(null),
@@ -45,42 +44,35 @@ class AuthService {
   
   AuthService(this._ref);
   
-  FirebaseAuth get _auth => _ref.read(firebaseAuthProvider);
-  UserRepository get _userRepository => _ref.read(userRepositoryProvider);
+  GoTrueClient get _auth => _ref.read(supabaseAuthProvider);
+  SupabaseUserRepository get _userRepository => _ref.read(supabaseUserRepositoryProvider);
   
   Future<UserModel?> signInWithGoogle() async {
     try {
-      print('Starting Google Sign In...');
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      
-      if (googleUser == null) {
-        print('Google Sign In cancelled by user');
-        return null;
-      }
-      
-      print('Google user: ${googleUser.email}');
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      print('Starting Google Sign In with Supabase...');
+      final authResponse = await _auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.nayra.roda://login-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
       );
       
-      print('Signing in with Firebase...');
-      final userCredential = await _auth.signInWithCredential(credential);
-      
-      if (userCredential.user == null) {
-        print('Firebase sign in failed - no user');
+      if (!authResponse) {
+        print('Google Sign In cancelled or failed');
         return null;
       }
       
-      print('Firebase user: ${userCredential.user!.uid}');
-      // Check if user exists in Firestore
-      final existingUser = await _userRepository.getUser(userCredential.user!.uid);
+      final user = _auth.currentUser;
+      if (user == null) {
+        print('No user after Google sign in');
+        return null;
+      }
+      
+      print('Supabase user: ${user.id}');
+      // Check if user profile exists
+      final existingUser = await _userRepository.getUser(user.id);
       
       if (existingUser != null) {
-        print('Existing user found in Firestore');
+        print('Existing user found');
         return existingUser;
       }
       
@@ -96,24 +88,23 @@ class AuthService {
   
   Future<UserModel?> signInWithApple() async {
     try {
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
+      final authResponse = await _auth.signInWithOAuth(
+        OAuthProvider.apple,
+        redirectTo: 'io.nayra.roda://login-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
       );
       
-      final oauthCredential = OAuthProvider('apple.com').credential(
-        idToken: appleCredential.identityToken,
-        accessToken: appleCredential.authorizationCode,
-      );
+      if (!authResponse) {
+        return null;
+      }
       
-      final userCredential = await _auth.signInWithCredential(oauthCredential);
+      final user = _auth.currentUser;
+      if (user == null) {
+        return null;
+      }
       
-      if (userCredential.user == null) return null;
-      
-      // Check if user exists in Firestore
-      final existingUser = await _userRepository.getUser(userCredential.user!.uid);
+      // Check if user profile exists
+      final existingUser = await _userRepository.getUser(user.id);
       
       if (existingUser != null) {
         return existingUser;
@@ -123,6 +114,62 @@ class AuthService {
       return null;
     } catch (e) {
       throw Exception('Failed to sign in with Apple: $e');
+    }
+  }
+  
+  Future<UserModel?> signInWithEmailPassword(String email, String password) async {
+    try {
+      final authResponse = await _auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      
+      if (authResponse.user == null) {
+        throw Exception('Sign in failed');
+      }
+      
+      return await _userRepository.getUser(authResponse.user!.id);
+    } catch (e) {
+      throw Exception('Failed to sign in: $e');
+    }
+  }
+  
+  Future<UserModel> signUpWithEmailPassword({
+    required String email,
+    required String password,
+    required String fullName,
+    required String capoeiraName,
+    required DateTime dateOfBirth,
+    required UserRole role,
+  }) async {
+    try {
+      // Sign up with Supabase Auth
+      final authResponse = await _auth.signUp(
+        email: email,
+        password: password,
+      );
+      
+      if (authResponse.user == null) {
+        throw Exception('Sign up failed');
+      }
+      
+      // Create user profile in Supabase
+      final userModel = UserModel(
+        id: authResponse.user!.id,
+        email: email,
+        fullName: fullName,
+        capoeiraName: capoeiraName,
+        dateOfBirth: dateOfBirth,
+        role: role,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      
+      await _userRepository.createUser(userModel);
+      
+      return userModel;
+    } catch (e) {
+      throw Exception('Failed to sign up: $e');
     }
   }
   
@@ -137,71 +184,90 @@ class AuthService {
     String? groupCountry,
     String? groupVenmo,
     String? teacherName,
+    bool joinExistingGroup = false,
+  }) async {
+    return completeUserProfile(
+      fullName: fullName,
+      capoeiraName: capoeiraName,
+      dateOfBirth: dateOfBirth,
+      role: role,
+      groupBranch: groupName,
+    );
+  }
+
+  Future<UserModel> completeUserProfile({
+    required String fullName,
+    required String capoeiraName,
+    required DateTime dateOfBirth,
+    required UserRole role,
+    String? groupBranch,
   }) async {
     try {
       final user = _auth.currentUser;
-      if (user == null) throw Exception('No authenticated user');
-      
-      String? groupId;
-      
-      // If this is a teacher and they provided a group name, create the group
-      if (role == UserRole.teacher && groupName != null && groupName.isNotEmpty) {
-        // Use the GroupService to create the group properly
-        final groupService = _ref.read(groupServiceProvider);
-        
-        // Create location string from city and country
-        final location = groupCity != null && groupCountry != null 
-            ? '$groupCity, $groupCountry'
-            : groupCity ?? '';
-        
-        groupId = await groupService.createGroup(
-          name: groupName,
-          branch: groupAffiliation,
-          description: null,
-          location: location,
-          venmoHandle: groupVenmo,
-          createdBy: user.uid,
-        );
+      if (user == null) {
+        throw Exception('No authenticated user');
       }
       
-      final newUser = UserModel(
-        id: user.uid,
+      final userModel = UserModel(
+        id: user.id,
         email: user.email ?? '',
         fullName: fullName,
         capoeiraName: capoeiraName,
         dateOfBirth: dateOfBirth,
         role: role,
-        teachingGroupIds: groupId != null ? [groupId] : [],
-        groupId: groupId,
-        groupName: groupName,
-        teacherName: teacherName,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
       
-      await _userRepository.createUser(newUser);
+      await _userRepository.createUser(userModel);
       
-      return newUser;
+      // Handle group association if provided
+      if (groupBranch != null && groupBranch.isNotEmpty) {
+        final groupService = _ref.read(supabaseGroupServiceProvider);
+        try {
+          final group = await groupService.getGroupByDisplayName(groupBranch);
+          if (group != null) {
+            if (role == UserRole.teacher) {
+              await groupService.addTeacherToGroup(group.id, user.id);
+            } else {
+              await groupService.addMemberToGroup(group.id, user.id);
+            }
+          }
+        } catch (e) {
+          print('Error associating with group: $e');
+        }
+      }
+      
+      return userModel;
     } catch (e) {
-      throw Exception('Failed to create user: $e');
-    }
-  }
-  
-  Future<void> updateUser(UserModel user) async {
-    try {
-      await _userRepository.updateUser(user);
-    } catch (e) {
-      throw Exception('Failed to update user: $e');
+      throw Exception('Failed to complete profile: $e');
     }
   }
   
   Future<void> signOut() async {
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      await googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {
       throw Exception('Failed to sign out: $e');
+    }
+  }
+  
+  Future<void> deleteAccount() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('No authenticated user');
+      }
+      
+      // Delete user data from Supabase
+      await _userRepository.deleteUser(user.id);
+      
+      // Delete from Supabase Auth
+      // Note: This requires service role key on backend
+      // For now, just sign out
+      await _auth.signOut();
+    } catch (e) {
+      throw Exception('Failed to delete account: $e');
     }
   }
 }

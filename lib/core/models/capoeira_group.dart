@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CapoeiraGroup {
   final String id;
@@ -8,6 +7,7 @@ class CapoeiraGroup {
   final String? description;
   final String? location; // General location/city
   final String? venmoHandle; // Venmo handle for payments (without @)
+  final List<String> adminIds; // Admins of this group
   final List<String> teacherIds; // Teachers in this group
   final List<String> memberIds; // All members of the group
   final String createdBy; // Teacher who created it
@@ -26,6 +26,7 @@ class CapoeiraGroup {
     this.description,
     this.location,
     this.venmoHandle,
+    List<String>? adminIds,
     required this.teacherIds,
     List<String>? memberIds,
     required this.createdBy,
@@ -35,51 +36,28 @@ class CapoeiraGroup {
     List<GroupAnnouncement>? announcements,
     required this.createdAt,
     this.isActive = true,
-  }) : memberIds = memberIds ?? [],
+  }) : adminIds = adminIds ?? [],
+       memberIds = memberIds ?? [],
        announcements = announcements ?? [];
   
-  factory CapoeiraGroup.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return CapoeiraGroup(
-      id: doc.id,
-      name: data['name'] ?? '',
-      branch: data['branch'],
-      displayName: data['displayName'] ?? '',
-      description: data['description'],
-      location: data['location'],
-      venmoHandle: data['venmoHandle'],
-      teacherIds: List<String>.from(data['teacherIds'] ?? []),
-      memberIds: List<String>.from(data['memberIds'] ?? []),
-      createdBy: data['createdBy'] ?? '',
-      teacherName: data['teacherName'],
-      teacherProfilePicture: data['teacherProfilePicture'],
-      headerImageUrl: data['headerImageUrl'],
-      announcements: (data['announcements'] as List<dynamic>?)
-          ?.map((a) => GroupAnnouncement.fromMap(a))
-          .toList() ?? [],
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      isActive: data['isActive'] ?? true,
-    );
-  }
   
-  Map<String, dynamic> toFirestore() {
-    return {
-      'name': name,
-      'branch': branch,
-      'displayName': displayName,
-      'description': description,
-      'location': location,
-      'venmoHandle': venmoHandle,
-      'teacherIds': teacherIds,
-      'memberIds': memberIds,
-      'createdBy': createdBy,
-      'teacherName': teacherName,
-      'teacherProfilePicture': teacherProfilePicture,
-      'headerImageUrl': headerImageUrl,
-      'announcements': announcements.map((a) => a.toMap()).toList(),
-      'createdAt': Timestamp.fromDate(createdAt),
-      'isActive': isActive,
-    };
+  
+  // Factory constructor to create from map (Supabase)
+  factory CapoeiraGroup.fromMap(Map<String, dynamic> map) {
+    return CapoeiraGroup(
+      id: map['id'],
+      name: map['name'],
+      branch: map['branch'],
+      adminIds: List<String>.from(map['admin_ids'] ?? []),
+      displayName: map['display_name'] ?? CapoeiraGroup.createDisplayName(map['name'], map['branch']),
+      description: map['description'],
+      venmoHandle: map['venmo_handle'],
+      teacherIds: List<String>.from(map['teacher_ids'] ?? []),
+      memberIds: List<String>.from(map['member_ids'] ?? []),
+      createdBy: map['created_by'] ?? '',
+      createdAt: DateTime.parse(map['created_at']),
+      isActive: map['is_active'] ?? true,
+    );
   }
   
   // Helper to create display name
@@ -117,7 +95,7 @@ class GroupAnnouncement {
       content: map['content'] ?? '',
       authorId: map['authorId'] ?? '',
       authorName: map['authorName'],
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: DateTime.parse(map['createdAt']),
       isPinned: map['isPinned'] ?? false,
     );
   }
@@ -129,7 +107,7 @@ class GroupAnnouncement {
       'content': content,
       'authorId': authorId,
       'authorName': authorName,
-      'createdAt': Timestamp.fromDate(createdAt),
+      'createdAt': createdAt.toIso8601String(),
       'isPinned': isPinned,
     };
   }

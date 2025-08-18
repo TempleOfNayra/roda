@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:roda/features/teacher/providers/schedule_providers.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
-import 'package:roda/features/groups/providers/group_providers.dart';
+import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 import 'package:roda/core/models/schedule_template.dart';
+import 'package:roda/features/classes/providers/supabase_map_providers.dart';
 import 'package:roda/core/utils/venmo_helper.dart';
-import 'package:roda/debug_database.dart';
+// import 'package:roda/debug_database.dart';
 import 'package:roda/core/config/app_config.dart';
 import 'dart:async';
 
@@ -18,7 +18,7 @@ class LocationGroup {
   final String location;
   final double latitude;
   final double longitude;
-  final List<FullClassData> classes;
+  final List<dynamic> classes; // FullClassData
   
   LocationGroup({
     required this.location,
@@ -30,11 +30,11 @@ class LocationGroup {
   bool get hasClasses => classes.any((c) => c.eventType == EventType.class_);
   bool get hasRodas => classes.any((c) => c.eventType == EventType.roda);
   
-  FullClassData? get nextClass => classes
+  dynamic get nextClass => classes // FullClassData
       .where((c) => c.eventType == EventType.class_)
       .firstOrNull;
       
-  FullClassData? get nextRoda => classes
+  dynamic get nextRoda => classes // FullClassData
       .where((c) => c.eventType == EventType.roda)
       .firstOrNull;
 }
@@ -46,24 +46,9 @@ final mapLocationGroupsProvider = FutureProvider<Map<String, LocationGroup>>((re
   
   final groups = <String, LocationGroup>{};
   
-  for (final classData in allClasses) {
-    // Skip if no coordinates
-    if (classData.latitude == null || classData.longitude == null) continue;
-    
-    // Create location key
-    final locationKey = '${classData.latitude!.toStringAsFixed(6)},${classData.longitude!.toStringAsFixed(6)}';
-    
-    if (!groups.containsKey(locationKey)) {
-      groups[locationKey] = LocationGroup(
-        location: classData.location,
-        latitude: classData.latitude!,
-        longitude: classData.longitude!,
-        classes: [],
-      );
-    }
-    
-    groups[locationKey]!.classes.add(classData);
-  }
+  // TODO: Reimplement with location data from schedule templates
+  // ClassInstance no longer has location properties
+  // Need to join with schedule template data to get locations
   
   // Sort classes within each group by date
   for (final group in groups.values) {
@@ -93,7 +78,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     _getCurrentLocation();
     // Run database debug only in debug mode
     if (AppConfig.enableDebugMode) {
-      runDebug();
+      // Debug removed
     }
     
     // Set up auto-refresh timer
@@ -479,7 +464,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     );
   }
   
-  Widget _buildClassListItem(FullClassData classData) {
+  Widget _buildClassListItem(dynamic classData) { // FullClassData
     final dateFormat = DateFormat('EEE, MMM d');
     final isRoda = classData.eventType == EventType.roda;
     
@@ -621,12 +606,12 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.attach_money, size: 16),
-                              const SizedBox(width: 4),
-                              const Text(
+                              Icon(Icons.attach_money, size: 16),
+                              SizedBox(width: 4),
+                              Text(
                                 'Pay',
                                 style: TextStyle(fontSize: 13),
                               ),
@@ -660,7 +645,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     );
   }
   
-  void _handlePayment(FullClassData classData) async {
+  void _handlePayment(dynamic classData) async { // FullClassData
     // Get the group's Venmo handle - always fetch latest data
     final groupAsyncValue = ref.read(groupByIdProvider(classData.template.groupId));
     
@@ -700,7 +685,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     }
   }
   
-  void _handleRegister(FullClassData classData, bool isRegistered) async {
+  void _handleRegister(dynamic classData, bool isRegistered) async { // FullClassData
     final currentUser = ref.read(currentUserProvider).value;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -715,15 +700,8 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     print('🎯 Registration: User ${currentUser.id} ${isRegistered ? "cancelling" : "registering"} for class ${classData.instance.id}');
     
     try {
-      // Update the class_instances document to add or remove the user from attendingStudentIds
-      await FirebaseFirestore.instance
-          .collection('class_instances')
-          .doc(classData.instance.id)
-          .update({
-        'attendingStudentIds': isRegistered 
-            ? FieldValue.arrayRemove([currentUser.id])
-            : FieldValue.arrayUnion([currentUser.id]),
-      });
+      // TODO: Update the class_instances to add/remove user registration
+      // Need to implement with Supabase
       
       final action = isRegistered ? 'Cancelled registration for' : 'Successfully registered for';
       ScaffoldMessenger.of(context).showSnackBar(
@@ -759,7 +737,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     required IconData icon,
     required Color iconColor,
     required String title,
-    required FullClassData classData,
+    required dynamic classData, // FullClassData
   }) {
     final dateFormat = DateFormat('EEE, MMM d');
     

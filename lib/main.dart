@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'package:roda/core/routing/app_router.dart';
 import 'package:roda/core/theme/app_theme.dart';
+import 'package:roda/core/config/supabase_config.dart';
+import 'package:app_links/app_links.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Set to true to run in mock mode without real Firebase
 const bool useMockMode = false;
@@ -19,18 +20,40 @@ void main() async {
     }
   };
   
-  if (!useMockMode) {
-    // Initialize Firebase with options
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
+  // Initialize Supabase
+  await SupabaseConfig.initialize();
+  
+  // Handle deep links for OAuth
+  _handleDeepLinks();
   
   runApp(
     const ProviderScope(
       child: RodaApp(),
     ),
   );
+}
+
+void _handleDeepLinks() {
+  final appLinks = AppLinks();
+  
+  // Handle initial link if app was launched from a deep link
+  appLinks.getInitialLink().then((uri) {
+    if (uri != null) {
+      _handleDeepLink(uri);
+    }
+  });
+  
+  // Handle deep links when app is already running
+  appLinks.uriLinkStream.listen((uri) {
+    _handleDeepLink(uri);
+  });
+}
+
+void _handleDeepLink(Uri uri) {
+  // Let Supabase handle the OAuth callback
+  if (uri.scheme == 'io.nayra.roda' && uri.host == 'login-callback') {
+    Supabase.instance.client.auth.getSessionFromUrl(uri);
+  }
 }
 
 class RodaApp extends ConsumerWidget {
@@ -51,7 +74,7 @@ class RodaApp extends ConsumerWidget {
         return MediaQuery(
           // Prevent text from scaling too much
           data: MediaQuery.of(context).copyWith(
-            textScaleFactor: MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2),
+            textScaler: TextScaler.linear(MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2)),
           ),
           child: child!,
         );

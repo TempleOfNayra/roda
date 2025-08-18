@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum ClassStatus {
   scheduled,
@@ -30,7 +29,7 @@ class PaymentConfirmation {
         orElse: () => PaymentStatus.unpaid,
       ),
       confirmedAt: map['confirmedAt'] != null 
-          ? (map['confirmedAt'] as Timestamp).toDate()
+          ? DateTime.parse(map['confirmedAt'])
           : null,
       paymentMethod: map['paymentMethod'],
     );
@@ -39,7 +38,7 @@ class PaymentConfirmation {
   Map<String, dynamic> toMap() {
     return {
       'status': status.name,
-      if (confirmedAt != null) 'confirmedAt': Timestamp.fromDate(confirmedAt!),
+      if (confirmedAt != null) 'confirmedAt': confirmedAt!.toIso8601String(),
       if (paymentMethod != null) 'paymentMethod': paymentMethod,
     };
   }
@@ -68,50 +67,5 @@ class ClassInstance {
        presentStudentIds = presentStudentIds ?? [],
        paymentConfirmations = paymentConfirmations ?? {};
   
-  factory ClassInstance.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
-    // Parse payment confirmations
-    final paymentConfirmations = <String, PaymentConfirmation>{};
-    if (data['paymentConfirmations'] != null) {
-      final confirmationsMap = data['paymentConfirmations'] as Map<String, dynamic>;
-      confirmationsMap.forEach((userId, confirmationData) {
-        if (confirmationData is Map<String, dynamic>) {
-          paymentConfirmations[userId] = PaymentConfirmation.fromMap(confirmationData);
-        }
-      });
-    }
-    
-    return ClassInstance(
-      id: doc.id,
-      templateId: data['templateId'],
-      scheduledDate: (data['scheduledDate'] as Timestamp).toDate(),
-      status: ClassStatus.values.firstWhere(
-        (s) => s.name == data['status'],
-        orElse: () => ClassStatus.scheduled,
-      ),
-      attendingStudentIds: List<String>.from(data['attendingStudentIds'] ?? []),
-      presentStudentIds: List<String>.from(data['presentStudentIds'] ?? []),
-      paymentConfirmations: paymentConfirmations,
-      notes: data['notes'],
-    );
-  }
   
-  Map<String, dynamic> toFirestore() {
-    // Convert payment confirmations to map
-    final confirmationsMap = <String, dynamic>{};
-    paymentConfirmations.forEach((userId, confirmation) {
-      confirmationsMap[userId] = confirmation.toMap();
-    });
-    
-    return {
-      'templateId': templateId,
-      'scheduledDate': Timestamp.fromDate(scheduledDate),
-      'status': status.name,
-      'attendingStudentIds': attendingStudentIds,
-      'presentStudentIds': presentStudentIds,
-      if (confirmationsMap.isNotEmpty) 'paymentConfirmations': confirmationsMap,
-      if (notes != null) 'notes': notes,
-    };
-  }
 }

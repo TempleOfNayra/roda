@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ClassSessionModel extends Equatable {
   final String id;
@@ -54,7 +53,7 @@ class ClassSessionModel extends Equatable {
         (e) => e.name == map['eventType'],
         orElse: () => EventType.class_,
       ),
-      scheduledDate: (map['scheduledDate'] as Timestamp).toDate(),
+      scheduledDate: DateTime.parse(map['scheduledDate']),
       startTime: map['startTime'] ?? '',
       endTime: map['endTime'] ?? '',
       location: map['location'] ?? '',
@@ -72,8 +71,8 @@ class ClassSessionModel extends Equatable {
         (e) => e.name == map['status'],
         orElse: () => ClassStatus.scheduled,
       ),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      createdAt: DateTime.parse(map['createdAt']),
+      updatedAt: DateTime.parse(map['updatedAt']),
     );
   }
 
@@ -83,7 +82,7 @@ class ClassSessionModel extends Equatable {
       'groupName': groupName,
       'teacherId': teacherId,
       'eventType': eventType.name,
-      'scheduledDate': Timestamp.fromDate(scheduledDate),
+      'scheduledDate': scheduledDate.toIso8601String(),
       'startTime': startTime,
       'endTime': endTime,
       'location': location,
@@ -95,8 +94,8 @@ class ClassSessionModel extends Equatable {
       'attendingStudentIds': attendingStudentIds,
       'presentStudentIds': presentStudentIds,
       'status': status.name,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 

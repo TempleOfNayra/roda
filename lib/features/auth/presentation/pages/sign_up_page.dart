@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/core/routing/routes.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/auth/presentation/widgets/auth_button.dart';
 import 'package:roda/core/widgets/birthday_picker.dart';
-import 'package:intl/intl.dart';
+import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
   const SignUpPage({super.key});
@@ -50,7 +50,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
             // Sign out first to prevent redirect loop
-            await FirebaseAuth.instance.signOut();
+            await Supabase.instance.client.auth.signOut();
             if (context.mounted) {
               context.go(Routes.main);
             }
@@ -183,7 +183,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<UserRole>(
-            value: _selectedRole,
+            initialValue: _selectedRole,
             decoration: const InputDecoration(
               labelText: 'Role',
               border: OutlineInputBorder(),
@@ -254,7 +254,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedCountry,
+              initialValue: _selectedCountry,
               decoration: const InputDecoration(
                 labelText: 'Country',
                 border: OutlineInputBorder(),
@@ -395,7 +395,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   Future<void> _debugSignInAsFirstUser() async {
     // Sign in anonymously first
     try {
-      await FirebaseAuth.instance.signInAnonymously();
+      // Skip anonymous sign in for Supabase
+      // await Supabase.instance.client.auth.signInAnonymously();
       
       // Pre-fill the form with test data
       setState(() {
@@ -437,6 +438,100 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     
     try {
       final authService = ref.read(authServiceProvider);
+      final groupService = ref.read(supabaseGroupServiceProvider);
+      
+      // Check if a group with this name already exists (only for teachers)
+      if (_selectedRole == UserRole.teacher && 
+          _groupNameController.text.isNotEmpty) {
+        
+        final existingGroup = await groupService.findExistingGroup(
+          _groupNameController.text,
+          _groupAffiliationController.text.isNotEmpty 
+              ? _groupAffiliationController.text 
+              : null,
+        );
+        
+        if (existingGroup != null) {
+          // Get creator info
+          String creatorName = 'another teacher';
+          try {
+            final creatorInfo = await groupService.getGroupCreatorInfo(_groupNameController.text, null);
+            if (creatorInfo != null && creatorInfo['name'] != null) {
+              creatorName = creatorInfo['name']!;
+            } else if (existingGroup.teacherName != null && existingGroup.teacherName!.isNotEmpty) {
+              // Fall back to teacherName stored in the group
+              creatorName = existingGroup.teacherName!;
+            }
+          } catch (e) {
+            // If we can't get creator info, use default
+            print('Could not get creator info: $e');
+          }
+          
+          // Show dialog asking if they want to join the existing group
+          if (mounted) {
+            final shouldJoin = await showDialog<bool>(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Group Already Exists'),
+                  content: Text(
+                    'There is already a group named "${existingGroup.displayName}" created by $creatorName. '
+                    'Do you want to be added to that group as a teacher?'
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('No, Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Yes, Join Group'),
+                    ),
+                  ],
+                );
+              },
+            );
+            
+            if (shouldJoin == true) {
+              // Create user and join existing group
+              await authService.createUser(
+                fullName: _fullNameController.text,
+                capoeiraName: _capoeiraNameController.text,
+                dateOfBirth: _dateOfBirth!,
+                role: _selectedRole,
+                groupName: _groupNameController.text,
+                groupAffiliation: _groupAffiliationController.text.isNotEmpty
+                    ? _groupAffiliationController.text
+                    : null,
+                groupCity: _groupCityController.text.isNotEmpty
+                    ? _groupCityController.text
+                    : null,
+                groupCountry: _selectedCountry,
+                groupVenmo: _groupVenmoController.text.isNotEmpty
+                    ? _groupVenmoController.text
+                    : null,
+                teacherName: _teacherNameController.text.isNotEmpty
+                    ? _teacherNameController.text
+                    : null,
+                joinExistingGroup: true,
+              );
+              
+              if (mounted) {
+                context.go(Routes.profile);
+              }
+              setState(() => _isLoading = false);
+              return;
+            } else {
+              // User chose not to join, just return
+              setState(() => _isLoading = false);
+              return;
+            }
+          }
+        }
+      }
+      
+      // No existing group or not a teacher, proceed with normal creation
       await authService.createUser(
         fullName: _fullNameController.text,
         capoeiraName: _capoeiraNameController.text,

@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum UserRole { teacher, student }
 
@@ -44,7 +43,7 @@ class UserModel extends Equatable {
       email: map['email'] ?? '',
       fullName: map['fullName'] ?? '',
       capoeiraName: map['capoeiraName'] ?? '',
-      dateOfBirth: (map['dateOfBirth'] as Timestamp).toDate(),
+      dateOfBirth: DateTime.parse(map['dateOfBirth']),
       role: UserRole.values.firstWhere(
         (e) => e.name == map['role'],
         orElse: () => UserRole.student,
@@ -56,8 +55,8 @@ class UserModel extends Equatable {
       groupName: map['groupName'],
       teacherName: map['teacherName'],
       profilePictureUrl: map['profilePictureUrl'],
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      createdAt: DateTime.parse(map['createdAt']),
+      updatedAt: DateTime.parse(map['updatedAt']),
     );
   }
 
@@ -66,7 +65,7 @@ class UserModel extends Equatable {
       'email': email,
       'fullName': fullName,
       'capoeiraName': capoeiraName,
-      'dateOfBirth': Timestamp.fromDate(dateOfBirth),
+      'dateOfBirth': dateOfBirth.toIso8601String(),
       'role': role.name,
       'teachingGroupIds': teachingGroupIds,
       'joinedGroupIds': joinedGroupIds,
@@ -75,8 +74,8 @@ class UserModel extends Equatable {
       'groupName': groupName,
       'teacherName': teacherName,
       'profilePictureUrl': profilePictureUrl,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/routing/routes.dart';
@@ -14,13 +14,7 @@ final userGroupsProvider = StreamProvider<List<CapoeiraGroup>>((ref) {
     return Stream.value([]);
   }
   
-  return FirebaseFirestore.instance
-      .collection('capoeira_groups')
-      .where(FieldPath.documentId, whereIn: user.joinedGroupIds)
-      .snapshots()
-      .map((snapshot) => snapshot.docs
-          .map((doc) => CapoeiraGroup.fromFirestore(doc))
-          .toList());
+  return Stream.value([]);
 });
 
 class MyGroupsPage extends ConsumerWidget {
@@ -79,6 +73,7 @@ class MyGroupsPage extends ConsumerWidget {
             itemCount: groups.length,
             itemBuilder: (context, index) {
               final group = groups[index];
+              final isAdmin = group.adminIds.contains(user?.id);
               final isTeacher = group.teacherIds.contains(user?.id);
               
               return Card(
@@ -148,7 +143,26 @@ class MyGroupsPage extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                                if (isTeacher)
+                                if (isAdmin)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      'ADMIN',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  )
+                                else if (isTeacher)
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,

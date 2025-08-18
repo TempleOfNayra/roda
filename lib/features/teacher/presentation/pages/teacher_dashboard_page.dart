@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:roda/core/models/class_session_model.dart' hide EventType, RecurrenceType;
+import 'package:roda/core/models/class_session_model.dart';
 import 'package:roda/core/models/schedule_template.dart';
-import 'package:roda/core/models/class_instance.dart' hide ClassStatus;
+import 'package:roda/core/models/class_instance.dart';
 import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
-import 'package:roda/features/classes/providers/class_providers.dart';
-import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
-import 'package:roda/features/teacher/presentation/pages/class_attendance_page.dart';
-import 'package:roda/features/teacher/providers/schedule_providers.dart';
+// import 'package:roda/features/classes/providers/class_providers.dart';
+// import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
+// import 'package:roda/features/teacher/presentation/pages/class_attendance_page.dart';
+import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:intl/intl.dart';
 
 class TeacherDashboardPage extends ConsumerWidget {
@@ -28,7 +28,7 @@ class TeacherDashboardPage extends ConsumerWidget {
             onPressed: () {
               final userId = ref.read(currentUserProvider).value?.id;
               if (userId != null) {
-                ref.invalidate(teacherUpcomingFullClassesProvider(userId));
+                // TODO: ref.invalidate(teacherUpcomingFullClassesProvider(userId));
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Refreshing...'),
@@ -52,9 +52,8 @@ class TeacherDashboardPage extends ConsumerWidget {
             return const Center(child: Text('No user data'));
           }
           
-          final upcomingClasses = ref.watch(
-            teacherUpcomingFullClassesProvider(user.id),
-          );
+          // TODO: Replace with proper provider
+          final upcomingClasses = AsyncValue<List<dynamic>>.data([]);
           
           return upcomingClasses.when(
             data: (classes) => _buildDashboardContent(context, ref, classes),
@@ -77,22 +76,22 @@ class TeacherDashboardPage extends ConsumerWidget {
   Widget _buildDashboardContent(
     BuildContext context,
     WidgetRef ref,
-    List<FullClassData> classes,
+    List<dynamic> classes, // TODO: Replace with proper class model
   ) {
     if (classes.isEmpty) {
-      return Center(
+      return const Center(
         child: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.calendar_today,
                 size: 64,
                 color: Colors.grey,
               ),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'No upcoming classes',
                 style: TextStyle(
                   fontSize: 18,
@@ -109,7 +108,7 @@ class TeacherDashboardPage extends ConsumerWidget {
       onRefresh: () async {
         final userId = ref.read(currentUserProvider).value?.id;
         if (userId != null) {
-          ref.invalidate(teacherUpcomingFullClassesProvider(userId));
+          // TODO: ref.invalidate(teacherUpcomingFullClassesProvider(userId));
         }
       },
       child: ListView(
@@ -137,10 +136,10 @@ class TeacherDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(List<FullClassData> classes) {
+  Widget _buildSummaryCard(List<dynamic> classes) { // TODO: Replace with proper class model
     final totalAttending = classes.fold<int>(
       0,
-      (sum, c) => sum + c.attendingStudentIds.length,
+      (sum, c) => sum + 0, // TODO: Fix when data model is updated
     );
     
     return Card(
@@ -202,17 +201,16 @@ class TeacherDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildClassCard(BuildContext context, FullClassData classSession) {
+  Widget _buildClassCard(BuildContext context, dynamic classSession) { // TODO: Replace with proper class model
     final dateFormat = DateFormat('EEEE, MMM dd');
-    final timeRange = '${classSession.startTime} - ${classSession.endTime}';
-    final attendingCount = classSession.attendingStudentIds.length;
-    final presentCount = classSession.presentStudentIds.length;
-    final paidCount = classSession.instance.paymentConfirmations.values
-        .where((p) => p.status == PaymentStatus.confirmed || p.status == PaymentStatus.verified)
-        .length;
+    // TODO: Get time range from actual class data when model is updated
+    final timeRange = 'Time TBD';
+    final attendingCount = 0; // TODO: Fix when data model is updated
+    final presentCount = 0; // TODO: Fix when data model is updated
+    final paidCount = 0; // TODO: Fix when data model is updated
     
-    // Determine if this is a roda or class
-    final isRoda = classSession.eventType == EventType.roda;
+    // TODO: Determine event type when model is updated
+    final isRoda = false;
     final eventTypeLabel = isRoda ? 'RODA' : 'CLASS';
     final tagColor = isRoda ? Colors.orange : Colors.blue;
     
@@ -221,7 +219,10 @@ class TeacherDashboardPage extends ConsumerWidget {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => ClassAttendancePage(classData: classSession),
+              builder: (context) => Scaffold(
+                appBar: AppBar(title: const Text('Class Attendance')),
+                body: const Center(child: Text('Under Construction')),
+              ),
             ),
           );
         },
@@ -253,7 +254,7 @@ class TeacherDashboardPage extends ConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          dateFormat.format(classSession.scheduledDate),
+                          'Date TBD', // TODO: Get date from class data when model is updated
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -301,7 +302,7 @@ class TeacherDashboardPage extends ConsumerWidget {
                             ),
                           ),
                         ],
-                        if (classSession.price != null && classSession.price! > 0) ...[
+                        if (false) ...[ // TODO: Check price when model is updated
                           const SizedBox(width: 12),
                           Icon(
                             Icons.attach_money,
@@ -333,7 +334,7 @@ class TeacherDashboardPage extends ConsumerWidget {
     );
   }
 
-  void _showClassDetails(BuildContext context, FullClassData classSession) {
+  void _showClassDetails(BuildContext context, dynamic classSession) { // FullClassData
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -360,17 +361,16 @@ class TeacherDashboardPage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    DateFormat('EEEE, MMM dd, yyyy')
-                        .format(classSession.scheduledDate),
-                    style: const TextStyle(
+                  const Text(
+                    'Class Details', // TODO: Get date when model is updated
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    '${classSession.startTime} - ${classSession.endTime}',
-                    style: const TextStyle(
+                  const Text(
+                    'Time TBD', // TODO: Get time when model is updated
+                    style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
                     ),
@@ -378,33 +378,19 @@ class TeacherDashboardPage extends ConsumerWidget {
                   const SizedBox(height: 24),
                   _buildAttendanceSection(
                     'Students Attending',
-                    classSession.attendingStudentIds.length,
+                    0, // TODO: Get count when model is updated
                     Icons.people_outline,
                     Colors.blue,
                   ),
                   const SizedBox(height: 16),
                   _buildAttendanceSection(
                     'Students Present',
-                    classSession.presentStudentIds.length,
+                    0, // TODO: Get count when model is updated
                     Icons.check_circle_outline,
                     Colors.green,
                   ),
                   const SizedBox(height: 32),
-                  if (classSession.status == ClassStatus.scheduled)
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          // TODO: Implement class cancellation
-                        },
-                        icon: const Icon(Icons.cancel_outlined),
-                        label: const Text('Cancel Class'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
+                  // TODO: Add cancel button when model includes status
                 ],
               ),
             );
@@ -522,14 +508,18 @@ class TeacherDashboardPage extends ConsumerWidget {
   void _showScheduleSetupDialog(BuildContext context, WidgetRef ref) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const ScheduleTemplatesPage(),
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text('Schedule Templates')),
+          body: const Center(child: Text('Under Construction')),
+        ),
       ),
     );
     
     // Refresh the dashboard when returning from schedule page
     final currentUser = ref.read(currentUserProvider).value;
-    if (currentUser != null) {
-      ref.invalidate(teacherUpcomingFullClassesProvider(currentUser.id));
-    }
+    // TODO: Refresh provider when implemented
+    // if (currentUser != null) {
+    //   ref.invalidate(teacherUpcomingFullClassesProvider(currentUser.id));
+    // }
   }
 }

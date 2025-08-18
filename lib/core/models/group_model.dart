@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GroupModel extends Equatable {
   final String id;
@@ -36,8 +35,8 @@ class GroupModel extends Equatable {
           [],
       location: Location.fromMap(map['location'] ?? {}),
       paymentPreference: PaymentPreference.fromMap(map['paymentPreference'] ?? {}),
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
-      updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      createdAt: DateTime.parse(map['createdAt']),
+      updatedAt: DateTime.parse(map['updatedAt']),
     );
   }
 
@@ -49,8 +48,8 @@ class GroupModel extends Equatable {
       'schedule': schedule.map((s) => s.toMap()).toList(),
       'location': location.toMap(),
       'paymentPreference': paymentPreference.toMap(),
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 

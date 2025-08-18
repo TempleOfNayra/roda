@@ -62,12 +62,12 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
       // Always add the query itself as the first suggestion
       suggestions.add(LocationSuggestion(
         address: query,
-        latitude: locations?.isNotEmpty == true ? locations!.first.latitude : null,
-        longitude: locations?.isNotEmpty == true ? locations!.first.longitude : null,
+        latitude: locations.isNotEmpty == true ? locations.first.latitude : null,
+        longitude: locations.isNotEmpty == true ? locations.first.longitude : null,
       ));
       
       // Add geocoded results if any
-      if (locations != null && locations.isNotEmpty) {
+      if (locations.isNotEmpty) {
         try {
           final placemarks = await placemarkFromCoordinates(
             locations.first.latitude,
