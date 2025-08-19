@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/utils/logger.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -221,6 +222,22 @@ class SupabaseMapService {
 // Provider for map service
 final supabaseMapServiceProvider = Provider((ref) => SupabaseMapService());
 
+// Helper function to convert hex string to double (little-endian)
+double _hexToDouble(String hex) {
+  // Convert hex string to bytes
+  final bytes = <int>[];
+  for (int i = 0; i < hex.length; i += 2) {
+    bytes.add(int.parse(hex.substring(i, i + 2), radix: 16));
+  }
+  
+  // Convert bytes to double (little-endian IEEE 754)
+  final byteData = ByteData(8);
+  for (int i = 0; i < 8; i++) {
+    byteData.setUint8(i, bytes[i]);
+  }
+  return byteData.getFloat64(0, Endian.little);
+}
+
 // Provider for upcoming classes for map with location data
 final mapUpcomingClassesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   try {
@@ -240,11 +257,49 @@ final mapUpcomingClassesProvider = FutureProvider<List<Map<String, dynamic>>>((r
       // Parse location from PostGIS geography type
       double? latitude, longitude;
       if (item['location'] != null) {
-        final pointStr = item['location'] as String;
-        final matches = RegExp(r'([+-]?\d+\.?\d*)\s+([+-]?\d+\.?\d*)').firstMatch(pointStr);
-        if (matches != null) {
-          longitude = double.tryParse(matches.group(1) ?? '');
-          latitude = double.tryParse(matches.group(2) ?? '');
+        final locationStr = item['location'] as String;
+        Logger.debug('Parsing location string: $locationStr');
+        
+        // Handle WKB hex format (starts with 01010000)
+        if (locationStr.startsWith('0101000020E610')) {
+          // This is a WKB hex encoded POINT
+          // We'll parse it directly from the hex
+          try {
+            // WKB structure for POINT with SRID 4326:
+            // 01 = little endian
+            // 01000020 = point type with SRID
+            // E6100000 = SRID 4326
+            // Then 16 hex chars for X (longitude) and 16 for Y (latitude)
+            // Total minimum length = 18 (header) + 32 (coordinates) = 50
+            if (locationStr.length >= 50) {
+              // Skip the first 18 characters (header)
+              // The next 16 chars are the X coordinate (longitude) 
+              // The next 16 chars are the Y coordinate (latitude)
+              final lonHex = locationStr.substring(18, 34);
+              final latHex = locationStr.substring(34, 50);
+              
+              Logger.debug('Lon hex: $lonHex, Lat hex: $latHex');
+              
+              // Convert hex to bytes and then to double (little-endian)
+              longitude = _hexToDouble(lonHex);
+              latitude = _hexToDouble(latHex);
+              
+              Logger.debug('Parsed coordinates: lon=$longitude, lat=$latitude');
+            } else {
+              Logger.debug('Location string too short: ${locationStr.length} chars');
+            }
+          } catch (e) {
+            Logger.debug('Error parsing WKB location: $e');
+          }
+        } 
+        // Handle WKT format (POINT(lon lat))
+        else if (locationStr.startsWith('POINT')) {
+          final matches = RegExp(r'POINT\(([-\d.]+)\s+([-\d.]+)\)').firstMatch(locationStr);
+          if (matches != null) {
+            longitude = double.tryParse(matches.group(1) ?? '');
+            latitude = double.tryParse(matches.group(2) ?? '');
+            Logger.debug('Parsed WKT coordinates: lon=$longitude, lat=$latitude');
+          }
         }
       }
       

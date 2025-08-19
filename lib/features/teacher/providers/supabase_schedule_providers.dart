@@ -92,7 +92,7 @@ class SupabaseScheduleService {
       
       // Call the database function to generate instances
       await _client.rpc('generate_class_instances', params: {
-        'p_schedule_id': scheduleId,
+        'p_schedule_id': scheduleId, // Text ID, not UUID
         'p_start_date': startDate.toIso8601String().split('T')[0],
         'p_end_date': endDate.toIso8601String().split('T')[0],
       });
