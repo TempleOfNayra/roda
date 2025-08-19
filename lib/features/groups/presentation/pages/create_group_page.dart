@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/application/group_controller.dart';
-import 'package:roda/data/repositories/storage_repository.dart';
+import 'package:roda/core/services/r2_storage_service.dart';
 import 'package:roda/data/core/db_exceptions.dart';
 import 'package:roda/core/utils/logger.dart';
 
@@ -86,12 +86,10 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
       String? headerImageUrl;
       if (_selectedHeaderImage != null && _headerImageBytes != null) {
         try {
-          final storageRepository = ref.read(storageRepositoryProvider);
           final tempGroupId = DateTime.now().millisecondsSinceEpoch.toString();
-          headerImageUrl = await storageRepository.uploadGroupImage(
+          headerImageUrl = await R2StorageService.uploadGroupImage(
             groupId: tempGroupId,
-            imageData: _headerImageBytes!,
-            fileExtension: _selectedHeaderImage!.name.split('.').last,
+            imageFile: _selectedHeaderImage!,
             imageType: 'header',
           );
         } catch (e) {

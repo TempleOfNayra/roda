@@ -212,7 +212,7 @@ class ProfilePage extends ConsumerWidget {
                             child: Card(
                               elevation: 1,
                               child: InkWell(
-                                onTap: () => context.push('${Routes.group}/${group.id}'),
+                                onTap: () => context.push('${Routes.modernGroup}/${group.id}'),
                                 borderRadius: BorderRadius.circular(12),
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),

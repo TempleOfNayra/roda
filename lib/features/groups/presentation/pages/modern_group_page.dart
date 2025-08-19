@@ -71,6 +71,7 @@ class _ModernGroupPageState extends ConsumerState<ModernGroupPage> {
   
   @override
   Widget build(BuildContext context) {
+    print('ModernGroupPage loaded for group: ${widget.groupId}');
     final groupAsync = ref.watch(groupByIdProvider(widget.groupId));
     final currentUser = ref.watch(currentUserProvider).value;
     final isDarkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;

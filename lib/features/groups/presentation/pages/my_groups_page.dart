@@ -77,6 +77,7 @@ class MyGroupsPage extends ConsumerWidget {
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () {
+                    print('Navigating to: ${Routes.modernGroup}/${group.id}');
                     context.push('${Routes.modernGroup}/${group.id}');
                   },
                   child: Column(
