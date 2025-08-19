@@ -8,9 +8,7 @@ import 'package:roda/features/main/presentation/pages/main_page.dart';
 import 'package:roda/features/teacher/presentation/pages/teacher_dashboard_page.dart';
 import 'package:roda/features/classes/presentation/pages/clean_map_page.dart';
 import 'package:roda/features/settings/presentation/pages/settings_page.dart';
-import 'package:roda/features/groups/presentation/pages/my_groups_page.dart';
 import 'package:roda/features/groups/presentation/pages/group_page.dart';
-import 'package:roda/features/groups/presentation/pages/clean_group_page.dart';
 import 'package:roda/features/groups/presentation/pages/create_group_page.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 
@@ -66,11 +64,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SettingsPage(),
       ),
       GoRoute(
-        path: Routes.myGroups,
-        name: Routes.myGroups,
-        builder: (context, state) => const MyGroupsPage(),
-      ),
-      GoRoute(
         path: Routes.createGroup,
         name: Routes.createGroup,
         builder: (context, state) => const CreateGroupPage(),
@@ -81,14 +74,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final groupId = state.pathParameters['groupId']!;
           return GroupPage(groupId: groupId);
-        },
-      ),
-      GoRoute(
-        path: '${Routes.modernGroup}/:groupId',
-        name: Routes.modernGroup,
-        builder: (context, state) {
-          final groupId = state.pathParameters['groupId']!;
-          return CleanGroupPage(groupId: groupId);
         },
       ),
     ],

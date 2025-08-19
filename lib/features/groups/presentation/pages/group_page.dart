@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roda/core/models/capoeira_group.dart';
-import 'package:roda/core/models/schedule_template.dart';
-import 'package:roda/core/widgets/safe_scaffold.dart';
-import 'package:roda/core/routing/routes.dart';
-import 'package:roda/features/auth/providers/auth_provider.dart';
-import 'package:roda/features/groups/providers/supabase_group_providers.dart';
-import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
-import 'package:roda/features/teacher/presentation/widgets/google_places_address_field.dart';
-import 'package:roda/application/group_controller.dart';
-import 'package:roda/core/config/supabase_config.dart';
 import 'package:intl/intl.dart';
+import 'package:roda/core/models/capoeira_group.dart';
+import 'package:roda/features/groups/providers/supabase_group_providers.dart';
+import 'package:roda/features/auth/providers/auth_provider.dart';
+import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
+import 'package:roda/application/group_controller.dart';
+import 'package:roda/core/models/schedule_template.dart';
+import 'package:roda/core/config/supabase_config.dart';
+import 'package:roda/features/teacher/presentation/widgets/styled_google_places_field.dart';
+import 'package:roda/core/theme/form_theme.dart';
 
 class GroupPage extends ConsumerStatefulWidget {
   final String groupId;
@@ -28,122 +28,55 @@ class GroupPage extends ConsumerStatefulWidget {
 
 class _GroupPageState extends ConsumerState<GroupPage> {
   bool _isJoining = false;
+  int _selectedTab = 0; // 0: Announcements, 1: Media
   
   Future<void> _joinGroup() async {
-    final user = ref.read(currentUserProvider).value;
-    if (user == null) return;
-    
     setState(() => _isJoining = true);
-    
     try {
-      // Add user to group using Supabase
-      await SupabaseConfig.client
-          .from('group_members')
-          .insert({
-            'group_id': widget.groupId,
-            'user_id': user.id,
-            'role': 'member',
-          });
+      final currentUser = ref.read(currentUserProvider).value;
+      if (currentUser == null) return;
       
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully joined the group!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to join group: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      final groupService = ref.read(supabaseGroupServiceProvider);
+      await groupService.addMemberToGroup(widget.groupId, currentUser.id);
+      ref.invalidate(groupByIdProvider(widget.groupId));
     } finally {
-      if (mounted) {
-        setState(() => _isJoining = false);
-      }
+      setState(() => _isJoining = false);
     }
   }
   
   Future<void> _leaveGroup() async {
-    final user = ref.read(currentUserProvider).value;
-    if (user == null) return;
-    
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave Group?'),
-        content: const Text('Are you sure you want to leave this group?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Leave'),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirmed != true) return;
-    
+    setState(() => _isJoining = true);
     try {
-      // Remove user from group using Supabase
-      await SupabaseConfig.client
-          .from('group_members')
-          .delete()
-          .eq('group_id', widget.groupId)
-          .eq('user_id', user.id);
+      final currentUser = ref.read(currentUserProvider).value;
+      if (currentUser == null) return;
       
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You have left the group'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
+      final groupService = ref.read(supabaseGroupServiceProvider);
+      await groupService.removeMemberFromGroup(widget.groupId, currentUser.id);
+      ref.invalidate(groupByIdProvider(widget.groupId));
+    } finally {
+      setState(() => _isJoining = false);
+    }
+  }
+  
+  Future<Map<String, dynamic>?> _getTeacherInfo(String teacherId) async {
+    try {
+      final response = await SupabaseConfig.client
+          .from('users')
+          .select('capoeira_name, profile_picture')
+          .eq('id', teacherId)
+          .single();
+      return response;
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to leave group: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      return null;
     }
   }
   
   Future<void> _deleteGroup(BuildContext context, CapoeiraGroup group) async {
-    final confirmed = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Group?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Are you sure you want to delete this group?',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text('Group: ${group.displayName}'),
-            const SizedBox(height: 16),
-            const Text(
-              'This action cannot be undone. All group data, members, and announcements will be permanently deleted.',
-              style: TextStyle(color: Colors.red, fontSize: 12),
-            ),
-          ],
-        ),
+        title: const Text('Delete Group'),
+        content: Text('Are you sure you want to delete ${group.displayName}? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -151,42 +84,39 @@ class _GroupPageState extends ConsumerState<GroupPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.red),
             ),
-            child: const Text('Delete'),
           ),
         ],
       ),
     );
     
-    if (confirmed != true) return;
-    
-    try {
-      final groupController = ref.read(groupControllerProvider);
-      await groupController.deleteGroup(widget.groupId);
-      
-      // Invalidate the user groups provider to force refresh
-      ref.invalidate(userGroupsProvider);
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Group deleted successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Navigate to profile page instead of my groups
-        context.go(Routes.profile);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete group: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+    if (confirm == true) {
+      try {
+        final groupService = ref.read(supabaseGroupServiceProvider);
+        // For now, just delete from groups table
+        await SupabaseConfig.client
+            .from('groups')
+            .delete()
+            .eq('id', widget.groupId);
+        
+        // Invalidate the user groups provider to refresh the list
+        ref.invalidate(userGroupsProvider);
+        
+        if (context.mounted) {
+          context.pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Group deleted')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete group: $e')),
+          );
+        }
       }
     }
   }
@@ -195,8 +125,26 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   Widget build(BuildContext context) {
     final groupAsync = ref.watch(groupByIdProvider(widget.groupId));
     final currentUser = ref.watch(currentUserProvider).value;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
-    return SafeScaffold(
+    return Scaffold(
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
+      appBar: AppBar(
+        backgroundColor: isDarkMode ? Colors.black : Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: isDarkMode ? Colors.white : Colors.black),
+          onPressed: () => context.pop(),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.more_vert, color: isDarkMode ? Colors.white : Colors.black),
+            onPressed: () {
+              // Show options
+            },
+          ),
+        ],
+      ),
       body: groupAsync.when(
         data: (group) {
           if (group == null) {
@@ -206,390 +154,377 @@ class _GroupPageState extends ConsumerState<GroupPage> {
           final isMember = group.memberIds.contains(currentUser?.id);
           final isTeacher = group.teacherIds.contains(currentUser?.id);
           final isAdmin = group.adminIds.contains(currentUser?.id);
+          final primaryTeacherId = group.teacherIds.isNotEmpty ? group.teacherIds.first : null;
           
-          return CustomScrollView(
-            slivers: [
-              // Custom App Bar with Header Image
-              SliverAppBar(
-                expandedHeight: 180,
-                pinned: true,
-                backgroundColor: Colors.white,
-                elevation: 0,
-                actions: isAdmin ? [
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert),
-                    onSelected: (value) async {
-                      switch (value) {
-                        case 'manage_members':
-                          _showManageMembersDialog(context, group, currentUser!.id);
-                          break;
-                        case 'manage_teachers':
-                          _showManageTeachersDialog(context, group, currentUser!.id);
-                          break;
-                        case 'edit_group':
-                          _showEditGroupDialog(context, group);
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'manage_members',
-                        child: Row(
-                          children: [
-                            Icon(Icons.people, size: 20),
-                            SizedBox(width: 8),
-                            Text('Manage Members'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'manage_teachers',
-                        child: Row(
-                          children: [
-                            Icon(Icons.school, size: 20),
-                            SizedBox(width: 8),
-                            Text('Manage Teachers'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'edit_group',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit, size: 20),
-                            SizedBox(width: 8),
-                            Text('Edit Group Info'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ] : null,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Stack(
-                    fit: StackFit.expand,
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Clean Header - Group info at top
+                Container(
+                  color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
                     children: [
-                      // Header Image
-                      group.headerImageUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: group.headerImageUrl!,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => Container(
-                                color: Colors.grey[300],
-                              ),
-                              errorWidget: (context, url, error) => Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Colors.blue.shade400,
-                                      Colors.blue.shade700,
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.blue.shade400,
-                                    Colors.blue.shade700,
-                                  ],
-                                ),
-                              ),
-                            ),
-                      // Gradient Overlay
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.85),
-                            ],
+                      // Group Name
+                      Text(
+                        group.name.toUpperCase(),
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      
+                      // Affiliation
+                      if (group.branch != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          group.branch!.toUpperCase(),
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white70 : Colors.black54,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                      // Group Info Overlay
-                      Positioned(
-                        bottom: 20,
-                        left: 20,
-                        right: 20,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Group Name
-                            Text(
-                              group.name,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            // City
-                            if (group.city != null)
-                              Text(
-                                group.city!,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 16,
-                                ),
-                              ),
-                            // Teacher Names
-                            FutureBuilder<List<String>>(
-                              future: _getTeacherNames(group.teacherIds),
-                              builder: (context, snapshot) {
-                                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                                  return Text(
-                                    'by ${snapshot.data!.join(", ")}',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.8),
-                                      fontSize: 14,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                            ),
-                            const SizedBox(height: 8),
-                            // Stats Row
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.group, color: Colors.white, size: 16),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '${group.memberIds.length} members',
-                                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (group.teacherIds.isNotEmpty) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.school, color: Colors.white, size: 16),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          '${group.teacherIds.length} teachers',
-                                          style: const TextStyle(color: Colors.white, fontSize: 13),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
+                      ],
+                      
+                      // City
+                      if (group.city != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          group.city!.toUpperCase(),
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.white60 : Colors.black45,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
-              ),
-              
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Join/Leave Button (if not teacher)
-                        if (!isTeacher)
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _isJoining 
-                                    ? null 
-                                    : (isMember ? _leaveGroup : _joinGroup),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isMember ? Colors.grey : Colors.blue,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                
+                // Teacher Section
+                if (primaryTeacherId != null)
+                  FutureBuilder<Map<String, dynamic>?>(
+                    future: _getTeacherInfo(primaryTeacherId),
+                    builder: (context, snapshot) {
+                      final teacherData = snapshot.data;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Column(
+                          children: [
+                            // Round Profile Picture
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDarkMode ? Colors.white24 : Colors.black12,
+                                  width: 2,
                                 ),
-                                child: _isJoining
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                        ),
+                              ),
+                              child: ClipOval(
+                                child: teacherData?['profile_picture'] != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: teacherData!['profile_picture'],
+                                        fit: BoxFit.cover,
                                       )
-                                    : Text(
-                                        isMember ? 'LEAVE GROUP' : 'JOIN GROUP',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
+                                    : Container(
+                                        color: Colors.grey[300],
+                                        child: Icon(
+                                          Icons.person,
+                                          size: 40,
+                                          color: Colors.grey[600],
                                         ),
                                       ),
                               ),
                             ),
-                          ),
-                        
-                        // Description (if exists)
-                        if (group.description != null && group.description!.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                            child: Text(
-                              group.description!,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                                height: 1.4,
-                              ),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        
-                        // Divider
-                        if (group.description != null && group.description!.isNotEmpty)
-                          Divider(height: 1, color: Colors.grey[200]),
-                        
-                        // Weekly Schedule Section (compact)
-                        _buildCompactScheduleSection(group),
-                        
-                        // Schedule New Class Form for Teachers/Admins (compact)
-                        if (isTeacher || isAdmin) ...[
-                          Divider(height: 1, color: Colors.grey[200]),
-                          _buildCompactScheduleForm(group),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Announcements Section
-              SliverToBoxAdapter(
-                child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Announcements',
+                            const SizedBox(height: 12),
+                            
+                            // Teacher Name
+                            if (teacherData?['capoeira_name'] != null)
+                              Text(
+                                teacherData!['capoeira_name'],
                                 style: TextStyle(
                                   fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                
+                
+                // Join/Leave Button for non-teachers
+                if (!isTeacher)
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isJoining ? null : (isMember ? _leaveGroup : _joinGroup),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isMember ? Colors.grey : Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: _isJoining
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(
+                                isMember ? 'LEAVE GROUP' : 'JOIN GROUP',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                
+                const Divider(height: 40),
+                
+                // Description
+                if (group.description != null && group.description!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      group.description!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                
+                const SizedBox(height: 20),
+                
+                // Weekly Schedule Section with inline Schedule Class button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Scheduled Classes',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          if (isTeacher || isAdmin)
+                            TextButton(
+                              onPressed: () => _showScheduleModal(context, group, 'class'),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                minimumSize: const Size(0, 0),
+                              ),
+                              child: const Text(
+                                'SCHEDULE CLASS',
+                                style: TextStyle(
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              if (isTeacher)
-                                IconButton(
-                                  onPressed: () {
-                                    // TODO: Add announcement
-                                  },
-                                  icon: const Icon(Icons.add_circle),
-                                  color: Colors.blue,
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (group.announcements.isEmpty)
-                            Container(
-                              padding: const EdgeInsets.all(32),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[100],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Center(
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.announcement_outlined,
-                                      size: 48,
-                                      color: Colors.grey[400],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'No announcements yet',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          else
-                            ...group.announcements.map((announcement) => 
-                              _buildAnnouncementCard(announcement),
                             ),
                         ],
                       ),
-                    ),
-              ),
-              
-              // Delete Group Button for Admins
-              if (isAdmin)
-                SliverToBoxAdapter(
-                  child: Column(
+                      const SizedBox(height: 16),
+                      _buildCompactScheduleList(group, isDarkMode, isTeacher || isAdmin),
+                    ],
+                  ),
+                ),
+                
+                const Divider(height: 40),
+                
+                // Next Roda Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const SizedBox(height: 32),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Center(
-                          child: TextButton.icon(
-                            onPressed: () => _deleteGroup(context, group),
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            label: const Text(
-                              'Delete Group',
-                              style: TextStyle(color: Colors.red),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Next Coming Roda',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDarkMode ? Colors.white : Colors.black,
                             ),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '10/10/2024', // TODO: Get from actual data
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (isTeacher || isAdmin)
+                        TextButton(
+                          onPressed: () => _showScheduleModal(context, group, 'roda'),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            minimumSize: const Size(0, 0),
+                          ),
+                          child: const Text(
+                            'SCHEDULE',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 30),
+                
+                // Followers Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    '${group.memberIds.length} Followers',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 30),
+                
+                // Tabs
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDarkMode ? Colors.white12 : Colors.black12,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedTab = 0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: _selectedTab == 0 ? Colors.blue : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              'ANNOUNCEMENTS',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedTab == 0
+                                    ? Colors.blue
+                                    : (isDarkMode ? Colors.white54 : Colors.black54),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => setState(() => _selectedTab = 1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: _selectedTab == 1 ? Colors.blue : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              'MEDIA',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedTab == 1
+                                    ? Colors.blue
+                                    : (isDarkMode ? Colors.white54 : Colors.black54),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-            ],
+                
+                // Tab Content
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  child: _selectedTab == 0
+                      ? _buildAnnouncementsTab(group, isDarkMode)
+                      : _buildMediaTab(group, isDarkMode),
+                ),
+                
+                // Delete Group Button for Admins
+                if (isAdmin) ...[
+                  const SizedBox(height: 40),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: TextButton(
+                      onPressed: () => _deleteGroup(context, group),
+                      child: Text(
+                        'Delete Group',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ],
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -598,1024 +533,1133 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     );
   }
   
-  Widget _buildStatItem(String value, String label, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.blue, size: 24),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildAnnouncementCard(GroupAnnouncement announcement) {
-    final dateFormat = DateFormat('MMM d, yyyy');
-    
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                if (announcement.isPinned)
-                  const Icon(
-                    Icons.push_pin,
-                    size: 16,
-                    color: Colors.orange,
-                  ),
-                if (announcement.isPinned)
-                  const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    announcement.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              announcement.content,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Text(
-                  announcement.authorName ?? 'Unknown',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Text(' • '),
-                Text(
-                  dateFormat.format(announcement.createdAt),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-  void _showManageMembersDialog(BuildContext context, CapoeiraGroup group, String adminId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Manage Members'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: SupabaseConfig.client
-                .from('group_members')
-                .select('users(*)')
-                .eq('group_id', widget.groupId),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              
-              final members = snapshot.data!;
-              
-              return ListView.builder(
-                shrinkWrap: true,
-                itemCount: members.length,
-                itemBuilder: (context, index) {
-                  final member = members[index];
-                  final memberId = member['users']['id'];
-                  final memberData = member['users'] as Map<String, dynamic>;
-                  final isCurrentUserAdmin = memberId == adminId;
-                  final isMemberAdmin = group.adminIds.contains(memberId);
-                  final isMemberTeacher = group.teacherIds.contains(memberId);
-                  
-                  return ListTile(
-                    leading: CircleAvatar(
-                      child: Text(
-                        memberData['capoeiraName']?.substring(0, 1).toUpperCase() ?? 'U',
-                      ),
-                    ),
-                    title: Text(memberData['capoeiraName'] ?? 'Unknown'),
-                    subtitle: Row(
-                      children: [
-                        if (isMemberAdmin)
-                          Container(
-                            margin: const EdgeInsets.only(right: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.purple,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'Admin',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        if (isMemberTeacher)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.blue,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'Teacher',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    trailing: !isCurrentUserAdmin ? PopupMenuButton<String>(
-                      onSelected: (value) async {
-                        final groupService = ref.read(supabaseGroupServiceProvider);
-                        switch (value) {
-                          case 'make_teacher':
-                            await groupService.addTeacherToGroup(widget.groupId, memberId);
-                            break;
-                          case 'remove_teacher':
-                            await groupService.removeTeacherFromGroup(widget.groupId, memberId);
-                            break;
-                          case 'make_admin':
-                            await groupService.addAdminToGroup(widget.groupId, memberId);
-                            break;
-                          case 'remove_member':
-                            await groupService.removeMemberFromGroup(widget.groupId, memberId);
-                            break;
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        if (!isMemberTeacher)
-                          const PopupMenuItem(
-                            value: 'make_teacher',
-                            child: Text('Make Teacher'),
-                          ),
-                        if (isMemberTeacher && !isMemberAdmin)
-                          const PopupMenuItem(
-                            value: 'remove_teacher',
-                            child: Text('Remove Teacher Role'),
-                          ),
-                        if (!isMemberAdmin)
-                          const PopupMenuItem(
-                            value: 'make_admin',
-                            child: Text('Make Admin'),
-                          ),
-                        if (!isMemberAdmin)
-                          const PopupMenuItem(
-                            value: 'remove_member',
-                            child: Text('Remove from Group'),
-                          ),
-                      ],
-                    ) : null,
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  void _showManageTeachersDialog(BuildContext context, CapoeiraGroup group, String adminId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Manage Teachers'),
-        content: const Text('Select members to add or remove as teachers'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Future<List<String>> _getTeacherNames(List<String> teacherIds) async {
-    if (teacherIds.isEmpty) return [];
-    
-    try {
-      final response = await SupabaseConfig.client
-          .from('users')
-          .select('capoeira_name')
-          .inFilter('id', teacherIds);
-      
-      return (response as List)
-          .map((user) => user['capoeira_name'] as String? ?? 'Unknown')
-          .toList();
-    } catch (e) {
-      return [];
-    }
-  }
-  
-  void _showEditGroupDialog(BuildContext context, CapoeiraGroup group) {
-    final nameController = TextEditingController(text: group.name);
-    final branchController = TextEditingController(text: group.branch);
-    final cityController = TextEditingController(text: group.city);
-    final descriptionController = TextEditingController(text: group.description);
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Group Info'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Group Name'),
-              ),
-              TextField(
-                controller: branchController,
-                decoration: const InputDecoration(labelText: 'Branch/Affiliation'),
-              ),
-              TextField(
-                controller: cityController,
-                decoration: const InputDecoration(labelText: 'City'),
-              ),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-                maxLines: 3,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final groupService = ref.read(supabaseGroupServiceProvider);
-              await groupService.updateGroupDetails(widget.groupId, {
-                'name': nameController.text,
-                'branch': branchController.text.isEmpty ? null : branchController.text,
-                'city': cityController.text.isEmpty ? null : cityController.text,
-                'description': descriptionController.text.isEmpty ? null : descriptionController.text,
-                'displayName': CapoeiraGroup.createDisplayName(
-                  nameController.text,
-                  branchController.text.isEmpty ? null : branchController.text,
-                ),
-              });
-              if (context.mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Group info updated')),
-                );
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildScheduledClassesSection(CapoeiraGroup group) {
+  Widget _buildCompactScheduleList(CapoeiraGroup group, bool isDarkMode, bool canEdit) {
     return Consumer(
       builder: (context, ref, child) {
         final schedulesAsync = ref.watch(groupSchedulesProvider(group.id));
         
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Weekly Schedule',
+        return schedulesAsync.when(
+          data: (schedules) {
+            if (schedules.isEmpty) {
+              return Text(
+                'No scheduled classes',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white54 : Colors.black54,
+                  fontSize: 14,
                 ),
-              ),
-              const SizedBox(height: 12),
-              
-              schedulesAsync.when(
-                data: (schedules) {
-                  if (schedules.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
+              );
+            }
+            
+            // Sort by day of week and filter out rodas for this section
+            final classSchedules = schedules.where((s) => s.eventType != EventType.roda).toList();
+            classSchedules.sort((a, b) {
+              final aDayOfWeek = a.dayOfWeek ?? 0;
+              final bDayOfWeek = b.dayOfWeek ?? 0;
+              return aDayOfWeek.compareTo(bDayOfWeek);
+            });
+            
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: classSchedules.map((schedule) {
+                final dayIndex = schedule.dayOfWeek ?? 0;
+                final days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                final dayName = days[dayIndex.clamp(0, 6)];
+                
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 40,
+                        child: Text(
+                          dayName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
                       ),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 36,
-                              color: Colors.grey[400],
+                      Text(
+                        '${schedule.startTime} - ${schedule.endTime}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDarkMode ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (canEdit)
+                        IconButton(
+                          icon: Icon(
+                            Icons.edit,
+                            size: 18,
+                            color: isDarkMode ? Colors.white54 : Colors.black54,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            // Edit schedule
+                          },
+                        ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Text('Error loading schedules', style: TextStyle(color: Colors.red)),
+        );
+      },
+    );
+  }
+  
+  Widget _buildScheduleSection(CapoeiraGroup group, bool isDarkMode, bool canEdit) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final schedulesAsync = ref.watch(groupSchedulesProvider(group.id));
+        
+        return schedulesAsync.when(
+          data: (schedules) {
+            if (schedules.isEmpty) {
+              return Center(
+                child: Text(
+                  'No scheduled classes',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white54 : Colors.black54,
+                    fontSize: 14,
+                  ),
+                ),
+              );
+            }
+            
+            // Sort by day of week
+            schedules.sort((a, b) {
+              final aDayOfWeek = a.dayOfWeek ?? 0;
+              final bDayOfWeek = b.dayOfWeek ?? 0;
+              return aDayOfWeek.compareTo(bDayOfWeek);
+            });
+            
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Weekly Classes',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...schedules.map((schedule) {
+                  final dayIndex = schedule.dayOfWeek ?? 0;
+                  final days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                  final dayName = days[dayIndex.clamp(0, 6)];
+                  final isRoda = schedule.eventType == EventType.roda;
+                  
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDarkMode 
+                          ? (isRoda ? Colors.orange.withOpacity(0.1) : Colors.blue.withOpacity(0.1))
+                          : (isRoda ? Colors.orange.withOpacity(0.05) : Colors.blue.withOpacity(0.05)),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isRoda 
+                            ? Colors.orange.withOpacity(0.3)
+                            : Colors.blue.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isRoda ? Icons.music_note : Icons.sports_martial_arts,
+                          color: isRoda ? Colors.orange : Colors.blue,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                dayName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
+                              Text(
+                                '${schedule.startTime} - ${schedule.endTime}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                                ),
+                              ),
+                              if (schedule.location.isNotEmpty)
+                                Text(
+                                  schedule.location,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDarkMode ? Colors.white54 : Colors.black54,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (schedule.price != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'No weekly schedules yet',
+                            child: Text(
+                              '\$${schedule.price!.toStringAsFixed(0)}',
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  
-                  // Days of week for sorting
-                  final daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                  
-                  // Sort schedules by day of week (handle nulls)
-                  schedules.sort((a, b) {
-                    final aDayOfWeek = a.dayOfWeek ?? 0;
-                    final bDayOfWeek = b.dayOfWeek ?? 0;
-                    return aDayOfWeek.compareTo(bDayOfWeek);
-                  });
-                  
-                  return Column(
-                    children: schedules.map((schedule) {
-                      final dayIndex = schedule.dayOfWeek ?? 0;
-                      final dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayIndex.clamp(0, 6)];
-                      final isRoda = schedule.eventType == EventType.roda;
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isRoda ? Colors.orange.shade200 : Colors.blue.shade200,
-                            width: 1,
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            // Event type icon
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: isRoda ? Colors.orange.shade50 : Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Icon(
-                                isRoda ? Icons.music_note : Icons.sports_martial_arts,
-                                color: isRoda ? Colors.orange : Colors.blue,
-                                size: 18,
-                              ),
+                        if (canEdit) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(
+                              Icons.edit,
+                              size: 20,
+                              color: isDarkMode ? Colors.white54 : Colors.black54,
                             ),
-                            const SizedBox(width: 12),
-                            
-                            // Day and time
-                            Expanded(
-                              child: Row(
+                            onPressed: () {
+                              // Edit schedule
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Center(child: Text('Error loading schedules')),
+        );
+      },
+    );
+  }
+  
+  Widget _buildAnnouncementsTab(CapoeiraGroup group, bool isDarkMode) {
+    if (group.announcements.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.announcement_outlined,
+              size: 48,
+              color: isDarkMode ? Colors.white24 : Colors.black26,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No announcements yet',
+              style: TextStyle(
+                color: isDarkMode ? Colors.white54 : Colors.black54,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: group.announcements.length,
+      itemBuilder: (context, index) {
+        final announcement = group.announcements[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                announcement.title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                announcement.content,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                DateFormat('MMM d, yyyy').format(announcement.createdAt),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDarkMode ? Colors.white54 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildMediaTab(CapoeiraGroup group, bool isDarkMode) {
+    // TODO: Implement actual media grid when available
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.photo_library_outlined,
+            size: 48,
+            color: isDarkMode ? Colors.white24 : Colors.black26,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No media yet',
+            style: TextStyle(
+              color: isDarkMode ? Colors.white54 : Colors.black54,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  void _showScheduleModal(BuildContext context, CapoeiraGroup group, String type) {
+    final startTimeController = TextEditingController();
+    final endTimeController = TextEditingController();
+    final locationController = TextEditingController();
+    final priceController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String? selectedDay;
+    double? locationLat;
+    double? locationLng;
+    bool showValidationErrors = false;
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.9,
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+            children: [
+              // Title at the top (below status bar)
+              Container(
+                padding: const EdgeInsets.only(top: 20, bottom: 10),
+                child: Text(
+                  type == 'roda' ? 'Schedule Roda' : 'Schedule Class',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Day, Times and Price Row
+                      Row(
+                        children: [
+                          // Day of Week (narrower)
+                          SizedBox(
+                            width: 65,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Day',
+                                  style: FormTheme.labelStyle,
+                                ),
+                                const SizedBox(height: FormTheme.labelSpacing),
+                                GestureDetector(
+                        onTap: () {
+                          showCupertinoModalPopup(
+                            context: context,
+                            builder: (BuildContext context) => Container(
+                              height: 250,
+                              color: CupertinoColors.systemBackground.resolveFrom(context),
+                              child: Column(
                                 children: [
-                                  // Day of week
-                                  SizedBox(
-                                    width: 80,
-                                    child: Text(
-                                      dayName.substring(0, 3).toUpperCase(),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        CupertinoButton(
+                                          padding: EdgeInsets.zero,
+                                          child: const Text('Cancel'),
+                                          onPressed: () => Navigator.pop(context),
+                                        ),
+                                        CupertinoButton(
+                                          padding: EdgeInsets.zero,
+                                          child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
+                                          onPressed: () => Navigator.pop(context),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  
-                                  // Time
-                                  Text(
-                                    '${schedule.startTime} - ${schedule.endTime}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey[700],
-                                    ),
-                                  ),
-                                  
-                                  const SizedBox(width: 12),
-                                  
-                                  // Location (abbreviated)
                                   Expanded(
-                                    child: Text(
-                                      schedule.location.split(',').first,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                                    child: CupertinoPicker(
+                                      itemExtent: 32,
+                                      onSelectedItemChanged: (int index) {
+                                        setModalState(() {
+                                          selectedDay = index.toString();
+                                        });
+                                      },
+                                      children: const [
+                                        Center(child: Text('Sunday')),
+                                        Center(child: Text('Monday')),
+                                        Center(child: Text('Tuesday')),
+                                        Center(child: Text('Wednesday')),
+                                        Center(child: Text('Thursday')),
+                                        Center(child: Text('Friday')),
+                                        Center(child: Text('Saturday')),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            
-                            // Price
-                            if (schedule.price != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.shade50,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '\$${schedule.price!.toStringAsFixed(0)}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green[700],
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                error: (error, _) => Center(
-                  child: Text(
-                    'Error loading schedules',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-  
-  Widget _buildScheduleClassForm(CapoeiraGroup group) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
-      child: _ScheduleClassForm(group: group),
-    );
-  }
-  
-  Widget _buildCompactScheduleSection(CapoeiraGroup group) {
-    return Consumer(
-      builder: (context, ref, child) {
-        final schedulesAsync = ref.watch(groupSchedulesProvider(group.id));
-        
-        return Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Weekly Schedule',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              
-              schedulesAsync.when(
-                data: (schedules) {
-                  if (schedules.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Center(
-                        child: Text(
-                          'No weekly schedules yet',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.tertiarySystemFill,
+                            borderRadius: BorderRadius.circular(8),
+                            border: showValidationErrors && selectedDay == null
+                                ? Border.all(color: Colors.red, width: 1)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              selectedDay != null 
+                                  ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][int.parse(selectedDay!)]
+                                  : 'Day',
+                              style: selectedDay != null ? FormTheme.inputTextStyle : FormTheme.placeholderStyle,
+                            ),
                           ),
                         ),
                       ),
-                    );
-                  }
-                  
-                  // Sort schedules by day of week (handle nulls)
-                  schedules.sort((a, b) {
-                    final aDayOfWeek = a.dayOfWeek ?? 0;
-                    final bDayOfWeek = b.dayOfWeek ?? 0;
-                    return aDayOfWeek.compareTo(bDayOfWeek);
-                  });
-                  
-                  return Column(
-                    children: schedules.map((schedule) {
-                      final dayIndex = schedule.dayOfWeek ?? 0;
-                      final dayName = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][dayIndex.clamp(0, 6)];
-                      final isRoda = schedule.eventType == EventType.roda;
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
                       
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          // Start Time
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Start',
+                                  style: FormTheme.labelStyle,
+                                ),
+                                const SizedBox(height: FormTheme.labelSpacing),
+                                InkWell(
+                        onTap: () async {
+                          await showModalBottomSheet(
+                            context: context,
+                            builder: (BuildContext context) {
+                              int selectedHour = 7;
+                              int selectedMinute = 0;
+                              String selectedPeriod = 'PM';
+                              
+                              return StatefulBuilder(
+                                builder: (context, setTimeState) => Container(
+                                  height: 300,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).scaffoldBackgroundColor,
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Colors.grey[300]!,
+                                              width: 1,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            const Text(
+                                              'Select Start Time',
+                                              style: TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                final minute = selectedMinute.toString().padLeft(2, '0');
+                                                setModalState(() {
+                                                  startTimeController.text = '$selectedHour:$minute $selectedPeriod';
+                                                });
+                                                Navigator.pop(context);
+                                              },
+                                              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Selected value indicator
+                                      Expanded(
+                                        child: Stack(
+                                          children: [
+                                            // Selection highlight bar
+                                            Center(
+                                              child: Container(
+                                                height: 40,
+                                                margin: const EdgeInsets.symmetric(horizontal: 20),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: Colors.blue.withOpacity(0.3),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                // Hour picker
+                                                SizedBox(
+                                                  width: 70,
+                                                  child: ListWheelScrollView.useDelegate(
+                                                    itemExtent: 40,
+                                                    physics: const FixedExtentScrollPhysics(),
+                                                    onSelectedItemChanged: (index) {
+                                                      setTimeState(() {
+                                                        selectedHour = index + 1;
+                                                      });
+                                                    },
+                                                    controller: FixedExtentScrollController(initialItem: 6),
+                                                    childDelegate: ListWheelChildBuilderDelegate(
+                                                      childCount: 12,
+                                                      builder: (context, index) {
+                                                        final isSelected = (index + 1) == selectedHour;
+                                                        return Center(
+                                                          child: Text(
+                                                            '${index + 1}',
+                                                            style: TextStyle(
+                                                              fontSize: isSelected ? 24 : 20,
+                                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                              color: isSelected ? Colors.blue : Colors.grey[600],
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Text(':', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                                                // Minute picker
+                                                SizedBox(
+                                                  width: 70,
+                                                  child: ListWheelScrollView.useDelegate(
+                                                    itemExtent: 40,
+                                                    physics: const FixedExtentScrollPhysics(),
+                                                    onSelectedItemChanged: (index) {
+                                                      setTimeState(() {
+                                                        selectedMinute = index * 5;
+                                                      });
+                                                    },
+                                                    controller: FixedExtentScrollController(initialItem: 0),
+                                                    childDelegate: ListWheelChildBuilderDelegate(
+                                                      childCount: 12,
+                                                      builder: (context, index) {
+                                                        final minute = index * 5;
+                                                        final isSelected = minute == selectedMinute;
+                                                        return Center(
+                                                          child: Text(
+                                                            minute.toString().padLeft(2, '0'),
+                                                            style: TextStyle(
+                                                              fontSize: isSelected ? 24 : 20,
+                                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                              color: isSelected ? Colors.blue : Colors.grey[600],
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 20),
+                                                // AM/PM picker
+                                                SizedBox(
+                                                  width: 60,
+                                                  child: ListWheelScrollView(
+                                                    itemExtent: 40,
+                                                    physics: const FixedExtentScrollPhysics(),
+                                                    onSelectedItemChanged: (index) {
+                                                      setTimeState(() {
+                                                        selectedPeriod = index == 0 ? 'AM' : 'PM';
+                                                      });
+                                                    },
+                                                    controller: FixedExtentScrollController(initialItem: 1),
+                                                    children: [
+                                                      Center(
+                                                        child: Text(
+                                                          'AM',
+                                                          style: TextStyle(
+                                                            fontSize: selectedPeriod == 'AM' ? 24 : 20,
+                                                            fontWeight: selectedPeriod == 'AM' ? FontWeight.bold : FontWeight.normal,
+                                                            color: selectedPeriod == 'AM' ? Colors.blue : Colors.grey[600],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Center(
+                                                        child: Text(
+                                                          'PM',
+                                                          style: TextStyle(
+                                                            fontSize: selectedPeriod == 'PM' ? 24 : 20,
+                                                            fontWeight: selectedPeriod == 'PM' ? FontWeight.bold : FontWeight.normal,
+                                                            color: selectedPeriod == 'PM' ? Colors.blue : Colors.grey[600],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: Container(
+                          padding: FormTheme.fieldPadding,
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.tertiarySystemFill,
+                            borderRadius: BorderRadius.circular(8),
+                            border: showValidationErrors && startTimeController.text.isEmpty
+                                ? Border.all(color: Colors.red, width: 1)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              startTimeController.text.isEmpty ? 'Time' : startTimeController.text,
+                              style: startTimeController.text.isEmpty ? FormTheme.placeholderStyle : FormTheme.inputTextStyle,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                      
+                          // End Time
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'End',
+                                  style: FormTheme.labelStyle,
+                                ),
+                                const SizedBox(height: FormTheme.labelSpacing),
+                                InkWell(
+                        onTap: () async {
+                          await showModalBottomSheet(
+                            context: context,
+                            builder: (BuildContext context) {
+                              int selectedHour = 8;
+                              int selectedMinute = 30;
+                              String selectedPeriod = 'PM';
+                              
+                              return StatefulBuilder(
+                                builder: (context, setTimeState) => Container(
+                                  height: 300,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).scaffoldBackgroundColor,
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          border: Border(
+                                            bottom: BorderSide(
+                                              color: Colors.grey[300]!,
+                                              width: 1,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            const Text(
+                                              'Select End Time',
+                                              style: TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                final minute = selectedMinute.toString().padLeft(2, '0');
+                                                setModalState(() {
+                                                  endTimeController.text = '$selectedHour:$minute $selectedPeriod';
+                                                });
+                                                Navigator.pop(context);
+                                              },
+                                              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Selected value indicator
+                                      Expanded(
+                                        child: Stack(
+                                          children: [
+                                            // Selection highlight bar
+                                            Center(
+                                              child: Container(
+                                                height: 40,
+                                                margin: const EdgeInsets.symmetric(horizontal: 20),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: Colors.blue.withOpacity(0.3),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                // Hour picker
+                                                SizedBox(
+                                                  width: 70,
+                                                  child: ListWheelScrollView.useDelegate(
+                                                    itemExtent: 40,
+                                                    physics: const FixedExtentScrollPhysics(),
+                                                    onSelectedItemChanged: (index) {
+                                                      setTimeState(() {
+                                                        selectedHour = index + 1;
+                                                      });
+                                                    },
+                                                    controller: FixedExtentScrollController(initialItem: 7),
+                                                    childDelegate: ListWheelChildBuilderDelegate(
+                                                      childCount: 12,
+                                                      builder: (context, index) {
+                                                        final isSelected = (index + 1) == selectedHour;
+                                                        return Center(
+                                                          child: Text(
+                                                            '${index + 1}',
+                                                            style: TextStyle(
+                                                              fontSize: isSelected ? 24 : 20,
+                                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                              color: isSelected ? Colors.blue : Colors.grey[600],
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Text(':', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                                                // Minute picker
+                                                SizedBox(
+                                                  width: 70,
+                                                  child: ListWheelScrollView.useDelegate(
+                                                    itemExtent: 40,
+                                                    physics: const FixedExtentScrollPhysics(),
+                                                    onSelectedItemChanged: (index) {
+                                                      setTimeState(() {
+                                                        selectedMinute = index * 5;
+                                                      });
+                                                    },
+                                                    controller: FixedExtentScrollController(initialItem: 6),
+                                                    childDelegate: ListWheelChildBuilderDelegate(
+                                                      childCount: 12,
+                                                      builder: (context, index) {
+                                                        final minute = index * 5;
+                                                        final isSelected = minute == selectedMinute;
+                                                        return Center(
+                                                          child: Text(
+                                                            minute.toString().padLeft(2, '0'),
+                                                            style: TextStyle(
+                                                              fontSize: isSelected ? 24 : 20,
+                                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                              color: isSelected ? Colors.blue : Colors.grey[600],
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 20),
+                                                // AM/PM picker
+                                                SizedBox(
+                                                  width: 60,
+                                                  child: ListWheelScrollView(
+                                                    itemExtent: 40,
+                                                    physics: const FixedExtentScrollPhysics(),
+                                                    onSelectedItemChanged: (index) {
+                                                      setTimeState(() {
+                                                        selectedPeriod = index == 0 ? 'AM' : 'PM';
+                                                      });
+                                                    },
+                                                    controller: FixedExtentScrollController(initialItem: 1),
+                                                    children: [
+                                                      Center(
+                                                        child: Text(
+                                                          'AM',
+                                                          style: TextStyle(
+                                                            fontSize: selectedPeriod == 'AM' ? 24 : 20,
+                                                            fontWeight: selectedPeriod == 'AM' ? FontWeight.bold : FontWeight.normal,
+                                                            color: selectedPeriod == 'AM' ? Colors.blue : Colors.grey[600],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Center(
+                                                        child: Text(
+                                                          'PM',
+                                                          style: TextStyle(
+                                                            fontSize: selectedPeriod == 'PM' ? 24 : 20,
+                                                            fontWeight: selectedPeriod == 'PM' ? FontWeight.bold : FontWeight.normal,
+                                                            color: selectedPeriod == 'PM' ? Colors.blue : Colors.grey[600],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        child: Container(
+                          padding: FormTheme.fieldPadding,
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.tertiarySystemFill,
+                            borderRadius: BorderRadius.circular(8),
+                            border: showValidationErrors && endTimeController.text.isEmpty
+                                ? Border.all(color: Colors.red, width: 1)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              endTimeController.text.isEmpty ? 'Time' : endTimeController.text,
+                              style: endTimeController.text.isEmpty ? FormTheme.placeholderStyle : FormTheme.inputTextStyle,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          
+                          // Price
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  type == 'roda' ? 'Price' : 'Price',
+                                  style: FormTheme.labelStyle,
+                                ),
+                                const SizedBox(height: FormTheme.labelSpacing),
+                                CupertinoTextField(
+                                  controller: priceController,
+                                  keyboardType: TextInputType.number,
+                                  padding: FormTheme.fieldPadding,
+                                  decoration: BoxDecoration(
+                                    color: CupertinoColors.tertiarySystemFill,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  placeholder: '\$',
+                                  placeholderStyle: FormTheme.placeholderStyle,
+                                  style: FormTheme.inputTextStyle,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: FormTheme.fieldSpacing),
+                      
+                      // Location with Google Places Autocomplete
+                      const Text(
+                        'Location',
+                        style: FormTheme.labelStyle,
+                      ),
+                      const SizedBox(height: FormTheme.labelSpacing),
+                      StyledGooglePlacesField(
+                        controller: locationController,
+                        showValidationError: showValidationErrors && (locationLat == null || locationLng == null),
+                        onLocationSelected: (address, lat, lng) {
+                          // Store the coordinates when a location is selected
+                          setModalState(() {
+                            locationLat = lat;
+                            locationLng = lng;
+                          });
+                          if (lat != null && lng != null) {
+                            print('Location selected: $address at ($lat, $lng)');
+                          }
+                        },
+                      ),
+                      
+                      const SizedBox(height: FormTheme.fieldSpacing),
+                      
+                      // Description (optional)
+                      const Text(
+                        'Description (optional)',
+                        style: FormTheme.labelStyle,
+                      ),
+                      const SizedBox(height: FormTheme.labelSpacing),
+                      CupertinoTextField(
+                        controller: descriptionController,
+                        keyboardType: TextInputType.multiline,
+                        maxLines: 3,
+                        padding: FormTheme.fieldPadding,
                         decoration: BoxDecoration(
-                          color: isRoda ? Colors.orange.shade50 : Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(6),
+                          color: CupertinoColors.tertiarySystemFill,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        placeholder: 'Add any additional details...',
+                        placeholderStyle: FormTheme.placeholderStyle,
+                        style: FormTheme.inputTextStyle,
+                      ),
+                      
+                      const SizedBox(height: 30),
+                      
+                      // Note about recurrence
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
                           children: [
-                            // Day
-                            SizedBox(
-                              width: 35,
-                              child: Text(
-                                dayName,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  color: isRoda ? Colors.orange.shade700 : Colors.blue.shade700,
-                                ),
-                              ),
-                            ),
-                            
-                            // Icon
                             Icon(
-                              isRoda ? Icons.music_note : Icons.sports_martial_arts,
-                              color: isRoda ? Colors.orange : Colors.blue,
-                              size: 14,
+                              Icons.info_outline,
+                              color: Colors.blue[700],
+                              size: 20,
                             ),
-                            const SizedBox(width: 6),
-                            
-                            // Time
-                            Text(
-                              '${schedule.startTime} - ${schedule.endTime}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                            
-                            const Spacer(),
-                            
-                            // Price
-                            if (schedule.price != null)
-                              Text(
-                                '\$${schedule.price!.toStringAsFixed(0)}',
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'This will create a recurring weekly ${type == "roda" ? "roda" : "class"} on ${selectedDay != null ? ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][int.parse(selectedDay!)] : "the selected day"}',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.green[700],
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.blue[700],
                                 ),
                               ),
+                            ),
                           ],
                         ),
-                      );
-                    }).toList(),
-                  );
-                },
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ],
                   ),
                 ),
-                error: (error, _) => Center(
-                  child: Text(
-                    'Error loading schedules',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+              // Bottom buttons
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.grey[300]!,
+                      width: 1,
+                    ),
                   ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        color: type == 'roda' ? Colors.orange : Colors.blue,
+                        borderRadius: BorderRadius.circular(8),
+                        onPressed: () async {
+                          // Validate required fields
+                          if (selectedDay == null || 
+                              startTimeController.text.isEmpty || 
+                              endTimeController.text.isEmpty || 
+                              locationController.text.isEmpty ||
+                              locationLat == null ||
+                              locationLng == null) {
+                            setModalState(() {
+                              showValidationErrors = true;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please fill in all required fields'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                            return;
+                          }
+
+                          try {
+                            // Parse times
+                            final startTimeParts = startTimeController.text.split(' ');
+                            final startTime = startTimeParts[0].split(':');
+                            var startHour = int.parse(startTime[0]);
+                            final startMinute = int.parse(startTime[1]);
+                            if (startTimeParts[1] == 'PM' && startHour != 12) startHour += 12;
+                            if (startTimeParts[1] == 'AM' && startHour == 12) startHour = 0;
+
+                            final endTimeParts = endTimeController.text.split(' ');
+                            final endTime = endTimeParts[0].split(':');
+                            var endHour = int.parse(endTime[0]);
+                            final endMinute = int.parse(endTime[1]);
+                            if (endTimeParts[1] == 'PM' && endHour != 12) endHour += 12;
+                            if (endTimeParts[1] == 'AM' && endHour == 12) endHour = 0;
+
+                            // Get current user (teacher)
+                            final currentUser = ref.read(currentUserProvider).value;
+                            if (currentUser == null) {
+                              throw Exception('User not found');
+                            }
+
+                            // Create schedule
+                            final scheduleService = ref.read(supabaseScheduleServiceProvider);
+                            await scheduleService.createSchedule(
+                              groupId: group.id,
+                              teacherId: currentUser.id,
+                              name: type == 'roda' ? 'Weekly Roda' : 'Capoeira Class',
+                              description: descriptionController.text.isNotEmpty ? descriptionController.text : null,
+                              eventType: type,
+                              latitude: locationLat!,
+                              longitude: locationLng!,
+                              locationName: locationController.text,
+                              locationAddress: locationController.text,
+                              timezone: 'America/New_York', // TODO: Get actual timezone
+                              dayOfWeek: int.parse(selectedDay!),
+                              startTime: DateTime(2024, 1, 1, startHour, startMinute),
+                              endTime: DateTime(2024, 1, 1, endHour, endMinute),
+                              price: priceController.text.isNotEmpty 
+                                  ? double.tryParse(priceController.text) 
+                                  : null,
+                              maxStudents: null,
+                            );
+
+                            // Refresh schedules
+                            ref.invalidate(groupSchedulesProvider(group.id));
+                            
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${type == "roda" ? "Roda" : "Class"} scheduled successfully'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to schedule: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Create',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-  
-  Widget _buildCompactScheduleForm(CapoeiraGroup group) {
-    return ExpansionTile(
-      title: const Text(
-        'Add New Class',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
+          ),
         ),
       ),
-      leading: const Icon(Icons.add_circle, color: Colors.blue, size: 20),
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: _ScheduleClassForm(group: group),
-        ),
-      ],
-    );
-  }
-}
-
-// Schedule Class Form Widget
-class _ScheduleClassForm extends ConsumerStatefulWidget {
-  final CapoeiraGroup group;
-  
-  const _ScheduleClassForm({
-    required this.group,
-  });
-  
-  @override
-  ConsumerState<_ScheduleClassForm> createState() => _ScheduleClassFormState();
-}
-
-class _ScheduleClassFormState extends ConsumerState<_ScheduleClassForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _locationNameController = TextEditingController();
-  final _locationAddressController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _maxStudentsController = TextEditingController();
-  
-  EventType _eventType = EventType.class_;
-  int _selectedDayOfWeek = 1; // Monday
-  TimeOfDay _startTime = const TimeOfDay(hour: 18, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 19, minute: 30);
-  double? _latitude;
-  double? _longitude;
-  bool _isLoading = false;
-  
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    _locationNameController.dispose();
-    _locationAddressController.dispose();
-    _priceController.dispose();
-    _maxStudentsController.dispose();
-    super.dispose();
-  }
-  
-  Future<void> _selectTime(bool isStartTime) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: isStartTime ? _startTime : _endTime,
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStartTime) {
-          _startTime = picked;
-        } else {
-          _endTime = picked;
-        }
-      });
-    }
-  }
-  
-  Future<void> _createSchedule() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    if (_latitude == null || _longitude == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a valid location'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    
-    setState(() => _isLoading = true);
-    
-    try {
-      final user = ref.read(currentUserProvider).value;
-      if (user == null) throw Exception('No user logged in');
-      
-      final scheduleService = ref.read(supabaseScheduleServiceProvider);
-      
-      // Create DateTime objects for time (date doesn't matter, only time is used)
-      final now = DateTime.now();
-      final startDateTime = DateTime(now.year, now.month, now.day, _startTime.hour, _startTime.minute);
-      final endDateTime = DateTime(now.year, now.month, now.day, _endTime.hour, _endTime.minute);
-      
-      // Update to create 4 months (16 weeks) of classes
-      await scheduleService.createSchedule(
-        groupId: widget.group.id,
-        teacherId: user.id,
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
-        eventType: _eventType == EventType.class_ ? 'class' : 'roda',
-        latitude: _latitude!,
-        longitude: _longitude!,
-        locationName: _locationNameController.text.trim(),
-        locationAddress: _locationAddressController.text.trim(),
-        timezone: 'America/Los_Angeles', // TODO: Get from user's location
-        dayOfWeek: _selectedDayOfWeek,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        price: _priceController.text.isEmpty ? null : double.parse(_priceController.text),
-        maxStudents: _maxStudentsController.text.isEmpty ? null : int.parse(_maxStudentsController.text),
-      );
-      
-      // Refresh the schedules
-      ref.invalidate(groupSchedulesProvider(widget.group.id));
-      
-      // Clear form
-      _nameController.clear();
-      _descriptionController.clear();
-      _locationNameController.clear();
-      _locationAddressController.clear();
-      _priceController.clear();
-      _maxStudentsController.clear();
-      setState(() {
-        _latitude = null;
-        _longitude = null;
-      });
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Class schedule created successfully! Classes have been generated for the next 4 months.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e, stackTrace) {
-      print('[GroupPage] Error creating schedule: $e');
-      print('[GroupPage] Stack trace: $stackTrace');
-      
-      // Extract more useful error message
-      String errorMessage = 'Failed to create schedule';
-      if (e.toString().contains('Exception:')) {
-        errorMessage = e.toString().replaceAll('Exception: ', '');
-      } else {
-        errorMessage = '$errorMessage: $e';
-      }
-      
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Schedule New Class',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (_isLoading)
-              const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Class Name
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Class Name *',
-                  hintText: 'e.g., Beginner Class, Open Roda',
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a class name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Event Type
-              const Text('Event Type *'),
-              Row(
-                children: [
-                  Radio<EventType>(
-                    value: EventType.class_,
-                    groupValue: _eventType,
-                    onChanged: (value) => setState(() => _eventType = value!),
-                  ),
-                  const Text('Class'),
-                  const SizedBox(width: 16),
-                  Radio<EventType>(
-                    value: EventType.roda,
-                    groupValue: _eventType,
-                    onChanged: (value) => setState(() => _eventType = value!),
-                  ),
-                  const Text('Roda'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // Day of Week (PostgreSQL DOW: 0=Sunday, 1=Monday, ..., 6=Saturday)
-              DropdownButtonFormField<int>(
-                value: _selectedDayOfWeek,
-                decoration: const InputDecoration(
-                  labelText: 'Day of Week *',
-                ),
-                items: const [
-                  DropdownMenuItem(value: 0, child: Text('Sunday')),
-                  DropdownMenuItem(value: 1, child: Text('Monday')),
-                  DropdownMenuItem(value: 2, child: Text('Tuesday')),
-                  DropdownMenuItem(value: 3, child: Text('Wednesday')),
-                  DropdownMenuItem(value: 4, child: Text('Thursday')),
-                  DropdownMenuItem(value: 5, child: Text('Friday')),
-                  DropdownMenuItem(value: 6, child: Text('Saturday')),
-                ],
-                onChanged: (value) => setState(() => _selectedDayOfWeek = value!),
-              ),
-              const SizedBox(height: 16),
-              
-              // Time Selection
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _selectTime(true),
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Start Time *',
-                        ),
-                        child: Text(_startTime.format(context)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => _selectTime(false),
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'End Time *',
-                        ),
-                        child: Text(_endTime.format(context)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              
-              // Location
-              GooglePlacesAddressField(
-                controller: _locationAddressController,
-                onLocationSelected: (address, lat, lng) {
-                  setState(() {
-                    _locationNameController.text = address.split(',').first; // Use first part as name
-                    _locationAddressController.text = address;
-                    _latitude = lat;
-                    _longitude = lng;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Price (optional)
-              TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Price (optional)',
-                  prefixText: '\$',
-                  hintText: '15.00',
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    if (double.tryParse(value) == null) {
-                      return 'Please enter a valid price';
-                    }
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Max Students (optional)
-              TextFormField(
-                controller: _maxStudentsController,
-                decoration: const InputDecoration(
-                  labelText: 'Max Students (optional)',
-                  hintText: '20',
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    if (int.tryParse(value) == null) {
-                      return 'Please enter a valid number';
-                    }
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              
-              // Description (optional)
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  hintText: 'Class details, what to bring, etc.',
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 8),
-              
-              Text(
-                'This will create weekly classes for the next 4 months',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _createSchedule,
-                  icon: const Icon(Icons.add_circle),
-                  label: const Text(
-                    'Create Class Schedule',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.blue,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

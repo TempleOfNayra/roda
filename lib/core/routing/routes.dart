@@ -9,7 +9,5 @@ class Routes {
   static const String map = '/map';
   static const String settings = '/settings';
   static const String group = '/group';
-  static const String modernGroup = '/modern-group';
-  static const String myGroups = '/my-groups';
   static const String createGroup = '/create-group';
 }

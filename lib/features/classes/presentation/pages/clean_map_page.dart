@@ -241,9 +241,9 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        toolbarHeight: 0, // Hide the app bar but keep safe area
+        title: const Text('CLEAN MAP PAGE'),
+        backgroundColor: Colors.blue.withOpacity(0.8),
+        elevation: 2,
       ),
       body: groupsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
