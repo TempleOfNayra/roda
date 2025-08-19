@@ -46,6 +46,7 @@ dependencies:
   app_links: ^6.3.2
 
   cached_network_image: any
+  uuid: ^4.2.1
 dev_dependencies:
   flutter_test:
     sdk: flutter

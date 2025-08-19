@@ -1,4 +1,5 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:roda/core/utils/logger.dart';
 
 class LocationService {
   Future<Position?> getCurrentLocation() async {
@@ -28,7 +29,7 @@ class LocationService {
         desiredAccuracy: LocationAccuracy.high,
       );
     } catch (e) {
-      print('Error getting location: $e');
+      Logger.debug('Error getting location: $e');
       return null;
     }
   }

@@ -9,6 +9,8 @@ import 'package:roda/core/routing/routes.dart';
 import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
+import 'package:roda/application/group_controller.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 
 class ProfilePage extends ConsumerWidget {
@@ -61,17 +63,18 @@ class ProfilePage extends ConsumerWidget {
           
           final registeredClasses = ref.watch(userRegisteredClassesProvider(user.id));
           
-          return Column(
-            children: [
-              // Condensed profile info at top
-              Container(
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // Condensed profile info at top
+                Container(
                 color: Colors.white,
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 40,
-                      backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                      backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
                       backgroundImage: user.profilePictureUrl != null 
                           ? NetworkImage(user.profilePictureUrl!) 
                           : null,
@@ -132,169 +135,225 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
               
-              // My Groups Section
-              if (user.joinedGroupIds.isNotEmpty) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'My Groups',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+              // Groups Section
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Groups:',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (user.role == UserRole.teacher)
+                      ElevatedButton.icon(
+                        onPressed: () => context.push(Routes.createGroup),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Create Group'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         ),
                       ),
-                      if (user.joinedGroupIds.length > 3)
-                        TextButton(
-                          onPressed: () => context.push(Routes.myGroups),
-                          child: const Text('See All'),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
-                // Show up to 3 groups
-                SizedBox(
-                  height: 100,
-                  child: FutureBuilder<List<CapoeiraGroup>>(
-                    future: () async {
-                      if (user.joinedGroupIds.isEmpty) return <CapoeiraGroup>[];
-                      final response = await SupabaseConfig.client
-                          .from('groups')
-                          .select()
-                          .inFilter('id', user.joinedGroupIds.take(3).toList());
-                      return (response as List)
-                          .map((data) => CapoeiraGroup.fromMap(data))
-                          .toList();
-                    }(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
+              ),
+              
+              // Groups List
+              Consumer(
+                builder: (context, ref, child) {
+                  final groupsAsync = ref.watch(userGroupsProvider);
+                  
+                  return groupsAsync.when(
+                    data: (groups) {
+                      if (groups.isEmpty) {
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.group_outlined,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  user.role == UserRole.teacher 
+                                      ? 'No groups yet. Create your first group!' 
+                                      : 'You haven\'t joined any groups yet',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
                       }
                       
-                      final groups = snapshot.data!;
-                      
-                      return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: groups.length,
-                        itemBuilder: (context, index) {
-                          final group = groups[index];
+                      return Column(
+                        children: groups.map((group) {
                           final isAdmin = group.adminIds.contains(user.id);
                           final isTeacher = group.teacherIds.contains(user.id);
                           
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 12),
-                            child: InkWell(
-                              onTap: () => context.push('${Routes.group}/${group.id}'),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                width: 160,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 24,
-                                      backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                                      child: Text(
-                                        group.displayName.isNotEmpty 
-                                            ? group.displayName[0].toUpperCase()
-                                            : 'G',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).primaryColor,
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            child: Card(
+                              elevation: 1,
+                              child: InkWell(
+                                onTap: () => context.push('${Routes.group}/${group.id}'),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      // Group Avatar
+                                      CircleAvatar(
+                                        radius: 30,
+                                        backgroundImage: group.headerImageUrl != null
+                                            ? CachedNetworkImageProvider(group.headerImageUrl!)
+                                            : null,
+                                        backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                        child: group.headerImageUrl == null
+                                            ? Text(
+                                                group.displayName.isNotEmpty 
+                                                    ? group.displayName[0].toUpperCase()
+                                                    : 'G',
+                                                style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context).primaryColor,
+                                                ),
+                                              )
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      // Group Info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    group.displayName,
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (isAdmin)
+                                                  Container(
+                                                    margin: const EdgeInsets.only(left: 8),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.purple,
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: const Text(
+                                                      'ADMIN',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  )
+                                                else if (isTeacher)
+                                                  Container(
+                                                    margin: const EdgeInsets.only(left: 8),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.orange,
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: const Text(
+                                                      'TEACHER',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: Colors.white,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.location_on,
+                                                  size: 14,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  group.city,
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Icon(
+                                                  Icons.people,
+                                                  size: 14,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${group.memberIds.length} members',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                                      child: Text(
-                                        group.displayName,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                      // Arrow
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: Colors.grey[400],
                                       ),
-                                    ),
-                                    if (isAdmin)
-                                      Container(
-                                        margin: const EdgeInsets.only(top: 4),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.purple.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: const Text(
-                                          'Admin',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.purple,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      )
-                                    else if (isTeacher)
-                                      Container(
-                                        margin: const EdgeInsets.only(top: 4),
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: const Text(
-                                          'Teacher',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.blue,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           );
-                        },
+                        }).toList(),
                       );
                     },
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ] else
-                // Show empty state card
-                Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    leading: const Icon(Icons.group, color: Colors.blue, size: 28),
-                    title: const Text(
-                      'My Groups',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    loading: () => const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(child: CircularProgressIndicator()),
                     ),
-                    subtitle: const Text('Join groups to connect'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () => context.push(Routes.myGroups),
-                  ),
-                ),
+                    error: (error, _) => Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text('Error loading groups: $error'),
+                    ),
+                  );
+                },
+              ),
+              
+              const SizedBox(height: 16),
               
               // Section header
               Container(
@@ -310,73 +369,81 @@ class ProfilePage extends ConsumerWidget {
               ),
               
               // List of registered classes
-              Flexible(
-                child: registeredClasses.when(
-                  data: (classes) {
-                    if (classes.isEmpty) {
-                      return Center(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.calendar_today,
-                                size: 64,
-                                color: Colors.grey[400],
+              registeredClasses.when(
+                data: (classes) {
+                  if (classes.isEmpty) {
+                    return Container(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No registered classes',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Find and register for classes near you',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () => context.push(Routes.map),
+                            icon: const Icon(Icons.map),
+                            label: const Text('Browse Classes'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No registered classes',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Find and register for classes near you',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              ElevatedButton.icon(
-                                onPressed: () => context.push(Routes.map),
-                                icon: const Icon(Icons.map),
-                                label: const Text('Browse Classes'),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return Column(
+                    children: classes.take(5).map((classData) {
+                      // TODO: Re-implement _buildClassCard with new data structure
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: Card(
+                          child: ListTile(
+                            title: Text('Class ${classes.indexOf(classData) + 1}'),
+                            subtitle: const Text('Class details'),
                           ),
                         ),
                       );
-                    }
-                    
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: classes.length,
-                      itemBuilder: (context, index) {
-                        final classData = classes[index];
-                        // TODO: Re-implement _buildClassCard with new data structure
-                        return Container(); // _buildClassCard(context, ref, classData, user.id);
-                      },
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => Center(
-                    child: Text('Error loading classes: $error'),
-                  ),
+                    }).toList(),
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                error: (error, _) => Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text('Error loading classes: $error'),
                 ),
               ),
+              const SizedBox(height: 32),
             ],
-          );
+          ),
+        );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Error: $error')),
@@ -440,7 +507,7 @@ class ProfilePage extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -779,9 +846,9 @@ class ProfilePage extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -948,4 +1015,112 @@ class ProfilePage extends ConsumerWidget {
       ),
     );
   }
+
+  /* Removed - using dedicated CreateGroupPage instead
+  void _showCreateGroupDialog(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    final venmoController = TextEditingController();
+    final locationController = TextEditingController();
+    final descriptionController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Create Your Group'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Group Name *',
+                  hintText: 'e.g., Capoeira Angola NYC',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: locationController,
+                decoration: const InputDecoration(
+                  labelText: 'Location',
+                  hintText: 'e.g., New York, NY',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: venmoController,
+                decoration: const InputDecoration(
+                  labelText: 'Venmo Handle',
+                  hintText: '@your-venmo',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  hintText: 'Tell us about your group',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Group name is required')),
+                );
+                return;
+              }
+              
+              try {
+                final user = ref.read(currentUserProvider).value;
+                if (user == null) return;
+                
+                final groupService = ref.read(supabaseGroupServiceProvider);
+                await groupService.createGroup(
+                  name: nameController.text,
+                  branch: null,
+                  location: locationController.text.isNotEmpty ? locationController.text : null,
+                  venmoHandle: venmoController.text.isNotEmpty ? venmoController.text : null,
+                  description: descriptionController.text.isNotEmpty ? descriptionController.text : null,
+                  createdBy: user.id,
+                  teacherName: user.capoeiraName,
+                );
+                
+                // Refresh the user's groups
+                ref.invalidate(currentUserProvider);
+                
+                if (context.mounted) {
+                  Navigator.of(dialogContext).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Group created successfully!')),
+                  );
+                  // Navigate to My Groups page
+                  context.push(Routes.myGroups);
+                }
+              } catch (e, stackTrace) {
+                Logger.debug('Error creating group: $e');
+                Logger.debug('Stack trace: $stackTrace');
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to create group: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+  */
 }

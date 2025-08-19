@@ -12,13 +12,14 @@ import 'package:roda/core/utils/venmo_helper.dart';
 // import 'package:roda/debug_database.dart';
 import 'package:roda/core/config/app_config.dart';
 import 'dart:async';
+import 'package:roda/core/utils/logger.dart';
 
 // Group classes by location for map display
 class LocationGroup {
   final String location;
   final double latitude;
   final double longitude;
-  final List<dynamic> classes; // FullClassData
+  final List<SimpleClassData> classes;
   
   LocationGroup({
     required this.location,
@@ -30,33 +31,108 @@ class LocationGroup {
   bool get hasClasses => classes.any((c) => c.eventType == EventType.class_);
   bool get hasRodas => classes.any((c) => c.eventType == EventType.roda);
   
-  dynamic get nextClass => classes // FullClassData
+  SimpleClassData? get nextClass => classes
       .where((c) => c.eventType == EventType.class_)
       .firstOrNull;
       
-  dynamic get nextRoda => classes // FullClassData
+  SimpleClassData? get nextRoda => classes
       .where((c) => c.eventType == EventType.roda)
       .firstOrNull;
 }
 
 // Provider that groups classes by location for map display
 final mapLocationGroupsProvider = FutureProvider<Map<String, LocationGroup>>((ref) async {
-  // Back to original provider that works
+  // Get classes with location data from the view
   final allClasses = await ref.watch(mapUpcomingClassesProvider.future);
+  
+  Logger.debug('Processing ${allClasses.length} classes for map display');
   
   final groups = <String, LocationGroup>{};
   
-  // TODO: Reimplement with location data from schedule templates
-  // ClassInstance no longer has location properties
-  // Need to join with schedule template data to get locations
+  for (final classData in allClasses) {
+    // Skip if no location data
+    if (classData['latitude'] == null || classData['longitude'] == null) {
+      Logger.debug('Skipping class without location: ${classData['name']}');
+      continue;
+    }
+    
+    final locationKey = '${classData['location_name']}_${classData['latitude']}_${classData['longitude']}';
+    
+    // Create a simple class object with the data we need
+    final classObj = SimpleClassData(
+      id: classData['id'],
+      scheduleId: classData['schedule_id'] ?? '',
+      groupId: classData['group_id'],
+      name: classData['name'] ?? 'Class',
+      scheduledDate: DateTime.parse(classData['scheduled_date']),
+      startTime: classData['start_datetime_utc'] != null 
+          ? DateTime.parse(classData['start_datetime_utc']).toLocal()
+          : DateTime.parse(classData['scheduled_date']),
+      eventType: classData['event_type'] == 'roda' ? EventType.roda : EventType.class_,
+      locationName: classData['location_name'] ?? 'Unknown Location',
+      groupName: classData['group_name'] ?? '',
+      teacherName: classData['teacher_name'] ?? '',
+      price: classData['price']?.toDouble(),
+      attendingCount: classData['registered_count'] ?? 0,
+      attendingStudentIds: classData['attending_student_ids'] != null 
+          ? List<String>.from(classData['attending_student_ids'])
+          : [],
+    );
+    
+    if (groups.containsKey(locationKey)) {
+      groups[locationKey]!.classes.add(classObj);
+    } else {
+      groups[locationKey] = LocationGroup(
+        location: classData['location_name'] ?? 'Unknown Location',
+        latitude: classData['latitude'].toDouble(),
+        longitude: classData['longitude'].toDouble(),
+        classes: [classObj],
+      );
+    }
+  }
   
   // Sort classes within each group by date
   for (final group in groups.values) {
     group.classes.sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
   }
   
+  Logger.debug('Created ${groups.length} location groups for map');
+  
   return groups;
 });
+
+// Simple class data for map display
+class SimpleClassData {
+  final String id;
+  final String scheduleId;
+  final String? groupId;
+  final String name;
+  final DateTime scheduledDate;
+  final DateTime startTime;
+  final EventType eventType;
+  final String locationName;
+  final String groupName;
+  final String teacherName;
+  final double? price;
+  final int attendingCount;
+  final List<String> attendingStudentIds;
+  
+  SimpleClassData({
+    required this.id,
+    required this.scheduleId,
+    this.groupId,
+    required this.name,
+    required this.scheduledDate,
+    required this.startTime,
+    required this.eventType,
+    required this.locationName,
+    required this.groupName,
+    required this.teacherName,
+    this.price,
+    required this.attendingCount,
+    List<String>? attendingStudentIds,
+  }) : attendingStudentIds = attendingStudentIds ?? [];
+}
 
 class CleanMapPage extends ConsumerStatefulWidget {
   const CleanMapPage({super.key});
@@ -85,7 +161,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 30),
       (_) {
-        print('🔄 Auto-refreshing map data');
+        Logger.debug('🔄 Auto-refreshing map data');
         // Invalidate the provider to force fresh data
         ref.invalidate(mapLocationGroupsProvider);
         ref.invalidate(mapUpcomingClassesProvider);
@@ -118,7 +194,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
         ),
       );
     } catch (e) {
-      print('Error getting location: $e');
+      Logger.debug('Error getting location: $e');
     }
   }
   
@@ -376,7 +452,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -464,8 +540,9 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     );
   }
   
-  Widget _buildClassListItem(dynamic classData) { // FullClassData
+  Widget _buildClassListItem(SimpleClassData classData) {
     final dateFormat = DateFormat('EEE, MMM d');
+    final timeFormat = DateFormat('h:mm a');
     final isRoda = classData.eventType == EventType.roda;
     
     return Container(
@@ -477,7 +554,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isRoda ? Colors.orange.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+              color: isRoda ? Colors.orange.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -523,7 +600,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '${dateFormat.format(classData.scheduledDate)} • ${classData.startTime} - ${classData.endTime}',
+                        '${dateFormat.format(classData.scheduledDate)} • ${timeFormat.format(classData.startTime)}',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[700],
@@ -568,7 +645,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
             builder: (context, ref, child) {
               final currentUser = ref.watch(currentUserProvider).value;
               final isRegistered = currentUser != null && 
-                  classData.instance.attendingStudentIds.contains(currentUser.id);
+                  classData.attendingStudentIds.contains(currentUser.id);
               
               if (!isRegistered) {
                 // Show Register button
@@ -645,9 +722,19 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     );
   }
   
-  void _handlePayment(dynamic classData) async { // FullClassData
+  void _handlePayment(SimpleClassData classData) async {
     // Get the group's Venmo handle - always fetch latest data
-    final groupAsyncValue = ref.read(groupByIdProvider(classData.template.groupId));
+    if (classData.groupId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Group information not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    final groupAsyncValue = ref.read(groupByIdProvider(classData.groupId!));
     
     final groupAsync = groupAsyncValue.when(
       data: (data) => data,
@@ -685,7 +772,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     }
   }
   
-  void _handleRegister(dynamic classData, bool isRegistered) async { // FullClassData
+  void _handleRegister(SimpleClassData classData, bool isRegistered) async {
     final currentUser = ref.read(currentUserProvider).value;
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -697,7 +784,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
       return;
     }
     
-    print('🎯 Registration: User ${currentUser.id} ${isRegistered ? "cancelling" : "registering"} for class ${classData.instance.id}');
+    Logger.debug('🎯 Registration: User ${currentUser.id} ${isRegistered ? "cancelling" : "registering"} for class ${classData.id}');
     
     try {
       // TODO: Update the class_instances to add/remove user registration
@@ -715,15 +802,15 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
       
       // Update the local instance data to reflect the change
       if (isRegistered) {
-        classData.instance.attendingStudentIds.remove(currentUser.id);
+        classData.attendingStudentIds.remove(currentUser.id);
       } else {
-        classData.instance.attendingStudentIds.add(currentUser.id);
+        classData.attendingStudentIds.add(currentUser.id);
       }
       
       // Refresh the UI
       setState(() {});
     } catch (e) {
-      print('Error updating registration: $e');
+      Logger.debug('Error updating registration: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to update registration: ${e.toString()}'),
@@ -737,9 +824,10 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     required IconData icon,
     required Color iconColor,
     required String title,
-    required dynamic classData, // FullClassData
+    required SimpleClassData classData,
   }) {
     final dateFormat = DateFormat('EEE, MMM d');
+    final timeFormat = DateFormat('h:mm a');
     
     return Container(
       padding: const EdgeInsets.all(12),
@@ -752,7 +840,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: iconColor, size: 24),
@@ -778,7 +866,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                   ),
                 ),
                 Text(
-                  '${classData.startTime} - ${classData.endTime}',
+                  timeFormat.format(classData.startTime),
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],

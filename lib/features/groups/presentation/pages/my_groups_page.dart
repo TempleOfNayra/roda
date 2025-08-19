@@ -7,15 +7,7 @@ import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/routing/routes.dart';
 import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
-
-final userGroupsProvider = StreamProvider<List<CapoeiraGroup>>((ref) {
-  final user = ref.watch(currentUserProvider).value;
-  if (user == null || user.joinedGroupIds.isEmpty) {
-    return Stream.value([]);
-  }
-  
-  return Stream.value([]);
-});
+import 'package:roda/application/group_controller.dart';
 
 class MyGroupsPage extends ConsumerWidget {
   const MyGroupsPage({super.key});
@@ -27,6 +19,10 @@ class MyGroupsPage extends ConsumerWidget {
     
     return SafeScaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go(Routes.profile),
+        ),
         title: const Text('My Groups'),
         centerTitle: true,
       ),
@@ -81,7 +77,7 @@ class MyGroupsPage extends ConsumerWidget {
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () {
-                    context.push('${Routes.group}/${group.id}');
+                    context.push('${Routes.modernGroup}/${group.id}');
                   },
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +180,7 @@ class MyGroupsPage extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            if (group.location != null)
+                            if (group.city != null)
                               Row(
                                 children: [
                                   Icon(
@@ -194,7 +190,7 @@ class MyGroupsPage extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    group.location!,
+                                    group.city!,
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey[600],
@@ -226,7 +222,7 @@ class MyGroupsPage extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  group.teacherName ?? 'Teacher',
+                                  group.teacherFullName ?? 'Teacher',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey[600],

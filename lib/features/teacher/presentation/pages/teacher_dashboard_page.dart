@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:roda/core/models/class_session_model.dart';
-import 'package:roda/core/models/schedule_template.dart';
-import 'package:roda/core/models/class_instance.dart';
 import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 // import 'package:roda/features/classes/providers/class_providers.dart';
 // import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 // import 'package:roda/features/teacher/presentation/pages/class_attendance_page.dart';
-import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:intl/intl.dart';
 
 class TeacherDashboardPage extends ConsumerWidget {
@@ -202,17 +198,17 @@ class TeacherDashboardPage extends ConsumerWidget {
   }
 
   Widget _buildClassCard(BuildContext context, dynamic classSession) { // TODO: Replace with proper class model
-    final dateFormat = DateFormat('EEEE, MMM dd');
+    // final dateFormat = DateFormat('EEEE, MMM dd');
     // TODO: Get time range from actual class data when model is updated
-    final timeRange = 'Time TBD';
-    final attendingCount = 0; // TODO: Fix when data model is updated
-    final presentCount = 0; // TODO: Fix when data model is updated
-    final paidCount = 0; // TODO: Fix when data model is updated
+    const timeRange = 'Time TBD';
+    const attendingCount = 0; // TODO: Fix when data model is updated
+    const presentCount = 0; // TODO: Fix when data model is updated
+    const paidCount = 0; // TODO: Fix when data model is updated
     
     // TODO: Determine event type when model is updated
-    final isRoda = false;
-    final eventTypeLabel = isRoda ? 'RODA' : 'CLASS';
-    final tagColor = isRoda ? Colors.orange : Colors.blue;
+    const isRoda = false;
+    const eventTypeLabel = 'CLASS';
+    final tagColor = Colors.blue;
     
     return Card(
       child: InkWell(
@@ -334,71 +330,72 @@ class TeacherDashboardPage extends ConsumerWidget {
     );
   }
 
-  void _showClassDetails(BuildContext context, dynamic classSession) { // FullClassData
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.5,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (context, scrollController) {
-            return Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Class Details', // TODO: Get date when model is updated
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Text(
-                    'Time TBD', // TODO: Get time when model is updated
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildAttendanceSection(
-                    'Students Attending',
-                    0, // TODO: Get count when model is updated
-                    Icons.people_outline,
-                    Colors.blue,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildAttendanceSection(
-                    'Students Present',
-                    0, // TODO: Get count when model is updated
-                    Icons.check_circle_outline,
-                    Colors.green,
-                  ),
-                  const SizedBox(height: 32),
-                  // TODO: Add cancel button when model includes status
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+  // Unused method - keeping for future implementation
+  // void _showClassDetails(BuildContext context, dynamic classSession) { // FullClassData
+  //   showModalBottomSheet(
+  //     context: context,
+  //     isScrollControlled: true,
+  //     builder: (context) {
+  //       return DraggableScrollableSheet(
+  //         initialChildSize: 0.7,
+  //         minChildSize: 0.5,
+  //         maxChildSize: 0.9,
+  //         expand: false,
+  //         builder: (context, scrollController) {
+  //           return Padding(
+  //             padding: const EdgeInsets.all(24.0),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 Center(
+  //                   child: Container(
+  //                     width: 40,
+  //                     height: 4,
+  //                     decoration: BoxDecoration(
+  //                       color: Colors.grey[300],
+  //                       borderRadius: BorderRadius.circular(2),
+  //                     ),
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 16),
+  //                 const Text(
+  //                   'Class Details', // TODO: Get date when model is updated
+  //                   style: TextStyle(
+  //                     fontSize: 20,
+  //                     fontWeight: FontWeight.bold,
+  //                   ),
+  //                 ),
+  //                 const Text(
+  //                   'Time TBD', // TODO: Get time when model is updated
+  //                   style: TextStyle(
+  //                     fontSize: 16,
+  //                     color: Colors.grey,
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 24),
+  //                 _buildAttendanceSection(
+  //                   'Students Attending',
+  //                   0, // TODO: Get count when model is updated
+  //                   Icons.people_outline,
+  //                   Colors.blue,
+  //                 ),
+  //                 const SizedBox(height: 16),
+  //                 _buildAttendanceSection(
+  //                   'Students Present',
+  //                   0, // TODO: Get count when model is updated
+  //                   Icons.check_circle_outline,
+  //                   Colors.green,
+  //                 ),
+  //                 const SizedBox(height: 32),
+  //                 // TODO: Add cancel button when model includes status
+  //               ],
+  //             ),
+  //           );
+  //         },
+  //       );
+  //     },
+  //   );
+  // }
 
   Widget _buildAttendanceSection(
     String title,
@@ -481,9 +478,9 @@ class TeacherDashboardPage extends ConsumerWidget {
         width: 120,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -516,7 +513,7 @@ class TeacherDashboardPage extends ConsumerWidget {
     );
     
     // Refresh the dashboard when returning from schedule page
-    final currentUser = ref.read(currentUserProvider).value;
+    // final currentUser = ref.read(currentUserProvider).value;
     // TODO: Refresh provider when implemented
     // if (currentUser != null) {
     //   ref.invalidate(teacherUpcomingFullClassesProvider(currentUser.id));

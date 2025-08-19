@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:roda/core/utils/logger.dart';
 
 class AddressSearchField extends StatefulWidget {
   final TextEditingController controller;
@@ -37,21 +38,21 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
       // Try to geocode the address, but don't fail if it doesn't work
       List<Location>? locations;
       try {
-        print('🔍 Searching for: "$query"');
+        Logger.debug('🔍 Searching for: "$query"');
         locations = await locationFromAddress(query).timeout(
           const Duration(seconds: 3),
           onTimeout: () {
-            print('⏱️ Geocoding timeout for: $query');
+            Logger.debug('⏱️ Geocoding timeout for: $query');
             return [];
           },
         );
-        print('📍 Geocoding returned ${locations.length} results');
+        Logger.debug('📍 Geocoding returned ${locations.length} results');
         if (locations.isNotEmpty) {
-          print('   First result: Lat ${locations.first.latitude}, Lng ${locations.first.longitude}');
+          Logger.debug('   First result: Lat ${locations.first.latitude}, Lng ${locations.first.longitude}');
         }
       } catch (e) {
         // Geocoding failed, that's ok - user can still use the address
-        print('❌ Geocoding failed for "$query": $e');
+        Logger.debug('❌ Geocoding failed for "$query": $e');
         locations = [];
       }
       
@@ -108,7 +109,7 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
       
       return suggestions;
     } catch (e) {
-      print('Error searching addresses: $e');
+      Logger.debug('Error searching addresses: $e');
       setState(() => _isSearching = false);
       
       // Always return the query itself as an option
@@ -176,28 +177,28 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
         onSubmitted: (value) async {
           // Try to geocode when submitted
           if (value.isNotEmpty) {
-            print('Attempting to geocode address: $value');
+            Logger.debug('Attempting to geocode address: $value');
             try {
               final locations = await locationFromAddress(value).timeout(
                 const Duration(seconds: 3),
                 onTimeout: () {
-                  print('Geocoding timeout for: $value');
+                  Logger.debug('Geocoding timeout for: $value');
                   return [];
                 },
               );
               if (locations.isNotEmpty) {
-                print('Geocoding successful! Lat: ${locations.first.latitude}, Lng: ${locations.first.longitude}');
+                Logger.debug('Geocoding successful! Lat: ${locations.first.latitude}, Lng: ${locations.first.longitude}');
                 widget.onLocationSelected?.call(
                   value, 
                   locations.first.latitude, 
                   locations.first.longitude
                 );
               } else {
-                print('Geocoding returned no results for: $value');
+                Logger.debug('Geocoding returned no results for: $value');
                 widget.onLocationSelected?.call(value, null, null);
               }
             } catch (e) {
-              print('Geocoding error for "$value": $e');
+              Logger.debug('Geocoding error for "$value": $e');
               widget.onLocationSelected?.call(value, null, null);
             }
           }
@@ -234,25 +235,25 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
           );
         } else {
           // Try to geocode the address
-          print('Selected suggestion without coordinates, attempting to geocode: ${suggestion.address}');
+          Logger.debug('Selected suggestion without coordinates, attempting to geocode: ${suggestion.address}');
           try {
             final locations = await locationFromAddress(suggestion.address).timeout(
               const Duration(seconds: 3),
               onTimeout: () => [],
             );
             if (locations.isNotEmpty) {
-              print('Geocoding successful! Lat: ${locations.first.latitude}, Lng: ${locations.first.longitude}');
+              Logger.debug('Geocoding successful! Lat: ${locations.first.latitude}, Lng: ${locations.first.longitude}');
               widget.onLocationSelected?.call(
                 suggestion.address,
                 locations.first.latitude,
                 locations.first.longitude,
               );
             } else {
-              print('No geocoding results, using address without coordinates');
+              Logger.debug('No geocoding results, using address without coordinates');
               widget.onLocationSelected?.call(suggestion.address, null, null);
             }
           } catch (e) {
-            print('Geocoding error: $e');
+            Logger.debug('Geocoding error: $e');
             widget.onLocationSelected?.call(suggestion.address, null, null);
           }
         }

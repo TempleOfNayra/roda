@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import '../config/r2_config.dart';
+import '../utils/logger.dart';
 
 class R2StorageService {
   static Future<String?> uploadProfilePicture({
@@ -10,13 +11,13 @@ class R2StorageService {
     required XFile imageFile,
   }) async {
     try {
-      print('🚀 Starting R2 upload for user: $userId');
-      print('📁 File: ${imageFile.name}, Path: ${imageFile.path}');
-      print('🌐 Worker URL: ${R2Config.uploadWorkerUrl}');
+      Logger.debug('🚀 Starting R2 upload for user: $userId');
+      Logger.debug('📁 File: ${imageFile.name}, Path: ${imageFile.path}');
+      Logger.debug('🌐 Worker URL: ${R2Config.uploadWorkerUrl}');
       
       final file = File(imageFile.path);
       final bytes = await file.readAsBytes();
-      print('📊 File size: ${bytes.length} bytes');
+      Logger.debug('📊 File size: ${bytes.length} bytes');
       
       final request = http.MultipartRequest(
         'POST',
@@ -36,25 +37,25 @@ class R2StorageService {
       request.fields['userId'] = userId;
       request.fields['type'] = 'profile_picture';
       
-      print('📤 Sending request to Worker...');
+      Logger.debug('📤 Sending request to Worker...');
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
       
-      print('📥 Response status: ${response.statusCode}');
-      print('📥 Response body: $responseBody');
+      Logger.debug('📥 Response status: ${response.statusCode}');
+      Logger.debug('📥 Response body: $responseBody');
       
       if (response.statusCode == 200) {
         final data = json.decode(responseBody);
         final url = data['url'];
-        print('✅ Upload successful! URL: $url');
+        Logger.debug('✅ Upload successful! URL: $url');
         return url;
       } else {
-        print('❌ Upload failed with status ${response.statusCode}: $responseBody');
+        Logger.debug('❌ Upload failed with status ${response.statusCode}: $responseBody');
         return null;
       }
     } catch (e, stackTrace) {
-      print('❌ Error uploading profile picture: $e');
-      print('Stack trace: $stackTrace');
+      Logger.debug('❌ Error uploading profile picture: $e');
+      Logger.debug('Stack trace: $stackTrace');
       return null;
     }
   }

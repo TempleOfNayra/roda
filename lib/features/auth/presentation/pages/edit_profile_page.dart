@@ -9,6 +9,7 @@ import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/services/r2_storage_service.dart';
 import 'package:roda/core/widgets/birthday_picker.dart';
+import 'package:roda/core/utils/logger.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -67,7 +68,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         _venmoController.text = _userGroup?.venmoHandle ?? '';
       });
     } catch (e) {
-      print('Error loading group: $e');
+      Logger.debug('Error loading group: $e');
     }
   }
 
@@ -119,7 +120,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         children: [
                           CircleAvatar(
                             radius: 50,
-                            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
                             backgroundImage: _getProfileImage(user),
                             child: _getProfileImage(user) == null
                                 ? Text(

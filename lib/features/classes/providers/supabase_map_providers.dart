@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roda/core/utils/logger.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:roda/core/models/class_instance.dart';
@@ -51,7 +52,7 @@ class SupabaseMapService {
       
       return _mapResponseToClasses(response);
     } catch (e) {
-      print('Error getting classes in bounds: $e');
+      Logger.debug('Error getting classes in bounds: $e');
       // Fallback to simpler query
       return _fallbackQuery(bounds, startDate, endDate);
     }
@@ -77,7 +78,7 @@ class SupabaseMapService {
       
       return _mapResponseToClasses(response);
     } catch (e) {
-      print('Error getting classes near point: $e');
+      Logger.debug('Error getting classes near point: $e');
       // Fallback to view query
       return _fallbackQueryNearPoint(center, radiusMeters, startDate, endDate);
     }
@@ -107,7 +108,7 @@ class SupabaseMapService {
       
       return _mapResponseToClasses(response);
     } catch (e) {
-      print('Error getting classes along route: $e');
+      Logger.debug('Error getting classes along route: $e');
       return [];
     }
   }
@@ -130,7 +131,7 @@ class SupabaseMapService {
       // TODO: Filter by bounds using schedule template location
       return classes;
     } catch (e) {
-      print('Fallback query also failed: $e');
+      Logger.debug('Fallback query also failed: $e');
       return [];
     }
   }
@@ -156,7 +157,7 @@ class SupabaseMapService {
       // TODO: Filter by distance using schedule template location
       return classes;
     } catch (e) {
-      print('Fallback near point query failed: $e');
+      Logger.debug('Fallback near point query failed: $e');
       return [];
     }
   }
@@ -220,14 +221,43 @@ class SupabaseMapService {
 // Provider for map service
 final supabaseMapServiceProvider = Provider((ref) => SupabaseMapService());
 
-// Provider for upcoming classes for map
-final mapUpcomingClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
-  final service = ref.read(supabaseMapServiceProvider);
-  // Get classes for next 30 days within 50km radius
-  return service.getClassesNearPoint(
-    center: const LatLng(37.7749, -122.4194),  // Default to SF
-    radiusMeters: 50000,
-  );
+// Provider for upcoming classes for map with location data
+final mapUpcomingClassesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  try {
+    // Fetch directly from map_classes view which has location data
+    final response = await SupabaseConfig.client
+        .from('map_classes')
+        .select('*')
+        .gte('scheduled_date', DateTime.now().toIso8601String().split('T')[0])
+        .lte('scheduled_date', DateTime.now().add(const Duration(days: 30)).toIso8601String().split('T')[0])
+        .order('scheduled_date', ascending: true)
+        .limit(100);
+    
+    Logger.debug('Fetched ${response.length} classes from map_classes view');
+    
+    // Parse and add location coordinates to each class
+    return (response as List).map<Map<String, dynamic>>((item) {
+      // Parse location from PostGIS geography type
+      double? latitude, longitude;
+      if (item['location'] != null) {
+        final pointStr = item['location'] as String;
+        final matches = RegExp(r'([+-]?\d+\.?\d*)\s+([+-]?\d+\.?\d*)').firstMatch(pointStr);
+        if (matches != null) {
+          longitude = double.tryParse(matches.group(1) ?? '');
+          latitude = double.tryParse(matches.group(2) ?? '');
+        }
+      }
+      
+      return <String, dynamic>{
+        ...item as Map<String, dynamic>,
+        'latitude': latitude,
+        'longitude': longitude,
+      };
+    }).toList();
+  } catch (e) {
+    Logger.debug('Error fetching map classes: $e');
+    return [];
+  }
 });
 
 // Provider for classes in current map bounds

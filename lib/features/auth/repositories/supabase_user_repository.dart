@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/core/config/supabase_config.dart';
+import 'package:roda/core/utils/logger.dart';
 
 final supabaseUserRepositoryProvider = Provider<SupabaseUserRepository>((ref) {
   return SupabaseUserRepository();
@@ -12,18 +13,23 @@ class SupabaseUserRepository {
   // Create a new user in Supabase
   Future<void> createUser(UserModel user) async {
     try {
+      Logger.debug('Creating user in Supabase with ID: ${user.id}');
       await _client
           .from('users')
           .insert({
-            'id': user.id, // Using Firebase UID
+            'id': user.id, // Using Supabase Auth UID
             'email': user.email,
             'full_name': user.fullName,
             'capoeira_name': user.capoeiraName,
             'date_of_birth': user.dateOfBirth.toIso8601String(),
             'role': user.role.name,
             'profile_picture_url': user.profilePictureUrl,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
           });
+      Logger.debug('User created successfully in Supabase');
     } catch (e) {
+      Logger.debug('Error creating user: $e');
       throw Exception('Failed to create user in Supabase: $e');
     }
   }
@@ -31,13 +37,18 @@ class SupabaseUserRepository {
   // Get user by ID
   Future<UserModel?> getUser(String userId) async {
     try {
+      Logger.debug('Fetching user from Supabase with ID: $userId');
       final response = await _client
           .from('users')
           .select()
           .eq('id', userId)
           .maybeSingle();
       
-      if (response == null) return null;
+      Logger.debug('User fetch response: $response');
+      if (response == null) {
+        Logger.debug('No user found with ID: $userId');
+        return null;
+      }
       
       return UserModel(
         id: response['id'],
@@ -53,6 +64,7 @@ class SupabaseUserRepository {
         updatedAt: DateTime.parse(response['updated_at']),
       );
     } catch (e) {
+      Logger.debug('Error fetching user: $e');
       throw Exception('Failed to get user from Supabase: $e');
     }
   }
@@ -91,12 +103,22 @@ class SupabaseUserRepository {
   
   // Stream user data
   Stream<UserModel?> getUserStream(String userId) {
+    Logger.debug('Setting up user stream for ID: $userId');
     return _client
         .from('users')
         .stream(primaryKey: ['id'])
         .eq('id', userId)
+        .handleError((error) {
+          Logger.debug('User stream error handled: $error');
+          // Return null on error to prevent app crash
+          return null;
+        })
         .map((data) {
-          if (data.isEmpty) return null;
+          Logger.debug('User stream data received');
+          if (data.isEmpty) {
+            Logger.debug('No user data in stream for ID: $userId');
+            return null;
+          }
           final user = data.first;
           return UserModel(
             id: user['id'],

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:roda/core/config/r2_config.dart';
 import 'package:path/path.dart' as path;
+import 'package:roda/core/utils/logger.dart';
 
 class StorageService {
   // Upload profile picture
@@ -49,11 +50,11 @@ class StorageService {
         // Assuming the worker returns the public URL
         return '${R2Config.publicBucketUrl}/$fileName';
       } else {
-        print('Failed to upload image: ${response.statusCode} - ${response.body}');
+        Logger.debug('Failed to upload image: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Error uploading profile picture: $e');
+      Logger.debug('Error uploading profile picture: $e');
       return null;
     }
   }
@@ -86,11 +87,11 @@ class StorageService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return '${R2Config.publicBucketUrl}/$fileName';
       } else {
-        print('Failed to upload image: ${response.statusCode}');
+        Logger.debug('Failed to upload image: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Error uploading profile picture: $e');
+      Logger.debug('Error uploading profile picture: $e');
       return null;
     }
   }

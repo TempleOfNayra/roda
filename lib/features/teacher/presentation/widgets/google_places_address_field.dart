@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_places_sdk/google_places_sdk.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:roda/core/utils/logger.dart';
 
 const String googleApiKey = 'AIzaSyD0RWCliozfGpgzQX-cJDFFHV224-bNwGY';
 
@@ -48,7 +49,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
     setState(() => _isSearching = true);
     
     try {
-      print('🔍 Searching Google Places for: "$query"');
+      Logger.debug('🔍 Searching Google Places for: "$query"');
       
       // Search for places
       final predictions = await _places.getAutoCompletePredictions(
@@ -56,7 +57,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
         countryCodes: ['US'], // Limit to US for now
       );
       
-      print('📍 Found ${predictions.length} results');
+      Logger.debug('📍 Found ${predictions.length} results');
       
       setState(() => _isSearching = false);
       
@@ -69,7 +70,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
         );
       }).toList();
     } catch (e) {
-      print('❌ Google Places error: $e');
+      Logger.debug('❌ Google Places error: $e');
       setState(() => _isSearching = false);
       
       // Return the query itself as an option
@@ -92,7 +93,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
     }
     
     try {
-      print('Getting details for place: ${suggestion.placeId}');
+      Logger.debug('Getting details for place: ${suggestion.placeId}');
       
       final place = await _places.fetchPlaceDetails(
         suggestion.placeId,
@@ -106,7 +107,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
       final lat = place.latLng?.lat;
       final lng = place.latLng?.lng;
       
-      print('Got coordinates: $lat, $lng');
+      Logger.debug('Got coordinates: $lat, $lng');
       
       widget.onLocationSelected?.call(
         suggestion.description,
@@ -114,7 +115,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
         lng,
       );
     } catch (e) {
-      print('Error getting place details: $e');
+      Logger.debug('Error getting place details: $e');
       widget.onLocationSelected?.call(suggestion.description, null, null);
     }
   }

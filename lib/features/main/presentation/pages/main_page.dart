@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:roda/core/routing/routes.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/models/user_model.dart';
+import 'package:roda/core/utils/logger.dart';
 
 class MainPage extends ConsumerWidget {
   const MainPage({super.key});
@@ -13,8 +14,8 @@ class MainPage extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final currentUser = ref.watch(currentUserProvider);
     
-    print('DEBUG: [MainPage.build] authState: ${authState.value != null ? "logged in" : "not logged in"}');
-    print('DEBUG: [MainPage.build] currentUser: ${currentUser.value != null ? "has profile" : "no profile"}');
+    Logger.debug('DEBUG: [MainPage.build] authState: ${authState.value != null ? "logged in" : "not logged in"}');
+    Logger.debug('DEBUG: [MainPage.build] currentUser: ${currentUser.value != null ? "has profile" : "no profile"}');
     
     return Scaffold(
       body: SafeArea(
@@ -58,17 +59,17 @@ class MainPage extends ConsumerWidget {
                 authState.when(
                   data: (user) {
                     if (user == null) {
-                      print('DEBUG: [MainPage] User not authenticated - showing sign out buttons');
+                      Logger.debug('DEBUG: [MainPage] User not authenticated - showing sign out buttons');
                       return _buildSignedOutButtons(context);
                     } else {
                       return currentUser.when(
                         data: (userData) {
                           if (userData == null) {
                             // User authenticated but no profile yet
-                            print('DEBUG: [MainPage] User authenticated but no profile - showing complete profile button');
+                            Logger.debug('DEBUG: [MainPage] User authenticated but no profile - showing complete profile button');
                             return _buildSignUpButton(context);
                           }
-                          print('DEBUG: [MainPage] User has profile - showing signed in buttons');
+                          Logger.debug('DEBUG: [MainPage] User has profile - showing signed in buttons');
                           return _buildSignedInButtons(context, ref, userData);
                         },
                         loading: () => const CircularProgressIndicator(),

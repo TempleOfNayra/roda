@@ -8,6 +8,7 @@ import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/auth/presentation/widgets/auth_button.dart';
 import 'package:roda/core/widgets/birthday_picker.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
+import 'package:roda/core/utils/logger.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
   const SignUpPage({super.key});
@@ -355,7 +356,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           setState(() => _isSigningIn = false);
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      Logger.debug('OAuth sign in error: $e');
+      Logger.debug('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Sign in failed: $e')),
@@ -382,7 +385,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           setState(() => _isSigningIn = false);
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      Logger.debug('OAuth sign in error: $e');
+      Logger.debug('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Sign in failed: $e')),
@@ -458,13 +463,13 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             final creatorInfo = await groupService.getGroupCreatorInfo(_groupNameController.text, null);
             if (creatorInfo != null && creatorInfo['name'] != null) {
               creatorName = creatorInfo['name']!;
-            } else if (existingGroup.teacherName != null && existingGroup.teacherName!.isNotEmpty) {
-              // Fall back to teacherName stored in the group
-              creatorName = existingGroup.teacherName!;
+            } else if (existingGroup.teacherFullName.isNotEmpty) {
+              // Fall back to teacherFullName stored in the group
+              creatorName = existingGroup.teacherFullName;
             }
           } catch (e) {
             // If we can't get creator info, use default
-            print('Could not get creator info: $e');
+            Logger.debug('Could not get creator info: $e');
           }
           
           // Show dialog asking if they want to join the existing group
@@ -495,7 +500,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             
             if (shouldJoin == true) {
               // Create user and join existing group
-              await authService.createUser(
+              final newUser = await authService.createUser(
                 fullName: _fullNameController.text,
                 capoeiraName: _capoeiraNameController.text,
                 dateOfBirth: _dateOfBirth!,
@@ -517,6 +522,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 joinExistingGroup: true,
               );
               
+              // Force a refresh of the current user provider
+              ref.invalidate(currentUserProvider);
+              
               if (mounted) {
                 context.go(Routes.profile);
               }
@@ -532,7 +540,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       }
       
       // No existing group or not a teacher, proceed with normal creation
-      await authService.createUser(
+      final newUser = await authService.createUser(
         fullName: _fullNameController.text,
         capoeiraName: _capoeiraNameController.text,
         dateOfBirth: _dateOfBirth!,
@@ -555,11 +563,16 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             : null,
       );
       
+      // Force a refresh of the current user provider
+      ref.invalidate(currentUserProvider);
+      
       if (mounted) {
         // Always go to profile after sign up
         context.go(Routes.profile);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      Logger.debug('Sign up error: $e');
+      Logger.debug('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Sign up failed: $e')),

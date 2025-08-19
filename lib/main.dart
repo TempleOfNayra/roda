@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/routing/app_router.dart';
@@ -6,6 +5,7 @@ import 'package:roda/core/theme/app_theme.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:app_links/app_links.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:roda/core/utils/logger.dart';
 
 // Set to true to run in mock mode without real Firebase
 const bool useMockMode = false;
@@ -16,7 +16,7 @@ void main() async {
   // Just print overflow errors to console
   FlutterError.onError = (details) {
     if (details.exception.toString().contains('overflowed')) {
-      print('OVERFLOW: ${details.exception}');
+      Logger.debug('OVERFLOW: ${details.exception}');
     }
   };
   
@@ -74,7 +74,7 @@ class RodaApp extends ConsumerWidget {
         return MediaQuery(
           // Prevent text from scaling too much
           data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2)),
+            textScaler: TextScaler.linear(MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2)),
           ),
           child: child!,
         );

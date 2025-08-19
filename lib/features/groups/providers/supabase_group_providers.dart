@@ -1,362 +1,242 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roda/application/group_controller.dart';
+import 'package:roda/data/repositories/group_repository.dart';
 import 'package:roda/core/models/capoeira_group.dart';
-import 'package:roda/core/config/supabase_config.dart';
-import 'package:roda/features/auth/providers/auth_provider.dart';
+import 'package:roda/core/utils/logger.dart';
 
-final supabaseGroupServiceProvider = Provider((ref) => SupabaseGroupService());
+// Re-export providers from group_controller for backward compatibility
+export 'package:roda/application/group_controller.dart' show userGroupsProvider, groupMembersProvider, searchGroupsProvider;
 
+// Legacy provider - use groupControllerProvider instead
+final supabaseGroupServiceProvider = Provider((ref) => SupabaseGroupService(ref));
+
+// Legacy SupabaseGroupService - wraps new GroupController for backward compatibility
 class SupabaseGroupService {
-  final _client = SupabaseConfig.client;
+  final Ref _ref;
+  
+  SupabaseGroupService(this._ref);
+  
+  GroupController get _groupController => _ref.read(groupControllerProvider);
+  GroupRepository get _groupRepository => _ref.read(groupRepositoryProvider);
   
   // Check if a group exists with the given name
   Future<CapoeiraGroup?> findExistingGroup(String name, String? branch) async {
     final displayName = CapoeiraGroup.createDisplayName(name, branch);
-    
-    try {
-      final response = await _client
-          .from('groups')
-          .select()
-          .eq('display_name', displayName)
-          .eq('is_active', true)
-          .maybeSingle();
-      
-      if (response == null) return null;
-      
-      return _mapToGroup(response);
-    } catch (e) {
-      print('Error finding existing group: $e');
-      return null;
-    }
+    return await _groupRepository.getGroupByDisplayName(displayName);
   }
   
-  // Create a new group
+  // Create a new group (legacy method - use createGroupWithDetails for new groups)
   Future<String> createGroup({
     required String name,
+    required String city,
     String? branch,
     String? description,
     String? location,
     String? venmoHandle,
     required String createdBy,
-    String? teacherName,
+    required String teacherName,
     String? teacherProfilePicture,
+    String? profileHeaderUrl,
   }) async {
-    // Check if group already exists
-    final existingGroup = await findExistingGroup(name, branch);
-    if (existingGroup != null) {
-      throw Exception('Group ${existingGroup.displayName} already exists');
-    }
-    
-    final displayName = CapoeiraGroup.createDisplayName(name, branch);
-    
     try {
-      // Create the group
-      final groupResponse = await _client
-          .from('groups')
-          .insert({
-            'name': name,
-            'branch': branch,
-            'display_name': displayName,
-            'description': description,
-            'location': location,
-            'venmo_handle': venmoHandle,
-            'created_by': createdBy,
-          })
-          .select()
-          .single();
-      
-      final groupId = groupResponse['id'];
-      
-      // Add creator as admin and member
-      await _client
-          .from('group_members')
-          .insert({
-            'group_id': groupId,
-            'user_id': createdBy,
-            'role': 'admin',
-          });
-      
-      return groupId;
+      final group = await _groupController.createGroupWithDetails(
+        name: name,
+        branch: branch,
+        city: city,
+        teacherTitle: 'Professor', // Default title for legacy calls
+        teacherFullName: teacherName,
+        capoeiraStyle: CapoeiraStyle.contemporanea, // Default style for legacy calls
+        lineage: null,
+        description: description,
+        venmoHandle: venmoHandle,
+        headerImageUrl: profileHeaderUrl,
+      );
+      return group.id;
     } catch (e) {
-      throw Exception('Failed to create group: $e');
+      Logger.debug('Error creating group: $e');
+      rethrow;
     }
   }
   
   // Get group by ID
   Future<CapoeiraGroup?> getGroup(String groupId) async {
-    try {
-      final response = await _client
-          .from('groups')
-          .select()
-          .eq('id', groupId)
-          .maybeSingle();
-      
-      if (response == null) return null;
-      
-      return _mapToGroup(response);
-    } catch (e) {
-      print('Error getting group: $e');
-      return null;
-    }
+    return await _groupRepository.getGroup(groupId);
   }
   
   // Stream group data
   Stream<CapoeiraGroup?> getGroupStream(String groupId) {
-    return _client
-        .from('groups')
-        .stream(primaryKey: ['id'])
-        .eq('id', groupId)
-        .map((data) {
-          if (data.isEmpty) return null;
-          return _mapToGroup(data.first);
-        });
+    return _groupRepository.getGroup(groupId).asStream();
   }
   
   // Get all groups
   Stream<List<CapoeiraGroup>> getAllGroupsStream() {
-    return _client
-        .from('groups')
-        .stream(primaryKey: ['id'])
-        .eq('is_active', true)
-        .order('created_at')
-        .map((data) => data.map((group) => _mapToGroup(group)).toList());
+    return _groupRepository.searchGroups().asStream();
   }
   
   // Get user's groups
   Future<List<CapoeiraGroup>> getUserGroups(String userId) async {
-    try {
-      final response = await _client
-          .from('group_members')
-          .select('groups!inner(*)')
-          .eq('user_id', userId);
-      
-      return response.map<CapoeiraGroup>((item) => 
-        _mapToGroup(item['groups'])
-      ).toList();
-    } catch (e) {
-      print('Error getting user groups: $e');
-      return [];
-    }
+    return await _groupRepository.getUserGroups(userId);
   }
   
   // Add teacher to group
   Future<void> addTeacherToGroup(String groupId, String teacherId) async {
-    try {
-      final response = await _client
-          .from('groups')
-          .select('teacher_ids')
-          .eq('id', groupId)
-          .single();
-      
-      List<String> teacherIds = List<String>.from(response['teacher_ids'] ?? []);
-      if (!teacherIds.contains(teacherId)) {
-        teacherIds.add(teacherId);
-        
-        await _client
-            .from('groups')
-            .update({'teacher_ids': teacherIds})
-            .eq('id', groupId);
-      }
-    } catch (e) {
-      throw Exception('Failed to add teacher to group: $e');
-    }
+    await _groupController.addTeacher(groupId, teacherId);
   }
   
   // Add member to group
   Future<void> addMemberToGroup(String groupId, String memberId) async {
-    try {
-      final response = await _client
-          .from('groups')
-          .select('member_ids')
-          .eq('id', groupId)
-          .single();
-      
-      List<String> memberIds = List<String>.from(response['member_ids'] ?? []);
-      if (!memberIds.contains(memberId)) {
-        memberIds.add(memberId);
-        
-        await _client
-            .from('groups')
-            .update({'member_ids': memberIds})
-            .eq('id', groupId);
-      }
-    } catch (e) {
-      throw Exception('Failed to add member to group: $e');
-    }
+    await _groupRepository.addMemberToGroup(groupId, memberId);
   }
   
   // Get group by display name
   Future<CapoeiraGroup?> getGroupByDisplayName(String displayName) async {
-    try {
-      final response = await _client
-          .from('groups')
-          .select()
-          .eq('display_name', displayName)
-          .eq('is_active', true)
-          .maybeSingle();
-      
-      if (response == null) return null;
-      return _mapToGroup(response);
-    } catch (e) {
-      print('Error getting group by display name: $e');
-      return null;
-    }
+    return await _groupRepository.getGroupByDisplayName(displayName);
   }
   
   // Get group creator info
   Future<Map<String, String>?> getGroupCreatorInfo(String groupName, String? branch) async {
     try {
       final displayName = CapoeiraGroup.createDisplayName(groupName, branch);
-      final response = await _client
-          .from('groups')
-          .select('created_by, users!groups_created_by_fkey(full_name)')
-          .eq('display_name', displayName)
-          .eq('is_active', true)
-          .maybeSingle();
+      final group = await _groupRepository.getGroupByDisplayName(displayName);
       
-      if (response != null) {
+      if (group != null) {
         return {
-          'id': response['created_by'],
-          'name': response['users']['full_name'] ?? 'Unknown Teacher',
+          'id': group.createdBy,
+          'name': group.teacherFullName,
         };
       }
       return null;
     } catch (e) {
-      print('Error getting group creator info: $e');
+      Logger.debug('Error getting group creator info: $e');
       return null;
     }
   }
   
-  
   // Remove teacher from group
   Future<void> removeTeacherFromGroup(String groupId, String teacherId) async {
-    try {
-      await _client
-          .from('group_members')
-          .update({'role': 'member'})
-          .eq('group_id', groupId)
-          .eq('user_id', teacherId);
-    } catch (e) {
-      throw Exception('Failed to remove teacher from group: $e');
-    }
+    await _groupController.removeTeacher(groupId, teacherId);
   }
   
   // Admin management methods
   Future<void> addAdminToGroup(String groupId, String userId) async {
-    try {
-      await _client
-          .from('group_members')
-          .update({'role': 'admin'})
-          .eq('group_id', groupId)
-          .eq('user_id', userId);
-    } catch (e) {
-      throw Exception('Failed to add admin to group: $e');
+    final group = await _groupRepository.getGroup(groupId);
+    if (group != null) {
+      final adminIds = [...group.adminIds];
+      if (!adminIds.contains(userId)) {
+        adminIds.add(userId);
+        final updatedGroup = CapoeiraGroup(
+          id: group.id,
+          name: group.name,
+          branch: group.branch,
+          displayName: group.displayName,
+          description: group.description,
+          city: group.city,
+          teacherTitle: group.teacherTitle,
+          teacherFullName: group.teacherFullName,
+          capoeiraStyle: group.capoeiraStyle,
+          lineage: group.lineage,
+          venmoHandle: group.venmoHandle,
+          adminIds: adminIds,
+          teacherIds: group.teacherIds,
+          memberIds: group.memberIds,
+          createdBy: group.createdBy,
+          teacherProfilePicture: group.teacherProfilePicture,
+          headerImageUrl: group.headerImageUrl,
+          announcements: group.announcements,
+          createdAt: group.createdAt,
+          isActive: group.isActive,
+        );
+        await _groupRepository.updateGroup(updatedGroup);
+      }
     }
   }
   
   Future<void> removeAdminFromGroup(String groupId, String userId) async {
-    try {
-      await _client
-          .from('group_members')
-          .update({'role': 'member'})
-          .eq('group_id', groupId)
-          .eq('user_id', userId);
-    } catch (e) {
-      throw Exception('Failed to remove admin from group: $e');
+    final group = await _groupRepository.getGroup(groupId);
+    if (group != null) {
+      final adminIds = [...group.adminIds];
+      adminIds.remove(userId);
+      final updatedGroup = CapoeiraGroup(
+        id: group.id,
+        name: group.name,
+        branch: group.branch,
+        displayName: group.displayName,
+        description: group.description,
+        city: group.city,
+        teacherTitle: group.teacherTitle,
+        teacherFullName: group.teacherFullName,
+        capoeiraStyle: group.capoeiraStyle,
+        lineage: group.lineage,
+        venmoHandle: group.venmoHandle,
+        adminIds: adminIds,
+        teacherIds: group.teacherIds,
+        memberIds: group.memberIds,
+        createdBy: group.createdBy,
+        teacherProfilePicture: group.teacherProfilePicture,
+        headerImageUrl: group.headerImageUrl,
+        announcements: group.announcements,
+        createdAt: group.createdAt,
+        isActive: group.isActive,
+      );
+      await _groupRepository.updateGroup(updatedGroup);
     }
   }
   
   // Check if user is admin
   Future<bool> isUserAdmin(String groupId, String userId) async {
-    try {
-      final response = await _client
-          .from('group_members')
-          .select('role')
-          .eq('group_id', groupId)
-          .eq('user_id', userId)
-          .maybeSingle();
-      
-      return response?['role'] == 'admin';
-    } catch (e) {
-      print('Error checking admin status: $e');
-      return false;
-    }
+    final group = await _groupRepository.getGroup(groupId);
+    return group?.adminIds.contains(userId) ?? false;
   }
   
   // Remove member from group
   Future<void> removeMemberFromGroup(String groupId, String memberId) async {
-    try {
-      await _client
-          .from('group_members')
-          .delete()
-          .eq('group_id', groupId)
-          .eq('user_id', memberId);
-    } catch (e) {
-      throw Exception('Failed to remove member from group: $e');
-    }
+    await _groupRepository.removeMemberFromGroup(groupId, memberId);
   }
   
   // Update group details
   Future<void> updateGroupDetails(String groupId, Map<String, dynamic> updates) async {
-    try {
-      await _client
-          .from('groups')
-          .update(updates)
-          .eq('id', groupId);
-    } catch (e) {
-      throw Exception('Failed to update group details: $e');
+    final group = await _groupRepository.getGroup(groupId);
+    if (group != null) {
+      final updatedGroup = CapoeiraGroup(
+        id: group.id,
+        name: updates['name'] ?? group.name,
+        branch: updates['branch'] ?? group.branch,
+        displayName: updates['display_name'] ?? group.displayName,
+        description: updates['description'] ?? group.description,
+        city: updates['city'] ?? group.city,
+        teacherTitle: updates['teacher_title'] ?? group.teacherTitle,
+        teacherFullName: updates['teacher_full_name'] ?? group.teacherFullName,
+        capoeiraStyle: updates['capoeira_style'] != null 
+          ? CapoeiraStyle.values.firstWhere(
+              (e) => e.name == updates['capoeira_style'],
+              orElse: () => group.capoeiraStyle,
+            )
+          : group.capoeiraStyle,
+        lineage: updates['lineage'] ?? group.lineage,
+        venmoHandle: updates['venmo_handle'] ?? group.venmoHandle,
+        adminIds: group.adminIds,
+        teacherIds: group.teacherIds,
+        memberIds: group.memberIds,
+        createdBy: group.createdBy,
+        teacherProfilePicture: group.teacherProfilePicture,
+        headerImageUrl: updates['header_image_url'] ?? group.headerImageUrl,
+        announcements: group.announcements,
+        createdAt: group.createdAt,
+        isActive: updates['is_active'] ?? group.isActive,
+      );
+      await _groupRepository.updateGroup(updatedGroup);
     }
-  }
-  
-  // Helper to map database response to CapoeiraGroup model
-  CapoeiraGroup _mapToGroup(Map<String, dynamic> data) {
-    // Get member IDs
-    final memberIds = <String>[];
-    final teacherIds = <String>[];
-    final adminIds = <String>[];
-    
-    // Note: You might need to fetch these separately or join them
-    // For now, returning empty lists
-    
-    return CapoeiraGroup(
-      id: data['id'],
-      name: data['name'] ?? '',
-      branch: data['branch'],
-      displayName: data['display_name'] ?? '',
-      description: data['description'],
-      location: data['location'],
-      venmoHandle: data['venmo_handle'],
-      adminIds: adminIds,
-      teacherIds: teacherIds,
-      memberIds: memberIds,
-      createdBy: data['created_by'] ?? '',
-      teacherName: null, // Will need to join with users table
-      teacherProfilePicture: null,
-      headerImageUrl: data['header_image_url'],
-      announcements: [],
-      createdAt: DateTime.parse(data['created_at']),
-      isActive: data['is_active'] ?? true,
-    );
   }
 }
 
 // Provider for getting group by ID with member info
 final groupByIdProvider = StreamProvider.family<CapoeiraGroup?, String>((ref, groupId) {
-  final service = ref.watch(supabaseGroupServiceProvider);
-  return service.getGroupStream(groupId);
+  final repository = ref.watch(groupRepositoryProvider);
+  return repository.getGroup(groupId).asStream();
 });
 
 // Provider for all groups
 final allGroupsProvider = StreamProvider<List<CapoeiraGroup>>((ref) {
-  final service = ref.watch(supabaseGroupServiceProvider);
-  return service.getAllGroupsStream();
-});
-
-// Provider for user's groups
-final userGroupsProvider = FutureProvider<List<CapoeiraGroup>>((ref) async {
-  final service = ref.watch(supabaseGroupServiceProvider);
-  // Get current user ID from Firebase Auth
-  final currentUser = ref.watch(currentUserProvider).value;
-  if (currentUser == null) return [];
-  
-  return service.getUserGroups(currentUser.id);
+  final repository = ref.watch(groupRepositoryProvider);
+  return repository.searchGroups().asStream();
 });

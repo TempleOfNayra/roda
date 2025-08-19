@@ -27,42 +27,55 @@ class SupabaseScheduleService {
     int? maxStudents,
   }) async {
     try {
+      print('[SupabaseScheduleService] Creating schedule for group: $groupId');
+      print('[SupabaseScheduleService] Location: $locationName at ($latitude, $longitude)');
+      print('[SupabaseScheduleService] Day: $dayOfWeek, Time: ${startTime.hour}:${startTime.minute} - ${endTime.hour}:${endTime.minute}');
+      
       // Create PostGIS point for location
       final point = 'POINT($longitude $latitude)';
       
+      final insertData = {
+        'group_id': groupId,
+        'teacher_id': teacherId,
+        'name': name,
+        'description': description,
+        'event_type': eventType,
+        'location': point,
+        'location_name': locationName,
+        'location_address': locationAddress,
+        'timezone': timezone,
+        'day_of_week': dayOfWeek,
+        'start_time': '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
+        'end_time': '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
+        'price': price,
+        'max_students': maxStudents,
+        'is_active': true,
+      };
+      
+      print('[SupabaseScheduleService] Inserting schedule with data: $insertData');
+      
       final response = await _client
           .from('schedules')
-          .insert({
-            'group_id': groupId,
-            'teacher_id': teacherId,
-            'name': name,
-            'description': description,
-            'event_type': eventType,
-            'location': point,
-            'location_name': locationName,
-            'location_address': locationAddress,
-            'timezone': timezone,
-            'day_of_week': dayOfWeek,
-            'start_time': '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
-            'end_time': '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}',
-            'price': price,
-            'max_students': maxStudents,
-            'is_active': true,
-          })
+          .insert(insertData)
           .select()
           .single();
       
+      print('[SupabaseScheduleService] Schedule created with ID: ${response['id']}');
       final scheduleId = response['id'];
       
-      // Generate initial class instances (next 12 weeks)
+      // Generate initial class instances (next 4 months = 16 weeks)
+      print('[SupabaseScheduleService] Generating class instances...');
       await generateClassInstances(
         scheduleId: scheduleId,
         startDate: DateTime.now(),
-        endDate: DateTime.now().add(const Duration(days: 12 * 7)),
+        endDate: DateTime.now().add(const Duration(days: 16 * 7)), // 4 months
       );
       
+      print('[SupabaseScheduleService] Successfully created schedule and instances');
       return scheduleId;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('[SupabaseScheduleService] Error creating schedule: $e');
+      print('[SupabaseScheduleService] Stack trace: $stackTrace');
       throw Exception('Failed to create schedule: $e');
     }
   }
@@ -74,13 +87,20 @@ class SupabaseScheduleService {
     required DateTime endDate,
   }) async {
     try {
+      print('[SupabaseScheduleService] Calling generate_class_instances RPC');
+      print('[SupabaseScheduleService] Parameters: schedule_id=$scheduleId, start=${startDate.toIso8601String().split('T')[0]}, end=${endDate.toIso8601String().split('T')[0]}');
+      
       // Call the database function to generate instances
       await _client.rpc('generate_class_instances', params: {
         'p_schedule_id': scheduleId,
         'p_start_date': startDate.toIso8601String().split('T')[0],
         'p_end_date': endDate.toIso8601String().split('T')[0],
       });
-    } catch (e) {
+      
+      print('[SupabaseScheduleService] Successfully generated class instances');
+    } catch (e, stackTrace) {
+      print('[SupabaseScheduleService] Error generating instances: $e');
+      print('[SupabaseScheduleService] Stack trace: $stackTrace');
       throw Exception('Failed to generate class instances: $e');
     }
   }
@@ -168,11 +188,11 @@ class SupabaseScheduleService {
           .gte('scheduled_date', DateTime.now().toIso8601String().split('T')[0])
           .isFilter('custom_name', null); // Only delete unmodified instances
       
-      // Generate new instances
+      // Generate new instances (4 months)
       await generateClassInstances(
         scheduleId: scheduleId,
         startDate: DateTime.now(),
-        endDate: DateTime.now().add(const Duration(days: 12 * 7)),
+        endDate: DateTime.now().add(const Duration(days: 16 * 7)), // 4 months
       );
     } catch (e) {
       throw Exception('Failed to regenerate instances: $e');
@@ -185,17 +205,6 @@ class SupabaseScheduleService {
     final startTimeParts = (data['start_time'] as String).split(':');
     final endTimeParts = (data['end_time'] as String).split(':');
     
-    final now = DateTime.now();
-    final startTime = DateTime(
-      now.year, now.month, now.day,
-      int.parse(startTimeParts[0]),
-      int.parse(startTimeParts[1]),
-    );
-    final endTime = DateTime(
-      now.year, now.month, now.day,
-      int.parse(endTimeParts[0]),
-      int.parse(endTimeParts[1]),
-    );
     
     // Parse location from PostGIS point
     // Format: POINT(longitude latitude)
@@ -288,5 +297,59 @@ final userRegisteredClassesProvider = FutureProvider.family<List<Map<String, dyn
         .order('scheduled_date');
     
     return List<Map<String, dynamic>>.from(response);
+  },
+);
+
+// Provider for group's class instances
+final groupClassInstancesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>(
+  (ref, groupId) async {
+    try {
+      final response = await SupabaseConfig.client
+          .from('class_instances')
+          .select('''
+            id,
+            schedule_id,
+            scheduled_date,
+            start_time,
+            end_time,
+            is_cancelled,
+            custom_name,
+            attending_student_ids,
+            present_student_ids,
+            schedules!inner (
+              name,
+              event_type,
+              location_name,
+              price,
+              group_id
+            )
+          ''')
+          .eq('schedules.group_id', groupId)
+          .gte('scheduled_date', DateTime.now().toIso8601String().split('T')[0])
+          .order('scheduled_date', ascending: true)
+          .limit(20);
+      
+      // Transform the response to flatten the schedule data
+      return (response as List).map((instance) {
+        final schedule = instance['schedules'];
+        return {
+          'id': instance['id'],
+          'schedule_id': instance['schedule_id'],
+          'scheduled_date': instance['scheduled_date'],
+          'start_time': instance['start_time'],
+          'end_time': instance['end_time'],
+          'is_cancelled': instance['is_cancelled'],
+          'name': instance['custom_name'] ?? schedule['name'],
+          'event_type': schedule['event_type'],
+          'location_name': schedule['location_name'],
+          'price': schedule['price'],
+          'attending_student_ids': instance['attending_student_ids'] ?? [],
+          'present_student_ids': instance['present_student_ids'] ?? [],
+        };
+      }).toList();
+    } catch (e) {
+      print('Error fetching group class instances: $e');
+      return [];
+    }
   },
 );

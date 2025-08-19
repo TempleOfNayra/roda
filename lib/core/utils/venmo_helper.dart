@@ -1,4 +1,5 @@
 import 'package:url_launcher/url_launcher.dart';
+import 'package:roda/core/utils/logger.dart';
 
 class VenmoHelper {
   // Generate Venmo deep link URL
@@ -59,7 +60,7 @@ class VenmoHelper {
         return true;
       }
     } catch (e) {
-      print('Could not launch Venmo app: $e');
+      Logger.debug('Could not launch Venmo app: $e');
       // Continue to web fallback
     }
     
@@ -85,7 +86,7 @@ class VenmoHelper {
         mode: LaunchMode.externalApplication,
       );
     } catch (e) {
-      print('Could not launch Venmo web: $e');
+      Logger.debug('Could not launch Venmo web: $e');
       return false;
     }
   }
