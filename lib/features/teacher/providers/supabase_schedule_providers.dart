@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:roda/core/models/schedule_template.dart';
-import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/utils/logger.dart';
 
 final supabaseScheduleServiceProvider = Provider((ref) => SupabaseScheduleService());

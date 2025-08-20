@@ -5,7 +5,6 @@ import 'package:roda/core/theme/app_theme.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:app_links/app_links.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:roda/core/utils/logger.dart';
 
 // Set to true to run in mock mode without real Firebase
 const bool useMockMode = false;

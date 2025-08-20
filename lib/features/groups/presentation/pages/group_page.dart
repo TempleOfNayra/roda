@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
+import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 
 class GroupPage extends ConsumerStatefulWidget {
   final String groupId;
@@ -210,7 +210,6 @@ class _GroupPageState extends ConsumerState<GroupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(),
           const SizedBox(height: 8),
           Text(
             group.description!,
@@ -230,30 +229,33 @@ class _GroupPageState extends ConsumerState<GroupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Scheduled Classes',
+                'Schedule',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                color: CupertinoColors.activeBlue,
-                borderRadius: BorderRadius.circular(15),
+                padding: EdgeInsets.zero,
                 onPressed: () {
-                  // Show schedule class modal
+                  _showScheduleClassModal(context);
                 },
-                child: const Text(
-                  'SCHEDULE CLASS',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.activeBlue,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.add,
+                    color: CupertinoColors.white,
+                    size: 20,
                   ),
                 ),
               ),
@@ -271,24 +273,24 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   
   Widget _buildScheduleItem(String schedule) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            schedule,
-            style: const TextStyle(fontSize: 14),
-          ),
           CupertinoButton(
             padding: EdgeInsets.zero,
             onPressed: () {
-              // Show edit modal
+              _showEditScheduleModal(context, schedule);
             },
             child: const Icon(
               CupertinoIcons.pencil,
               size: 16,
               color: CupertinoColors.systemGrey,
             ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            schedule,
+            style: const TextStyle(fontSize: 14),
           ),
         ],
       ),
@@ -301,42 +303,49 @@ class _GroupPageState extends ConsumerState<GroupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Next coming Roda',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+              const Row(
+                children: [
+                  Text(
+                    'Upcoming Roda',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    '10/10/2024',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: CupertinoColors.systemGrey,
+                    ),
+                  ),
+                ],
               ),
               CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                color: CupertinoColors.systemGrey5,
-                borderRadius: BorderRadius.circular(12),
+                padding: EdgeInsets.zero,
                 onPressed: () {
-                  // Navigate to roda schedule
+                  _showScheduleRodaModal(context);
                 },
-                child: const Text(
-                  'schedule',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: CupertinoColors.label,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: CupertinoColors.systemOrange,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.add,
+                    color: CupertinoColors.white,
+                    size: 20,
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '10/10/2024',
-            style: TextStyle(
-              fontSize: 14,
-              color: CupertinoColors.systemGrey,
-            ),
           ),
         ],
       ),
@@ -388,7 +397,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   Widget _buildTabsSection(CapoeiraGroup group) {
     return Column(
       children: [
-        const Divider(),
+        const SizedBox(height: 16),
         // Tab Selector
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -474,6 +483,102 @@ class _GroupPageState extends ConsumerState<GroupPage> {
           style: TextStyle(
             color: CupertinoColors.systemGrey,
           ),
+        ),
+      ),
+    );
+  }
+  
+  void _showScheduleClassModal(BuildContext context) {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) => const ScheduleTemplatesPage(),
+      ),
+    );
+  }
+  
+  void _showScheduleRodaModal(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) => Container(
+        height: 300,
+        padding: const EdgeInsets.only(top: 6.0),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        color: CupertinoColors.systemBackground.resolveFrom(context),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: CupertinoColors.systemGrey4,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Schedule a Roda',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.dateAndTime,
+                  use24hFormat: false,
+                  initialDateTime: DateTime.now().add(const Duration(days: 1)),
+                  onDateTimeChanged: (DateTime value) {
+                    // TODO: Update the roda date
+                  },
+                ),
+              ),
+              CupertinoButton(
+                child: const Text('Set Date'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  // TODO: Save the roda date
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  void _showEditScheduleModal(BuildContext context, String schedule) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: Text('Edit Schedule: $schedule'),
+        message: const Text('What would you like to do?'),
+        actions: <CupertinoActionSheetAction>[
+          CupertinoActionSheetAction(
+            child: const Text('Edit Time'),
+            onPressed: () {
+              Navigator.pop(context);
+              // TODO: Show time picker
+            },
+          ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            child: const Text('Delete'),
+            onPressed: () {
+              Navigator.pop(context);
+              // TODO: Delete this schedule
+            },
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          child: const Text('Cancel'),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
       ),
     );

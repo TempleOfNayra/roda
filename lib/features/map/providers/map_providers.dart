@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:roda/core/models/capoeira_group.dart';
+// import 'package:geolocator/geolocator.dart';
+// import 'package:roda/core/models/capoeira_group.dart';
 // import 'package:roda/features/map/repositories/group_repository.dart';
 import 'package:roda/features/map/services/location_service.dart';
 
