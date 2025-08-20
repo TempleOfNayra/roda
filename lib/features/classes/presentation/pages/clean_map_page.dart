@@ -14,6 +14,8 @@ import 'package:roda/core/config/app_config.dart';
 import 'dart:async';
 import 'package:roda/core/utils/logger.dart';
 import 'package:roda/core/theme/roda_colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:roda/core/config/supabase_config.dart';
 
 // Group classes by location for map display
 class LocationGroup {
@@ -46,18 +48,30 @@ final mapLocationGroupsProvider = FutureProvider<Map<String, LocationGroup>>((re
   // Get classes with location data from the view
   final allClasses = await ref.watch(mapUpcomingClassesProvider.future);
   
-  Logger.debug('Processing ${allClasses.length} classes for map display');
+  Logger.debug('🗺️ [MAP PAGE] Processing ${allClasses.length} classes for map display');
   
   final groups = <String, LocationGroup>{};
+  int skippedCount = 0;
+  int processedCount = 0;
   
   for (final classData in allClasses) {
     // Skip if no location data
     if (classData['latitude'] == null || classData['longitude'] == null) {
-      Logger.debug('Skipping class without location: ${classData['name']}');
+      skippedCount++;
+      Logger.debug('⚠️ [MAP PAGE] Skipping class #$skippedCount without coordinates:');
+      Logger.debug('   - Name: "${classData['name'] ?? 'unnamed'}"');
+      Logger.debug('   - Teacher: ${classData['teacher_name']}');
+      Logger.debug('   - Location Name: ${classData['location_name']}');
+      Logger.debug('   - Raw location: ${classData['location']}');
       continue;
     }
     
+    processedCount++;
     final locationKey = '${classData['location_name']}_${classData['latitude']}_${classData['longitude']}';
+    
+    Logger.debug('✅ [MAP PAGE] Processing class #$processedCount with location:');
+    Logger.debug('   - Location: ${classData['location_name']}');
+    Logger.debug('   - Coordinates: (${classData['latitude']}, ${classData['longitude']})');
     
     // Create a simple class object with the data we need
     final classObj = SimpleClassData(
@@ -97,7 +111,11 @@ final mapLocationGroupsProvider = FutureProvider<Map<String, LocationGroup>>((re
     group.classes.sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
   }
   
-  Logger.debug('Created ${groups.length} location groups for map');
+  Logger.debug('📊 [MAP PAGE] SUMMARY:');
+  Logger.debug('   - Total classes fetched: ${allClasses.length}');
+  Logger.debug('   - Classes with location: $processedCount');
+  Logger.debug('   - Classes without location: $skippedCount');
+  Logger.debug('   - Location groups created: ${groups.length}');
   
   return groups;
 });
@@ -148,31 +166,105 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
   final Set<Marker> _markers = {};
   LocationGroup? _selectedLocation;
   Timer? _refreshTimer;
+  RealtimeChannel? _realtimeChannel;
   
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
+    _setupRealtimeSubscriptions();
     // Run database debug only in debug mode
     if (AppConfig.enableDebugMode) {
       // Debug removed
     }
     
-    // Set up auto-refresh timer
-    _refreshTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) {
-        Logger.debug('🔄 Auto-refreshing map data');
-        // Invalidate the provider to force fresh data
-        ref.invalidate(mapLocationGroupsProvider);
-        ref.invalidate(mapUpcomingClassesProvider);
+    // Force initial data fetch
+    Future.microtask(() {
+      Logger.debug('🔄 [MAP] Forcing initial data refresh');
+      ref.invalidate(mapUpcomingClassesProvider);
+      ref.invalidate(mapLocationGroupsProvider);
+    });
+    
+    // TODO: Replace with Supabase Realtime subscription for efficient updates
+    // Removed auto-refresh polling to prevent database overload
+  }
+  
+  void _setupRealtimeSubscriptions() {
+    Logger.debug('🔌 [MAP] Setting up realtime subscriptions');
+    
+    // Use Supabase Realtime channels with correct API
+    final channel = SupabaseConfig.client.channel('map-updates');
+    
+    // Listen for any changes to class_instances table
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'class_instances',
+      callback: (payload) {
+        try {
+          Logger.debug('🔄 [REALTIME] Class instances changed: ${payload.eventType}');
+          Logger.debug('🔄 [REALTIME] New data: ${payload.newRecord}');
+          
+          // Refresh the map data - add delay to ensure view is updated
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted) {
+              Logger.debug('🔄 [REALTIME] Triggering map refresh after class_instances change');
+              ref.invalidate(mapUpcomingClassesProvider);
+              ref.invalidate(mapLocationGroupsProvider);
+            }
+          });
+        } catch (e) {
+          Logger.debug('❌ [REALTIME] Error handling class_instances change: $e');
+        }
       },
     );
+    
+    // Listen for any changes to schedules table
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'schedules',
+      callback: (payload) {
+        try {
+          Logger.debug('🔄 [REALTIME] Schedules changed: ${payload.eventType}');
+          Logger.debug('🔄 [REALTIME] New data: ${payload.newRecord}');
+          
+          // Refresh the map data - add delay to ensure view is updated
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (mounted) {
+              Logger.debug('🔄 [REALTIME] Triggering map refresh after schedules change');
+              ref.invalidate(mapUpcomingClassesProvider);
+              ref.invalidate(mapLocationGroupsProvider);
+            }
+          });
+        } catch (e) {
+          Logger.debug('❌ [REALTIME] Error handling schedules change: $e');
+        }
+      },
+    );
+    
+    // Subscribe to the channel
+    channel.subscribe((status, [error]) {
+      Logger.debug('🔌 [REALTIME] Channel subscription status: $status');
+      if (error != null) {
+        Logger.debug('❌ [REALTIME] Subscription error: $error');
+        // Don't navigate away on error, just log it
+        return;
+      }
+      if (status == RealtimeSubscribeStatus.subscribed) {
+        Logger.debug('✅ [REALTIME] Successfully subscribed to map-updates channel');
+      }
+    });
+    
+    // Store channel reference for cleanup
+    _realtimeChannel = channel;
   }
   
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _realtimeChannel?.unsubscribe();
+    Logger.debug('🔌 [MAP] Disposed realtime subscriptions');
     super.dispose();
   }
   
@@ -367,9 +459,30 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                 ),
               ),
               
-              // Legend - moved below back button
+              // Manual refresh button - below location button
               Positioned(
                 top: MediaQuery.of(context).padding.top + 60,
+                right: 16,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: RodaColors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.all(8),
+                    onPressed: () {
+                      Logger.debug('🔄 [MAP] Manual refresh triggered');
+                      ref.invalidate(mapUpcomingClassesProvider);
+                      ref.invalidate(mapLocationGroupsProvider);
+                    },
+                    child: const Icon(CupertinoIcons.refresh, color: RodaColors.black, size: 20),
+                  ),
+                ),
+              ),
+              
+              // Legend - moved below back button
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 110,
                 left: 16,
                 child: Container(
                   decoration: BoxDecoration(

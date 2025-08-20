@@ -27,12 +27,20 @@ class SupabaseScheduleService {
     int? maxStudents,
   }) async {
     try {
-      Logger.debug('[SupabaseScheduleService] Creating schedule for group: $groupId');
-      Logger.debug('[SupabaseScheduleService] Location: $locationName at ($latitude, $longitude)');
-      Logger.debug('[SupabaseScheduleService] Day: $dayOfWeek, Time: ${startTime.hour}:${startTime.minute} - ${endTime.hour}:${endTime.minute}');
+      Logger.debug('🚀 [SupabaseScheduleService] STARTING SCHEDULE CREATION');
+      Logger.debug('📍 [SupabaseScheduleService] Location Details:');
+      Logger.debug('   - Name: $locationName');
+      Logger.debug('   - Address: $locationAddress');
+      Logger.debug('   - Latitude: $latitude');
+      Logger.debug('   - Longitude: $longitude');
+      Logger.debug('📅 [SupabaseScheduleService] Schedule Details:');
+      Logger.debug('   - Group ID: $groupId');
+      Logger.debug('   - Teacher ID: $teacherId');
+      Logger.debug('   - Day: $dayOfWeek, Time: ${startTime.hour}:${startTime.minute} - ${endTime.hour}:${endTime.minute}');
       
       // Create PostGIS point for location
       final point = 'POINT($longitude $latitude)';
+      Logger.debug('🌍 [SupabaseScheduleService] Created PostGIS point: $point');
       
       final insertData = {
         'group_id': groupId,
@@ -52,7 +60,10 @@ class SupabaseScheduleService {
         'is_active': true,
       };
       
-      Logger.debug('[SupabaseScheduleService] Inserting schedule with data: $insertData');
+      Logger.debug('💾 [SupabaseScheduleService] Inserting schedule with data:');
+      insertData.forEach((key, value) {
+        Logger.debug('   - $key: $value');
+      });
       
       final response = await _client
           .from('schedules')
@@ -60,22 +71,24 @@ class SupabaseScheduleService {
           .select()
           .single();
       
-      Logger.debug('[SupabaseScheduleService] Schedule created with ID: ${response['id']}');
       final scheduleId = response['id'];
+      Logger.debug('✅ [SupabaseScheduleService] Schedule created successfully!');
+      Logger.debug('   - Schedule ID: $scheduleId');
+      Logger.debug('   - Response location field: ${response['location']}');
       
       // Generate initial class instances (next 4 months = 16 weeks)
-      Logger.debug('[SupabaseScheduleService] Generating class instances...');
+      Logger.debug('🔄 [SupabaseScheduleService] Generating class instances...');
       await generateClassInstances(
         scheduleId: scheduleId,
         startDate: DateTime.now(),
         endDate: DateTime.now().add(const Duration(days: 16 * 7)), // 4 months
       );
       
-      Logger.debug('[SupabaseScheduleService] Successfully created schedule and instances');
+      Logger.debug('🎉 [SupabaseScheduleService] SCHEDULE CREATION COMPLETE!');
       return scheduleId;
     } catch (e, stackTrace) {
-      Logger.debug('[SupabaseScheduleService] Error creating schedule: $e');
-      Logger.debug('[SupabaseScheduleService] Stack trace: $stackTrace');
+      Logger.debug('❌ [SupabaseScheduleService] ERROR creating schedule: $e');
+      Logger.debug('📋 [SupabaseScheduleService] Stack trace: $stackTrace');
       throw Exception('Failed to create schedule: $e');
     }
   }
@@ -87,17 +100,20 @@ class SupabaseScheduleService {
     required DateTime endDate,
   }) async {
     try {
-      Logger.debug('[SupabaseScheduleService] Calling generate_class_instances RPC');
-      Logger.debug('[SupabaseScheduleService] Parameters: schedule_id=$scheduleId, start=${startDate.toIso8601String().split('T')[0]}, end=${endDate.toIso8601String().split('T')[0]}');
+      Logger.debug('🏗️ [SupabaseScheduleService] GENERATING CLASS INSTANCES');
+      Logger.debug('   - Schedule ID: $scheduleId');
+      Logger.debug('   - Start Date: ${startDate.toIso8601String().split('T')[0]}');
+      Logger.debug('   - End Date: ${endDate.toIso8601String().split('T')[0]}');
       
       // Call the database function to generate instances
-      await _client.rpc('generate_class_instances', params: {
+      final result = await _client.rpc('generate_class_instances', params: {
         'p_schedule_id': scheduleId, // Text ID, not UUID
         'p_start_date': startDate.toIso8601String().split('T')[0],
         'p_end_date': endDate.toIso8601String().split('T')[0],
       });
       
-      Logger.debug('[SupabaseScheduleService] Successfully generated class instances');
+      Logger.debug('✅ [SupabaseScheduleService] Class instances generated!');
+      Logger.debug('   - RPC Result: $result');
     } catch (e, stackTrace) {
       Logger.debug('[SupabaseScheduleService] Error generating instances: $e');
       Logger.debug('[SupabaseScheduleService] Stack trace: $stackTrace');

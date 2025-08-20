@@ -6,18 +6,23 @@ import 'package:roda/features/teacher/presentation/widgets/teacher_search_field.
 import 'package:roda/data/core/supabase_client.dart';
 import 'package:roda/core/utils/logger.dart';
 import 'package:roda/features/groups/providers/schedule_providers.dart';
+import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:roda/core/theme/roda_colors.dart';
 
 class ScheduleTemplatesPage extends ConsumerStatefulWidget {
   final String groupId;
   final Map<String, dynamic>? scheduleToEdit;
   final String? groupLocationAddress;
+  final double? groupLatitude;
+  final double? groupLongitude;
   
   const ScheduleTemplatesPage({
     super.key, 
     required this.groupId,
     this.scheduleToEdit,
     this.groupLocationAddress,
+    this.groupLatitude,
+    this.groupLongitude,
   });
 
   @override
@@ -34,8 +39,8 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
   DateTime _startTime = DateTime(2024, 1, 1, 18, 0);
   DateTime _endTime = DateTime(2024, 1, 1, 19, 30);
   bool _isLoading = false;
-  // double? _latitude;  // TODO: Use for location-based features
-  // double? _longitude; // TODO: Use for location-based features
+  double? _latitude;
+  double? _longitude;
   
   @override
   void initState() {
@@ -47,6 +52,13 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
       if (widget.groupLocationAddress != null && widget.groupLocationAddress!.isNotEmpty) {
         // Prefill location with group's address
         _locationController.text = widget.groupLocationAddress!;
+        // Also prefill coordinates if available from group
+        if (widget.groupLatitude != null && widget.groupLongitude != null) {
+          _latitude = widget.groupLatitude;
+          _longitude = widget.groupLongitude;
+          Logger.debug('📍 Prefilled location from group: ${widget.groupLocationAddress}');
+          Logger.debug('   Coordinates: lat=$_latitude, lng=$_longitude');
+        }
       }
       // Default teacher to current user
       final currentUser = ref.read(currentUserProvider).value;
@@ -252,14 +264,41 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
                 const SizedBox(height: 16),
                 
                 // Location Field with Google Places Autocomplete
-                GooglePlacesAddressField(
-                  controller: _locationController,
-                  hint: 'Search for a place',
-                  onLocationSelected: (address, lat, lng) {
-                    // TODO: Store lat/lng for location-based features
-                    // _latitude = lat;
-                    // _longitude = lng;
-                  },
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GooglePlacesAddressField(
+                      controller: _locationController,
+                      hint: 'Search and select from dropdown (required)',
+                      onLocationSelected: (address, lat, lng) {
+                        setState(() {
+                          _latitude = lat;
+                          _longitude = lng;
+                        });
+                        Logger.debug('📍 Location selected: $address');
+                        Logger.debug('   Coordinates: lat=$lat, lng=$lng');
+                      },
+                    ),
+                    if (_locationController.text.isNotEmpty && _latitude != null && _longitude != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          children: [
+                            Icon(CupertinoIcons.checkmark_circle_fill, 
+                                 size: 16, 
+                                 color: RodaColors.success),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Location verified',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: RodaColors.success,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
                 
                 const SizedBox(height: 16),
@@ -421,12 +460,31 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
   }
 
   Future<void> _saveSchedule() async {
+    // Check for location text
     if (_locationController.text.isEmpty) {
       showCupertinoDialog(
         context: context,
         builder: (context) => CupertinoAlertDialog(
           title: const Text('Missing Information'),
-          content: const Text('Please enter a location'),
+          content: const Text('Please search and select a location from the dropdown'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    
+    // Check for coordinates - REQUIRED
+    if (_latitude == null || _longitude == null) {
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Location Not Selected'),
+          content: const Text('Please select a location from the Google Places dropdown to enable map display. Type to search, then select from the suggestions.'),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.pop(context),
@@ -493,57 +551,35 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
             
         Logger.debug('Schedule updated with ID: ${response['id']}');
       } else {
-        // Create new schedule
-        Logger.debug('Inserting schedule: $scheduleData');
-        scheduleData['created_at'] = DateTime.now().toIso8601String();
+        // Create new schedule - coordinates are now mandatory
+        Logger.debug('Creating schedule with coordinates: lat=$_latitude, lng=$_longitude');
+        final scheduleService = ref.read(supabaseScheduleServiceProvider);
+        final scheduleId = await scheduleService.createSchedule(
+          groupId: widget.groupId,
+          teacherId: _selectedTeacherId.isNotEmpty ? _selectedTeacherId : user.id,
+          name: _teacherController.text.isNotEmpty ? _teacherController.text : (user.capoeiraName.isNotEmpty ? user.capoeiraName : user.fullName),
+          description: _descriptionController.text.isNotEmpty ? _descriptionController.text : null,
+          eventType: 'class',
+          latitude: _latitude!,
+          longitude: _longitude!,
+          locationName: _locationController.text,
+          locationAddress: _locationController.text,
+          timezone: 'America/New_York',
+          dayOfWeek: _selectedDay,
+          startTime: _startTime,
+          endTime: _endTime,
+          price: price,
+          maxStudents: null,
+        );
         
+        // Fetch the created schedule to have consistent response format
         response = await supabase
             .from('schedules')
-            .insert(scheduleData)
             .select()
+            .eq('id', scheduleId)
             .single();
             
-        Logger.debug('Schedule template created with ID: ${response['id']}');
-        
-        // Create instances for new schedules only
-        final scheduleId = response['id'];
-        final now = DateTime.now();
-        
-        // Find next occurrence of selected day
-        // Convert our day format (0=Sun, 1=Mon, ..., 6=Sat) to Dart's weekday (1=Mon, ..., 7=Sun)
-        final targetWeekday = _selectedDay == 0 ? 7 : _selectedDay;
-        DateTime nextDate = now;
-        while (nextDate.weekday != targetWeekday) {
-          nextDate = nextDate.add(const Duration(days: 1));
-        }
-        
-        // Create 13 weekly instances
-        final instances = <Map<String, dynamic>>[];
-        for (int i = 0; i < 13; i++) {
-          final instanceDate = nextDate.add(Duration(days: i * 7));
-          final scheduledDateTime = DateTime(
-            instanceDate.year,
-            instanceDate.month,
-            instanceDate.day,
-            _startTime.hour,
-            _startTime.minute,
-          );
-          
-          instances.add({
-            'schedule_id': scheduleId,
-            'teacher_id': user.id,
-            'scheduled_date': scheduledDateTime.toIso8601String(),
-            'start_time': startTimeStr,
-            'end_time': endTimeStr,
-            'created_at': DateTime.now().toIso8601String(),
-          });
-        }
-        
-        Logger.debug('Creating ${instances.length} class instances');
-        
-        await supabase
-            .from('class_instances')
-            .insert(instances);
+        Logger.debug('Schedule created with coordinates, ID: $scheduleId');
       }
       
       Logger.debug('Successfully saved schedule');
@@ -564,8 +600,8 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
         _selectedDay = 1;
         _startTime = DateTime(2024, 1, 1, 18, 0);
         _endTime = DateTime(2024, 1, 1, 19, 30);
-        // _latitude = null;
-        // _longitude = null;
+        _latitude = null;
+        _longitude = null;
       });
       
       if (mounted) {

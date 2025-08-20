@@ -282,9 +282,9 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
-                  // Pass group's location if available
+                  // Pass group's location and coordinates if available
                   final groupLocation = group.locationAddress ?? group.locationName;
-                  _showScheduleClassModal(context, groupLocation);
+                  _showScheduleClassModal(context, groupLocation, group.latitude, group.longitude);
                 },
                 child: Container(
                   width: 32,
@@ -612,12 +612,14 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     );
   }
   
-  void _showScheduleClassModal(BuildContext context, [String? groupLocation]) {
+  void _showScheduleClassModal(BuildContext context, [String? groupLocation, double? latitude, double? longitude]) {
     Navigator.of(context).push(
       CupertinoPageRoute(
         builder: (context) => ScheduleTemplatesPage(
           groupId: widget.groupId,
           groupLocationAddress: groupLocation,
+          groupLatitude: latitude,
+          groupLongitude: longitude,
         ),
       ),
     );

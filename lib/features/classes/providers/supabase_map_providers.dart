@@ -243,24 +243,61 @@ double _hexToDouble(String hex) {
 // Provider for upcoming classes for map with location data
 final mapUpcomingClassesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   try {
+    Logger.debug('🗺️ [MAP PROVIDER] FETCHING MAP CLASSES');
+    Logger.debug('   - Date range: ${DateTime.now().toIso8601String().split('T')[0]} to ${DateTime.now().add(const Duration(days: 30)).toIso8601String().split('T')[0]}');
+    
     // Fetch directly from map_classes view which has location data
+    final startDate = DateTime.now().toIso8601String().split('T')[0];
+    final endDate = DateTime.now().add(const Duration(days: 30)).toIso8601String().split('T')[0];
+    Logger.debug('🔍 [MAP PROVIDER] Query dates: $startDate to $endDate');
+    
     final response = await SupabaseConfig.client
         .from('map_classes')
         .select('*')
-        .gte('scheduled_date', DateTime.now().toIso8601String().split('T')[0])
-        .lte('scheduled_date', DateTime.now().add(const Duration(days: 30)).toIso8601String().split('T')[0])
-        .order('scheduled_date', ascending: true)
-        .limit(100);
+        .gte('scheduled_date', startDate)
+        .lte('scheduled_date', endDate)
+        .order('scheduled_date', ascending: true);
     
-    Logger.debug('Fetched ${response.length} classes from map_classes view');
+    Logger.debug('📊 [MAP PROVIDER] Fetched ${response.length} classes from map_classes view');
+    
+    // Check for Claus group specifically
+    final clausClasses = (response as List).where((c) => 
+      c['group_name']?.toString().toLowerCase() == 'claus').toList();
+    if (clausClasses.isNotEmpty) {
+      Logger.debug('🎯 [MAP PROVIDER] Found ${clausClasses.length} Claus group classes!');
+      Logger.debug('   First Claus class: ${clausClasses.first}');
+    } else {
+      Logger.debug('❌ [MAP PROVIDER] No Claus group classes found');
+    }
+    
+    // Log first few classes for debugging
+    for (int i = 0; i < response.length && i < 3; i++) {
+      final classData = response[i];
+      Logger.debug('🔍 [MAP PROVIDER] Class ${i+1}:');
+      Logger.debug('   - Name: ${classData['name']}');
+      Logger.debug('   - Group: ${classData['group_name']}');
+      Logger.debug('   - Location Name: ${classData['location_name']}');
+      Logger.debug('   - Location (raw): ${classData['location']?.toString().substring(0, 20) ?? 'null'}...');
+      Logger.debug('   - Latitude: ${classData['latitude']}');
+      Logger.debug('   - Longitude: ${classData['longitude']}');
+      Logger.debug('   - Schedule ID: ${classData['schedule_id']}');
+    }
     
     // Parse and add location coordinates to each class
     return (response as List).map<Map<String, dynamic>>((item) {
       // Parse location from PostGIS geography type
       double? latitude, longitude;
-      if (item['location'] != null) {
+      
+      // First check if latitude/longitude are already in the response (from view)
+      if (item['latitude'] != null && item['longitude'] != null) {
+        latitude = item['latitude']?.toDouble();
+        longitude = item['longitude']?.toDouble();
+        Logger.debug('📍 [MAP PROVIDER] Using coordinates from view: lat=$latitude, lon=$longitude');
+      } 
+      // Otherwise, try parsing from location field
+      else if (item['location'] != null) {
         final locationStr = item['location'] as String;
-        Logger.debug('Parsing location string: $locationStr');
+        Logger.debug('🔧 [MAP PROVIDER] Parsing location string: $locationStr');
         
         // Handle WKB hex format (starts with 01010000)
         if (locationStr.startsWith('0101000020E610')) {

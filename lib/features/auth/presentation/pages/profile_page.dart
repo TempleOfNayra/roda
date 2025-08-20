@@ -29,25 +29,28 @@ class ProfilePage extends ConsumerWidget {
           child: const Icon(CupertinoIcons.back),
         ),
         middle: const Text('My Profile'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Show teacher dashboard button if user is a teacher or has teaching groups
-            Consumer(
-              builder: (context, ref, child) {
-                final user = ref.watch(currentUserProvider).value;
-                final isTeacher = user?.role == UserRole.teacher || 
-                                 (user?.teachingGroupIds.isNotEmpty ?? false);
-                
-                return const SizedBox.shrink();
-              },
-            ),
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => context.push(Routes.settings),
-              child: const Icon(CupertinoIcons.settings),
-            ),
-          ],
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () {
+            // Show edit profile modal
+            showCupertinoModalPopup(
+              context: context,
+              builder: (context) => Container(
+                height: MediaQuery.of(context).size.height * 0.8,
+                decoration: const BoxDecoration(
+                  color: RodaColors.background,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: const Center(
+                  child: Text('Edit Profile Widget - Coming Soon'),
+                ),
+              ),
+            );
+          },
+          child: const Icon(CupertinoIcons.gear),
         ),
       ),
       child: currentUser.when(
@@ -66,53 +69,46 @@ class ProfilePage extends ConsumerWidget {
                 Container(
                 color: RodaColors.surface,
                 padding: const EdgeInsets.all(16),
-                child: Row(
+                child: Column(
                   children: [
                     UserAvatar(
                       imageUrl: user.profilePictureUrl,
                       size: 80,
                       name: user.capoeiraName,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+                    const SizedBox(height: 12),
+                    Text(
+                      user.capoeiraName,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user.fullName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: RodaColors.textSecondary,
+                      ),
+                    ),
+                    if (user.groupName != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          Icon(CupertinoIcons.group, size: 14, color: RodaColors.secondaryLabel),
+                          const SizedBox(width: 4),
                           Text(
-                            user.capoeiraName,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user.fullName,
+                            user.groupName!,
                             style: TextStyle(
                               fontSize: 14,
                               color: RodaColors.textSecondary,
                             ),
                           ),
-                          if (user.groupName != null) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(CupertinoIcons.group, size: 14, color: RodaColors.secondaryLabel),
-                                const SizedBox(width: 4),
-                                Text(
-                                  user.groupName!,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: RodaColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                         ],
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -133,9 +129,7 @@ class ProfilePage extends ConsumerWidget {
                     ),
                     if (user.role == UserRole.teacher)
                       CupertinoButton(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        color: RodaColors.primary,
-                        borderRadius: BorderRadius.circular(20),
+                        padding: EdgeInsets.zero,
                         onPressed: () {
                           showCupertinoModalPopup(
                             context: context,
@@ -147,13 +141,18 @@ class ProfilePage extends ConsumerWidget {
                             }
                           });
                         },
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(CupertinoIcons.add, size: 18, color: RodaColors.white),
-                            SizedBox(width: 4),
-                            Text('Create Group', style: TextStyle(color: RodaColors.white)),
-                          ],
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: RodaColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.add,
+                            size: 20,
+                            color: RodaColors.white,
+                          ),
                         ),
                       ),
                   ],
@@ -379,20 +378,6 @@ class ProfilePage extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 14,
                               color: RodaColors.systemGrey,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          CupertinoButton(
-                            color: RodaColors.primary,
-                            borderRadius: BorderRadius.circular(20),
-                            onPressed: () => context.push(Routes.map),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(CupertinoIcons.map, color: RodaColors.white),
-                                SizedBox(width: 8),
-                                Text('Browse Classes', style: TextStyle(color: RodaColors.white)),
-                              ],
                             ),
                           ),
                         ],

@@ -129,12 +129,17 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
   }
 
   Future<void> _getPlaceDetails(PlaceSuggestion suggestion) async {
+    print('🔍 [GooglePlaces] Getting place details for: ${suggestion.description}');
+    print('   - Place ID: ${suggestion.placeId}');
+    
     if (suggestion.placeId.isEmpty) {
+      print('⚠️ [GooglePlaces] No placeId - calling callback with null coordinates');
       widget.onLocationSelected?.call(suggestion.description, null, null);
       return;
     }
     
     try {
+      print('📍 [GooglePlaces] Fetching place details from Google...');
       final place = await _places.fetchPlaceDetails(
         suggestion.placeId,
         placeFields: [
@@ -147,12 +152,15 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
       final lat = place.latLng?.lat;
       final lng = place.latLng?.lng;
       
+      print('✅ [GooglePlaces] Got coordinates: lat=$lat, lng=$lng');
+      
       widget.onLocationSelected?.call(
         suggestion.description,
         lat,
         lng,
       );
     } catch (e) {
+      print('❌ [GooglePlaces] Error fetching place details: $e');
       widget.onLocationSelected?.call(suggestion.description, null, null);
     }
   }
