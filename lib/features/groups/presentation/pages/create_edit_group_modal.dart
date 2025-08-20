@@ -72,7 +72,9 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     _nameController.text = group.name;
     _branchController.text = group.branch ?? '';
     _cityController.text = group.city;
-    _locationController.text = group.locationAddress ?? '';
+    if (group.locationAddress != null && group.locationAddress!.isNotEmpty) {
+      _locationController.text = group.locationAddress!;
+    }
     _teacherNameController.text = group.teacherFullName;
     _lineageController.text = group.lineage ?? '';
     _descriptionController.text = group.description ?? '';
@@ -375,6 +377,10 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   ),
                   const SizedBox(height: 24),
 
+                  // Physical Location (Google Places) - MOVED TO TOP
+                  _buildLocationPicker(),
+                  const SizedBox(height: 16),
+
                   // Group Name
                   _buildTextField(
                     controller: _nameController,
@@ -403,10 +409,6 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                       UpperCaseTextFormatter(), // Custom formatter to ensure uppercase
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                  // Physical Location (Google Places)
-                  _buildLocationPicker(),
                   const SizedBox(height: 16),
 
                   // Teacher Title
@@ -556,15 +558,6 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           _locationName = address; // Use the address as the name for now
           _latitude = lat;
           _longitude = lng;
-          
-          // Auto-fill city if empty
-          if (_cityController.text.isEmpty && address.isNotEmpty) {
-            // Extract city from address
-            final parts = address.split(',');
-            if (parts.length >= 2) {
-              _cityController.text = parts[parts.length - 2].trim().toUpperCase();
-            }
-          }
         });
       },
     );

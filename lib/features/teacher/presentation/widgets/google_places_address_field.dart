@@ -31,6 +31,7 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
   List<PlaceSuggestion> _suggestions = [];
   bool _showSuggestions = false;
   final FocusNode _focusNode = FocusNode();
+  bool _programmaticChange = false;
 
   @override
   void initState() {
@@ -59,6 +60,12 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
   }
 
   void _onTextChanged() {
+    // Skip if this was a programmatic change (from selecting a suggestion)
+    if (_programmaticChange) {
+      _programmaticChange = false;
+      return;
+    }
+    
     if (widget.controller.text.length > 2) {
       _searchPlaces(widget.controller.text);
     } else {
@@ -82,14 +89,27 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
       
       setState(() {
         _isSearching = false;
-        _suggestions = predictions.map((prediction) {
+        _suggestions = predictions
+            .where((prediction) => 
+                prediction.fullName != null && 
+                prediction.fullName!.trim().isNotEmpty &&
+                prediction.primaryText != null &&
+                prediction.primaryText!.trim().isNotEmpty)
+            .map((prediction) {
           return PlaceSuggestion(
             placeId: prediction.placeId ?? '',
-            description: prediction.fullName ?? '',
-            mainText: prediction.primaryText ?? '',
-            secondaryText: prediction.secondaryText ?? '',
+            description: prediction.fullName!.trim(),
+            mainText: prediction.primaryText!.trim(),
+            secondaryText: (prediction.secondaryText ?? '').trim(),
           );
         }).toList();
+        
+        // Debug: Log what we got
+        print('DEBUG: Got ${_suggestions.length} suggestions');
+        for (var s in _suggestions) {
+          print('  - mainText: "${s.mainText}" (${s.mainText.length} chars)');
+        }
+        
         _showSuggestions = _suggestions.isNotEmpty;
       });
     } catch (e) {
@@ -174,13 +194,22 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
                         size: 20,
                       ),
                       onPressed: () {
+                        _programmaticChange = true;
                         widget.controller.clear();
                         widget.onLocationSelected?.call('', null, null);
+                        setState(() {
+                          _showSuggestions = false;
+                          _suggestions = [];
+                        });
                       },
                     )
                   : null,
           onTap: () {
-            setState(() => _showSuggestions = true);
+            // Only show suggestions if we have text to search
+            if (widget.controller.text.length > 2) {
+              setState(() => _showSuggestions = true);
+              _searchPlaces(widget.controller.text);
+            }
           },
         ),
         if (_showSuggestions && _suggestions.isNotEmpty)
@@ -207,12 +236,17 @@ class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
               itemCount: _suggestions.length,
               itemBuilder: (context, index) {
                 final suggestion = _suggestions[index];
+                print('DEBUG: Building item $index: "${suggestion.mainText}"');
                 return CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: () {
+                    _programmaticChange = true;
                     widget.controller.text = suggestion.description;
                     _getPlaceDetails(suggestion);
-                    setState(() => _showSuggestions = false);
+                    setState(() {
+                      _showSuggestions = false;
+                      _suggestions = [];
+                    });
                     _focusNode.unfocus();
                   },
                   child: Container(
