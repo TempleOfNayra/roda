@@ -9,6 +9,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
 import 'package:roda/core/theme/roda_colors.dart';
 import 'package:roda/core/theme/roda_theme.dart';
+import 'package:roda/core/widgets/user_avatar.dart';
+import 'package:roda/core/widgets/group_avatar.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -66,33 +68,10 @@ class ProfilePage extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: RodaColors.primary.withOpacity(0.1),
-                        image: user.profilePictureUrl != null 
-                            ? DecorationImage(
-                                image: NetworkImage(user.profilePictureUrl!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: user.profilePictureUrl == null
-                          ? Center(
-                              child: Text(
-                                user.capoeiraName.isNotEmpty 
-                                    ? user.capoeiraName[0].toUpperCase() 
-                                    : 'U',
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: RodaColors.primary,
-                                ),
-                              ),
-                            )
-                          : null,
+                    UserAvatar(
+                      imageUrl: user.profilePictureUrl,
+                      size: 80,
+                      name: user.capoeiraName,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -235,32 +214,11 @@ class ProfilePage extends ConsumerWidget {
                                   padding: const EdgeInsets.all(12),
                                   child: Row(
                                     children: [
-                                      // Group Avatar
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: group.headerImageUrl != null
-                                              ? DecorationImage(
-                                                  image: CachedNetworkImageProvider(group.headerImageUrl!),
-                                                  fit: BoxFit.cover,
-                                                )
-                                              : null,
-                                          color: RodaColors.surfaceAlt,
-                                        ),
-                                        child: group.headerImageUrl == null
-                                            ? Text(
-                                                group.displayName.isNotEmpty 
-                                                    ? group.displayName[0].toUpperCase()
-                                                    : 'G',
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: RodaColors.primary,
-                                                ),
-                                              )
-                                            : null,
+                                      // Group Avatar  
+                                      GroupAvatar(
+                                        imageUrl: group.headerImageUrl,
+                                        size: 60,
+                                        name: group.displayName,
                                       ),
                                       const SizedBox(width: 12),
                                       // Group Info

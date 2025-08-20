@@ -11,6 +11,8 @@ import 'package:roda/features/teacher/presentation/pages/schedule_templates_page
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/theme/roda_colors.dart';
 import 'package:roda/core/theme/roda_theme.dart';
+import 'package:roda/core/widgets/user_avatar.dart';
+import 'package:roda/core/widgets/group_avatar.dart';
 
 class GroupPage extends ConsumerStatefulWidget {
   final String groupId;
@@ -192,25 +194,10 @@ class _GroupPageState extends ConsumerState<GroupPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: RodaColors.surfaceAlt,
-              image: group.teacherProfilePicture != null
-                  ? DecorationImage(
-                      image: NetworkImage(group.teacherProfilePicture!),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: group.teacherProfilePicture == null
-                ? const Icon(
-                    CupertinoIcons.person,
-                    color: RodaColors.textHint,
-                  )
-                : null,
+          UserAvatar(
+            imageUrl: group.teacherProfilePicture,
+            size: 60,
+            name: group.teacherFullName,
           ),
           const SizedBox(height: 8),
           Text(
