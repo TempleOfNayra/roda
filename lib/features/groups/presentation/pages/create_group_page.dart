@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -18,7 +18,6 @@ class CreateGroupPage extends ConsumerStatefulWidget {
 }
 
 class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
-  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _branchController = TextEditingController();
   final _cityController = TextEditingController();
@@ -74,8 +73,86 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
     }
   }
 
+  void _showTeacherTitlePicker(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => Container(
+        height: 250,
+        color: CupertinoColors.systemBackground,
+        child: Column(
+          children: [
+            Container(
+              height: 50,
+              color: CupertinoColors.systemGrey6,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    child: const Text('Cancel'),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  CupertinoButton(
+                    child: const Text('Done'),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: CupertinoPicker(
+                itemExtent: 40,
+                scrollController: FixedExtentScrollController(
+                  initialItem: _teacherTitles.indexOf(_selectedTeacherTitle),
+                ),
+                onSelectedItemChanged: (index) {
+                  setState(() {
+                    _selectedTeacherTitle = _teacherTitles[index];
+                  });
+                },
+                children: _teacherTitles.map((title) => Center(child: Text(title))).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _validateForm() {
+    // Validate required fields
+    if (_nameController.text.trim().isEmpty) {
+      _showValidationError('Please enter a group name');
+      return false;
+    }
+    if (_teacherNameController.text.trim().isEmpty) {
+      _showValidationError('Please enter your teacher name');
+      return false;
+    }
+    if (_cityController.text.trim().isEmpty) {
+      _showValidationError('Please enter the city');
+      return false;
+    }
+    return true;
+  }
+
+  void _showValidationError(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Validation Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _createGroup() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_validateForm()) return;
 
     setState(() => _isLoading = true);
 
@@ -117,8 +194,18 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
       ref.invalidate(userGroupsProvider);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Group created successfully!')),
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Success'),
+            content: const Text('Group created successfully!'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
         );
         
         // Small delay to ensure database changes are committed
@@ -136,8 +223,18 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
           ? ExceptionMapper.getUserFriendlyMessage(e)
           : 'Failed to create group. Please try again.';
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Error'),
+            content: Text(errorMessage),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
         );
       }
     } finally {
@@ -149,30 +246,25 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return SafeScaffold(
-      appBar: AppBar(
-        title: const Text('Create New Group'),
-        centerTitle: true,
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Create New Group'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
               // Header Image Upload
               GestureDetector(
                 onTap: _pickHeaderImage,
                 child: Container(
                   height: 200,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
+                    color: CupertinoColors.systemGroupedBackground,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                      color: CupertinoColors.separator,
                       width: 2,
                     ),
                     image: _headerImageBytes != null
@@ -187,23 +279,23 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.add_photo_alternate,
+                            CupertinoIcons.photo_on_rectangle,
                             size: 48,
-                            color: theme.colorScheme.primary,
+                            color: CupertinoColors.activeBlue,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Add Group Header Image',
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
+                            style: const TextStyle(
+                              color: CupertinoColors.activeBlue,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Tap to upload',
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurfaceVariant,
+                            style: const TextStyle(
+                              color: CupertinoColors.secondaryLabel,
                               fontSize: 12,
                             ),
                           ),
@@ -215,95 +307,169 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
               const SizedBox(height: 24),
 
               // Group Name
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Group Name *',
-                  hintText: 'e.g., ABADA, Senzala, Cordão de Ouro',
-                  prefixIcon: Icon(Icons.group),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a group name';
-                  }
-                  return null;
-                },
-                textCapitalization: TextCapitalization.words,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Group Name *',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CupertinoTextField(
+                    controller: _nameController,
+                    placeholder: 'e.g., ABADA, Senzala, Cordão de Ouro',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(CupertinoIcons.group, color: CupertinoColors.secondaryLabel),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: CupertinoColors.separator),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
               // Branch (optional)
-              TextFormField(
-                controller: _branchController,
-                decoration: const InputDecoration(
-                  labelText: 'Branch (optional)',
-                  hintText: 'e.g., SF, Oakland, Berkeley',
-                  prefixIcon: Icon(Icons.location_city),
-                ),
-                textCapitalization: TextCapitalization.words,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Branch (optional)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CupertinoTextField(
+                    controller: _branchController,
+                    placeholder: 'e.g., SF, Oakland, Berkeley',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(CupertinoIcons.building_2_fill, color: CupertinoColors.secondaryLabel),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: CupertinoColors.separator),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
               // Teacher Title
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Your Title *',
-                  prefixIcon: Icon(Icons.school),
-                ),
-                initialValue: _selectedTeacherTitle,
-                items: _teacherTitles.map((title) {
-                  return DropdownMenuItem(
-                    value: title,
-                    child: Text(title),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedTeacherTitle = value);
-                  }
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select your title';
-                  }
-                  return null;
-                },
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Your Title *',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => _showTeacherTitlePicker(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: CupertinoColors.separator),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8.0),
+                            child: Icon(CupertinoIcons.book, color: CupertinoColors.secondaryLabel),
+                          ),
+                          Expanded(
+                            child: Text(
+                              _selectedTeacherTitle,
+                              style: const TextStyle(color: CupertinoColors.label),
+                            ),
+                          ),
+                          const Icon(CupertinoIcons.chevron_down, color: CupertinoColors.secondaryLabel),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
               // Teacher Name
-              TextFormField(
-                controller: _teacherNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Your Teacher Name *',
-                  hintText: 'e.g., Mestre João Silva',
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your teacher name';
-                  }
-                  return null;
-                },
-                textCapitalization: TextCapitalization.words,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Your Teacher Name *',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CupertinoTextField(
+                    controller: _teacherNameController,
+                    placeholder: 'e.g., Mestre João Silva',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(CupertinoIcons.person, color: CupertinoColors.secondaryLabel),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: CupertinoColors.separator),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
               // City
-              TextFormField(
-                controller: _cityController,
-                decoration: const InputDecoration(
-                  labelText: 'City *',
-                  hintText: 'e.g., San Francisco, Rio de Janeiro',
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter the city';
-                  }
-                  return null;
-                },
-                textCapitalization: TextCapitalization.words,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'City *',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CupertinoTextField(
+                    controller: _cityController,
+                    placeholder: 'e.g., San Francisco, Rio de Janeiro',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(CupertinoIcons.location, color: CupertinoColors.secondaryLabel),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: CupertinoColors.separator),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -311,67 +477,132 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Capoeira Style *',
-                    style: theme.textTheme.titleSmall,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: CapoeiraStyle.values.map((style) {
-                      return ChoiceChip(
-                        label: Text(style.displayName),
-                        selected: _selectedStyle == style,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() => _selectedStyle = style);
-                          }
-                        },
-                      );
-                    }).toList(),
+                  CupertinoSegmentedControl<CapoeiraStyle>(
+                    children: Map.fromEntries(
+                      CapoeiraStyle.values.map((style) => MapEntry(
+                        style,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                          child: Text(
+                            style.displayName,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      )),
+                    ),
+                    groupValue: _selectedStyle,
+                    onValueChanged: (value) {
+                      setState(() => _selectedStyle = value);
+                    },
                   ),
                 ],
               ),
               const SizedBox(height: 16),
 
               // Lineage
-              TextFormField(
-                controller: _lineageController,
-                decoration: const InputDecoration(
-                  labelText: 'Lineage/Linhagem (optional)',
-                  hintText: 'e.g., Mestre Bimba, Mestre Pastinha',
-                  prefixIcon: Icon(Icons.account_tree),
-                ),
-                textCapitalization: TextCapitalization.words,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Lineage/Linhagem (optional)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CupertinoTextField(
+                    controller: _lineageController,
+                    placeholder: 'e.g., Mestre Bimba, Mestre Pastinha',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(CupertinoIcons.tree, color: CupertinoColors.secondaryLabel),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: CupertinoColors.separator),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
               // Description
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Description (optional)',
-                  hintText: 'Tell us about your group...',
-                  prefixIcon: Icon(Icons.description),
-                ),
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Description (optional)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CupertinoTextField(
+                    controller: _descriptionController,
+                    placeholder: 'Tell us about your group...',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 8.0, top: 8.0),
+                      child: Icon(CupertinoIcons.doc_text, color: CupertinoColors.secondaryLabel),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: CupertinoColors.separator),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    maxLines: 3,
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
               // Venmo Handle
-              TextFormField(
-                controller: _venmoController,
-                decoration: const InputDecoration(
-                  labelText: 'Venmo Handle (optional)',
-                  hintText: '@your-venmo-handle',
-                  prefixIcon: Icon(Icons.payment),
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Venmo Handle (optional)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: CupertinoColors.label,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  CupertinoTextField(
+                    controller: _venmoController,
+                    placeholder: '@your-venmo-handle',
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: Icon(CupertinoIcons.creditcard, color: CupertinoColors.secondaryLabel),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: CupertinoColors.separator),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
 
               // Create Button
-              FilledButton(
+              CupertinoButton.filled(
                 onPressed: _isLoading ? null : _createGroup,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -379,7 +610,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CupertinoActivityIndicator(radius: 10),
                       )
                     : const Text(
                         'Create Group',
@@ -387,8 +618,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                       ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,7 +19,6 @@ class SignUpPage extends ConsumerStatefulWidget {
 }
 
 class _SignUpPageState extends ConsumerState<SignUpPage> {
-  final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _capoeiraNameController = TextEditingController();
   final _groupNameController = TextEditingController();
@@ -43,12 +43,12 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sign Up'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Sign Up'),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.back),
           onPressed: () async {
             // Sign out first to prevent redirect loop
             await Supabase.instance.client.auth.signOut();
@@ -58,7 +58,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           },
         ),
       ),
-      body: SafeArea(
+      child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: authState.when(
@@ -68,7 +68,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               }
               return _buildSignUpForm();
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CupertinoActivityIndicator()),
             error: (error, _) => Center(child: Text('Error: $error')),
           ),
         ),
@@ -93,7 +93,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           'Sign in to get started',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey,
+            color: CupertinoColors.secondaryLabel,
           ),
           textAlign: TextAlign.center,
         ),
@@ -112,17 +112,28 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           isLoading: _isSigningIn,
         ),
         const SizedBox(height: 32),
-        const Divider(),
+        Container(
+          height: 1,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: CupertinoColors.separator,
+                width: 0.0,
+              ),
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
         // DEBUG: Quick sign in as first user
-        ElevatedButton.icon(
+        CupertinoButton.filled(
           onPressed: _debugSignInAsFirstUser,
-          icon: const Icon(Icons.bug_report),
-          label: const Text('DEBUG: Sign in as First User'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.bug_report, color: CupertinoColors.white),
+              const SizedBox(width: 8),
+              const Text('DEBUG: Sign in as First User'),
+            ],
           ),
         ),
       ],
@@ -130,9 +141,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   }
 
   Widget _buildSignUpForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
@@ -143,34 +152,50 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             ),
           ),
           const SizedBox(height: 24),
-          TextFormField(
-            controller: _fullNameController,
-            autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Full Name',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your full name';
-              }
-              return null;
-            },
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Full Name',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: _fullNameController,
+                autocorrect: false,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: CupertinoColors.systemGrey4),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _capoeiraNameController,
-            autocorrect: false,
-            decoration: const InputDecoration(
-              labelText: 'Capoeira Name',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your Capoeira name';
-              }
-              return null;
-            },
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Capoeira Name',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CupertinoTextField(
+                controller: _capoeiraNameController,
+                autocorrect: false,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: CupertinoColors.systemGrey4),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           BirthdayPicker(
@@ -183,27 +208,54 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             labelText: 'Date of Birth',
           ),
           const SizedBox(height: 16),
-          DropdownButtonFormField<UserRole>(
-            initialValue: _selectedRole,
-            decoration: const InputDecoration(
-              labelText: 'Role',
-              border: OutlineInputBorder(),
-            ),
-            items: UserRole.values.map((role) {
-              return DropdownMenuItem(
-                value: role,
-                child: Text(role.name.toUpperCase()),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedRole = value!;
-              });
-            },
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Role',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => _showRolePicker(context),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _selectedRole.name.toUpperCase(),
+                        style: const TextStyle(color: CupertinoColors.label),
+                      ),
+                      const Icon(CupertinoIcons.chevron_down, color: CupertinoColors.systemGrey),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           if (_selectedRole == UserRole.teacher) ...[
-            const Divider(height: 32),
+            Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: CupertinoColors.separator,
+                    width: 0.0,
+                  ),
+                ),
+              ),
+            ),
             const Text(
               'Complete Your Group Info',
               style: TextStyle(
@@ -212,129 +264,202 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               ),
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _groupNameController,
-              autocorrect: false,
-              decoration: const InputDecoration(
-                labelText: 'Group Name (e.g., Filhos De Dunga)',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (_selectedRole == UserRole.teacher && 
-                    (value == null || value.isEmpty)) {
-                  return 'Please enter your group name';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _groupAffiliationController,
-              autocorrect: false,
-              decoration: const InputDecoration(
-                labelText: 'Affiliation/Branch (e.g., Capoeira Angola Center of Mestre João Grande)',
-                border: OutlineInputBorder(),
-                hintText: 'Optional',
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _groupCityController,
-              autocorrect: false,
-              decoration: const InputDecoration(
-                labelText: 'City',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                if (_selectedRole == UserRole.teacher && 
-                    (value == null || value.isEmpty)) {
-                  return 'Please enter your city';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedCountry,
-              decoration: const InputDecoration(
-                labelText: 'Country',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'US',
-                  child: Text('United States'),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Group Name (e.g., Filhos De Dunga)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _groupNameController,
+                  autocorrect: false,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedCountry = value!;
-                });
-              },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _groupVenmoController,
-              autocorrect: false,
-              decoration: const InputDecoration(
-                labelText: 'Venmo Handle (for payments)',
-                border: OutlineInputBorder(),
-                hintText: 'your-venmo-handle',
-                prefixText: '@',
-              ),
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  // Remove @ if user included it (since we have prefixText)
-                  if (value.startsWith('@')) {
-                    _groupVenmoController.text = value.substring(1);
-                  }
-                }
-                return null; // Optional field
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Affiliation/Branch (e.g., Capoeira Angola Center of Mestre João Grande)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _groupAffiliationController,
+                  autocorrect: false,
+                  padding: const EdgeInsets.all(16),
+                  placeholder: 'Optional',
+                  decoration: BoxDecoration(
+                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'City',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _groupCityController,
+                  autocorrect: false,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Country',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () => _showCountryPicker(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: CupertinoColors.systemGrey4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _selectedCountry == 'US' ? 'United States' : _selectedCountry,
+                          style: const TextStyle(color: CupertinoColors.label),
+                        ),
+                        const Icon(CupertinoIcons.chevron_down, color: CupertinoColors.systemGrey),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Venmo Handle (for payments)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _groupVenmoController,
+                  autocorrect: false,
+                  padding: const EdgeInsets.all(16),
+                  placeholder: 'your-venmo-handle',
+                  prefix: const Padding(
+                    padding: EdgeInsets.only(left: 16),
+                    child: Text('@', style: TextStyle(color: CupertinoColors.label)),
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             const Text(
               'Note: You\'ll set up your class schedule after signing up.',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey,
+                color: CupertinoColors.secondaryLabel,
               ),
             ),
           ] else ...[
-            TextFormField(
-              controller: _groupNameController,
-              decoration: const InputDecoration(
-                labelText: 'Group Name',
-                border: OutlineInputBorder(),
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Group Name',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _groupNameController,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _teacherNameController,
-              decoration: const InputDecoration(
-                labelText: 'Teacher Name (Optional)',
-                border: OutlineInputBorder(),
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Teacher Name (Optional)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CupertinoTextField(
+                  controller: _teacherNameController,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
             ),
           ],
           const SizedBox(height: 32),
-          ElevatedButton(
+          CupertinoButton.filled(
             onPressed: _isLoading ? null : _submitForm,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
             child: _isLoading
-                ? const CircularProgressIndicator()
+                ? const CupertinoActivityIndicator(color: CupertinoColors.white)
                 : const Text(
                     'Complete Sign Up',
                     style: TextStyle(fontSize: 16),
                   ),
           ),
         ],
-      ),
     );
   }
 
@@ -360,9 +485,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       Logger.debug('OAuth sign in error: $e');
       Logger.debug('Stack trace: $stackTrace');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign in failed: $e')),
-        );
+        _showCupertinoDialog(context, 'Error', 'Sign in failed: $e');
         setState(() => _isSigningIn = false);
       }
     }
@@ -389,9 +512,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       Logger.debug('OAuth sign in error: $e');
       Logger.debug('Stack trace: $stackTrace');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign in failed: $e')),
-        );
+        _showCupertinoDialog(context, 'Error', 'Sign in failed: $e');
         setState(() => _isSigningIn = false);
       }
     }
@@ -413,29 +534,40 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       });
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Signed in anonymously. Form pre-filled - review and submit.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _showCupertinoDialog(context, 'Debug Sign In', 'Signed in anonymously. Form pre-filled - review and submit.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Debug sign in failed: $e\nEnable Anonymous auth in Firebase Console')),
-        );
+        _showCupertinoDialog(context, 'Error', 'Debug sign in failed: $e\nEnable Anonymous auth in Firebase Console');
       }
     }
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Manual validation since we're using CupertinoTextFields
+    if (_fullNameController.text.isEmpty) {
+      _showCupertinoDialog(context, 'Missing Information', 'Please enter your full name');
+      return;
+    }
+    
+    if (_capoeiraNameController.text.isEmpty) {
+      _showCupertinoDialog(context, 'Missing Information', 'Please enter your Capoeira name');
+      return;
+    }
+    
+    if (_selectedRole == UserRole.teacher) {
+      if (_groupNameController.text.isEmpty) {
+        _showCupertinoDialog(context, 'Missing Information', 'Please enter your group name');
+        return;
+      }
+      if (_groupCityController.text.isEmpty) {
+        _showCupertinoDialog(context, 'Missing Information', 'Please enter your city');
+        return;
+      }
+    }
     
     if (_dateOfBirth == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select your date of birth')),
-      );
+      _showCupertinoDialog(context, 'Missing Information', 'Please select your date of birth');
       return;
     }
     
@@ -474,22 +606,23 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           
           // Show dialog asking if they want to join the existing group
           if (mounted) {
-            final shouldJoin = await showDialog<bool>(
+            final shouldJoin = await showCupertinoDialog<bool>(
               context: context,
               barrierDismissible: false,
               builder: (BuildContext context) {
-                return AlertDialog(
+                return CupertinoAlertDialog(
                   title: const Text('Group Already Exists'),
                   content: Text(
                     'There is already a group named "${existingGroup.displayName}" created by $creatorName. '
                     'Do you want to be added to that group as a teacher?'
                   ),
                   actions: [
-                    TextButton(
+                    CupertinoDialogAction(
                       onPressed: () => Navigator.of(context).pop(false),
                       child: const Text('No, Cancel'),
                     ),
-                    ElevatedButton(
+                    CupertinoDialogAction(
+                      isDefaultAction: true,
                       onPressed: () => Navigator.of(context).pop(true),
                       child: const Text('Yes, Join Group'),
                     ),
@@ -574,13 +707,111 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       Logger.debug('Sign up error: $e');
       Logger.debug('Stack trace: $stackTrace');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign up failed: $e')),
-        );
+        _showCupertinoDialog(context, 'Error', 'Sign up failed: $e');
       }
     }
     
     setState(() => _isLoading = false);
+  }
+
+  void _showCupertinoDialog(BuildContext context, String title, String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showRolePicker(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: 200,
+          padding: const EdgeInsets.only(top: 6.0),
+          margin: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          child: SafeArea(
+            top: false,
+            child: CupertinoPicker(
+              magnification: 1.22,
+              squeeze: 1.2,
+              useMagnifier: true,
+              itemExtent: 32.0,
+              scrollController: FixedExtentScrollController(
+                initialItem: UserRole.values.indexOf(_selectedRole),
+              ),
+              onSelectedItemChanged: (int selectedItem) {
+                setState(() {
+                  _selectedRole = UserRole.values[selectedItem];
+                });
+              },
+              children: UserRole.values.map((role) {
+                return Center(
+                  child: Text(
+                    role.name.toUpperCase(),
+                    style: const TextStyle(fontSize: 18.0),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCountryPicker(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: 200,
+          padding: const EdgeInsets.only(top: 6.0),
+          margin: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          child: SafeArea(
+            top: false,
+            child: CupertinoPicker(
+              magnification: 1.22,
+              squeeze: 1.2,
+              useMagnifier: true,
+              itemExtent: 32.0,
+              scrollController: FixedExtentScrollController(
+                initialItem: _selectedCountry == 'US' ? 0 : 0,
+              ),
+              onSelectedItemChanged: (int selectedItem) {
+                setState(() {
+                  _selectedCountry = 'US'; // Only US for now
+                });
+              },
+              children: const [
+                Center(
+                  child: Text(
+                    'United States',
+                    style: TextStyle(fontSize: 18.0),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override

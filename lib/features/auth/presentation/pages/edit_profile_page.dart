@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roda/core/config/supabase_config.dart';
@@ -76,28 +76,27 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider);
     
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Edit Profile'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.close),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Edit Profile'),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.xmark),
           onPressed: () => context.pop(),
         ),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : () => _saveProfile(context, ref),
-            child: const Text(
-              'Save',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: _isLoading ? null : () => _saveProfile(context, ref),
+          child: const Text(
+            'Save',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
             ),
           ),
-        ],
+        ),
       ),
-      body: currentUser.when(
+      child: SafeArea(
+        child: currentUser.when(
         data: (user) {
           if (user == null) {
             return const Center(child: Text('No user data'));
@@ -118,19 +117,30 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       onTap: _selectProfilePicture,
                       child: Stack(
                         children: [
-                          CircleAvatar(
-                            radius: 50,
-                            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-                            backgroundImage: _getProfileImage(user),
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: CupertinoColors.systemBlue.withOpacity(0.2),
+                              image: _getProfileImage(user) != null
+                                  ? DecorationImage(
+                                      image: _getProfileImage(user)!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
                             child: _getProfileImage(user) == null
-                                ? Text(
-                                    user.capoeiraName.isNotEmpty 
-                                        ? user.capoeiraName[0].toUpperCase() 
-                                        : 'U',
-                                    style: TextStyle(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).primaryColor,
+                                ? Center(
+                                    child: Text(
+                                      user.capoeiraName.isNotEmpty 
+                                          ? user.capoeiraName[0].toUpperCase() 
+                                          : 'U',
+                                      style: const TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                        color: CupertinoColors.systemBlue,
+                                      ),
                                     ),
                                   )
                                 : null,
@@ -141,13 +151,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
+                                color: CupertinoColors.systemBlue,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
-                                Icons.camera_alt,
+                                CupertinoIcons.camera_fill,
                                 size: 20,
-                                color: Colors.white,
+                                color: CupertinoColors.white,
                               ),
                             ),
                           ),
@@ -158,34 +168,40 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   const SizedBox(height: 32),
                   
                   // Full Name
-                  TextFormField(
-                    controller: _fullNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Full Name',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your full name';
-                      }
-                      return null;
-                    },
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Full Name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 8),
+                      CupertinoTextField(
+                        controller: _fullNameController,
+                        placeholder: 'Enter your full name',
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: CupertinoColors.systemGrey4),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   
                   // Capoeira Name
-                  TextFormField(
-                    controller: _capoeiraNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Capoeira Name',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your Capoeira name';
-                      }
-                      return null;
-                    },
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Capoeira Name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 8),
+                      CupertinoTextField(
+                        controller: _capoeiraNameController,
+                        placeholder: 'Enter your Capoeira name',
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: CupertinoColors.systemGrey4),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   
@@ -203,27 +219,47 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   
                   // Group Name (read-only for now)
                   if (user.groupName != null) ...[
-                    TextFormField(
-                      controller: _groupNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Group',
-                        border: OutlineInputBorder(),
-                      ),
-                      enabled: false, // Can't change group for now
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Group', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        CupertinoTextField(
+                          controller: _groupNameController,
+                          enabled: false,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: CupertinoColors.systemGrey4),
+                            borderRadius: BorderRadius.circular(8),
+                            color: CupertinoColors.systemGrey6,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                   ],
                   
                   // Venmo Handle (for teachers/group owners)
                   if (user.teachingGroupIds.isNotEmpty) ...[
-                    TextFormField(
-                      controller: _venmoController,
-                      decoration: const InputDecoration(
-                        labelText: 'Venmo Handle',
-                        border: OutlineInputBorder(),
-                        prefixText: '@',
-                        hintText: 'your-venmo-handle',
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Venmo Handle', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        CupertinoTextField(
+                          controller: _venmoController,
+                          placeholder: 'your-venmo-handle',
+                          prefix: const Padding(
+                            padding: EdgeInsets.only(left: 12),
+                            child: Text('@'),
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: CupertinoColors.systemGrey4),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -232,14 +268,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: CupertinoColors.systemGrey6,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          user.role == UserRole.teacher ? Icons.school : Icons.person,
-                          color: Theme.of(context).primaryColor,
+                          user.role == UserRole.teacher ? CupertinoIcons.book : CupertinoIcons.person,
+                          color: CupertinoColors.systemBlue,
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -249,7 +285,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                               'Account Type',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey,
+                                color: CupertinoColors.systemGrey,
                               ),
                             ),
                             Text(
@@ -270,16 +306,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   // Save Button
                   SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
+                    child: CupertinoButton.filled(
                       onPressed: _isLoading ? null : () => _saveProfile(context, ref),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
+                      borderRadius: BorderRadius.circular(8),
                       child: _isLoading
-                          ? const CircularProgressIndicator()
+                          ? const CupertinoActivityIndicator(color: CupertinoColors.white)
                           : const Text(
                               'Save Changes',
                               style: TextStyle(fontSize: 16),
@@ -291,8 +322,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CupertinoActivityIndicator()),
         error: (error, _) => Center(child: Text('Error: $error')),
+        ),
       ),
     );
   }
@@ -307,28 +339,24 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   }
   
   Future<void> _selectProfilePicture() async {
-    final source = await showModalBottomSheet<ImageSource>(
+    final source = await showCupertinoModalPopup<ImageSource>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.cancel),
-              title: const Text('Cancel'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
+      builder: (context) => CupertinoActionSheet(
+        title: const Text('Select Profile Picture'),
+        actions: [
+          CupertinoActionSheetAction(
+            child: const Text('Take Photo'),
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+          ),
+          CupertinoActionSheetAction(
+            child: const Text('Choose from Gallery'),
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          child: const Text('Cancel'),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
     );
@@ -349,10 +377,17 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Error'),
               content: Text('Failed to select image: $e'),
-              backgroundColor: Colors.red,
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
           );
         }
@@ -365,8 +400,18 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     if (!_formKey.currentState!.validate()) return;
     
     if (_dateOfBirth == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select your date of birth')),
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text('Missing Information'),
+          content: const Text('Please select your date of birth'),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text('OK'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
       );
       return;
     }
@@ -387,10 +432,17 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         
         if (profilePictureUrl == null && mounted) {
           // ignore: use_build_context_synchronously
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to upload profile picture'),
-              backgroundColor: Colors.orange,
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Upload Failed'),
+              content: const Text('Failed to upload profile picture'),
+              actions: [
+                CupertinoDialogAction(
+                  child: const Text('OK'),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
           );
         }
@@ -427,20 +479,34 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       }
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully'),
-            backgroundColor: Colors.green,
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Success'),
+            content: const Text('Profile updated successfully'),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
         );
         context.pop();
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text('Error'),
             content: Text('Failed to update profile: $e'),
-            backgroundColor: Colors.red,
+            actions: [
+              CupertinoDialogAction(
+                child: const Text('OK'),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
           ),
         );
       }

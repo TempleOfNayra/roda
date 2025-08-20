@@ -1,32 +1,27 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
-/// Simple wrapper that adds SafeArea to all Scaffolds
+/// Simple wrapper that adds SafeArea to all CupertinoPageScaffolds
 class SafeScaffold extends StatelessWidget {
-  final PreferredSizeWidget? appBar;
+  final ObstructingPreferredSizeWidget? navigationBar;
   final Widget body;
-  final Widget? floatingActionButton;
-  final Widget? bottomNavigationBar;
   final Color? backgroundColor;
   
   const SafeScaffold({
     super.key,
-    this.appBar,
+    this.navigationBar,
     required this.body,
-    this.floatingActionButton,
-    this.bottomNavigationBar,
     this.backgroundColor,
   });
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: appBar,
+    return CupertinoPageScaffold(
+      navigationBar: navigationBar,
       backgroundColor: backgroundColor,
-      body: SafeArea(
+      child: SafeArea(
+        top: navigationBar == null,
         child: body,
       ),
-      floatingActionButton: floatingActionButton,
-      bottomNavigationBar: bottomNavigationBar,
     );
   }
 }
