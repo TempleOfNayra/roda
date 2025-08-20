@@ -10,6 +10,7 @@ import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/services/r2_storage_service.dart';
 import 'package:roda/core/widgets/birthday_picker.dart';
 import 'package:roda/core/utils/logger.dart';
+import 'package:roda/core/theme/roda_colors.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -122,7 +123,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                             height: 100,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: CupertinoColors.systemBlue.withOpacity(0.2),
+                              color: RodaColors.activeBlue.withOpacity(0.2),
                               image: _getProfileImage(user) != null
                                   ? DecorationImage(
                                       image: _getProfileImage(user)!,
@@ -139,7 +140,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                                       style: const TextStyle(
                                         fontSize: 36,
                                         fontWeight: FontWeight.bold,
-                                        color: CupertinoColors.systemBlue,
+                                        color: RodaColors.activeBlue,
                                       ),
                                     ),
                                   )
@@ -151,13 +152,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                             child: Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: CupertinoColors.systemBlue,
+                                color: RodaColors.activeBlue,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 CupertinoIcons.camera_fill,
                                 size: 20,
-                                color: CupertinoColors.white,
+                                color: RodaColors.white,
                               ),
                             ),
                           ),
@@ -178,7 +179,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         placeholder: 'Enter your full name',
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: CupertinoColors.systemGrey4),
+                          border: Border.all(color: RodaColors.systemGrey4),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -197,7 +198,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         placeholder: 'Enter your Capoeira name',
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: CupertinoColors.systemGrey4),
+                          border: Border.all(color: RodaColors.systemGrey4),
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -229,9 +230,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                           enabled: false,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            border: Border.all(color: CupertinoColors.systemGrey4),
+                            border: Border.all(color: RodaColors.systemGrey4),
                             borderRadius: BorderRadius.circular(8),
-                            color: CupertinoColors.systemGrey6,
+                            color: RodaColors.systemGrey6,
                           ),
                         ),
                       ],
@@ -255,7 +256,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                           ),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            border: Border.all(color: CupertinoColors.systemGrey4),
+                            border: Border.all(color: RodaColors.systemGrey4),
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -268,14 +269,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: CupertinoColors.systemGrey6,
+                      color: RodaColors.systemGrey6,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           user.role == UserRole.teacher ? CupertinoIcons.book : CupertinoIcons.person,
-                          color: CupertinoColors.systemBlue,
+                          color: RodaColors.activeBlue,
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -285,7 +286,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                               'Account Type',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: CupertinoColors.systemGrey,
+                                color: RodaColors.systemGrey,
                               ),
                             ),
                             Text(
@@ -310,7 +311,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       onPressed: _isLoading ? null : () => _saveProfile(context, ref),
                       borderRadius: BorderRadius.circular(8),
                       child: _isLoading
-                          ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+                          ? const CupertinoActivityIndicator(color: RodaColors.white)
                           : const Text(
                               'Save Changes',
                               style: TextStyle(fontSize: 16),

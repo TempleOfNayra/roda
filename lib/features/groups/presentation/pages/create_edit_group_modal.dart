@@ -8,6 +8,7 @@ import 'package:roda/core/services/r2_storage_service.dart';
 import 'package:roda/data/core/db_exceptions.dart';
 import 'package:roda/core/utils/logger.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
+import 'package:roda/core/theme/roda_colors.dart';
 
 class CreateEditGroupModal extends ConsumerStatefulWidget {
   final String? groupId; // null for create, has value for edit
@@ -218,7 +219,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     return Container(
         height: MediaQuery.of(context).size.height * 0.9,
         decoration: const BoxDecoration(
-          color: CupertinoColors.systemBackground,
+          color: RodaColors.systemBackground,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -229,7 +230,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: CupertinoColors.systemGrey3,
+              color: RodaColors.systemGrey3,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -279,10 +280,10 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                     child: Container(
                       height: 200,
                       decoration: BoxDecoration(
-                        color: CupertinoColors.systemGrey6,
+                        color: RodaColors.systemGrey6,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: CupertinoColors.systemGrey4,
+                          color: RodaColors.systemGrey4,
                           width: 1,
                         ),
                         image: _headerImageBytes != null
@@ -304,13 +305,13 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                                 Icon(
                                   CupertinoIcons.photo_on_rectangle,
                                   size: 48,
-                                  color: CupertinoColors.systemBlue,
+                                  color: RodaColors.activeBlue,
                                 ),
                                 SizedBox(height: 8),
                                 Text(
                                   'Add Group Header Image',
                                   style: TextStyle(
-                                    color: CupertinoColors.systemBlue,
+                                    color: RodaColors.activeBlue,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -318,7 +319,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                                 Text(
                                   'Tap to upload',
                                   style: TextStyle(
-                                    color: CupertinoColors.systemGrey,
+                                    color: RodaColors.systemGrey,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -330,13 +331,13 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: CupertinoColors.black.withValues(alpha: 0.6),
+                                  color: RodaColors.black.withValues(alpha: 0.6),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Text(
                                   'Tap to change',
                                   style: TextStyle(
-                                    color: CupertinoColors.white,
+                                    color: RodaColors.white,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -383,7 +384,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: CupertinoColors.systemGrey6,
+                        color: RodaColors.systemGrey6,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -420,7 +421,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                         'Capoeira Style *',
                         style: TextStyle(
                           fontSize: 14,
-                          color: CupertinoColors.systemGrey,
+                          color: RodaColors.systemGrey,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -500,10 +501,10 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           : null,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey6,
+        color: RodaColors.systemGrey6,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: CupertinoColors.systemGrey6,
+          color: RodaColors.systemGrey6,
           width: 0,
         ),
       ),
@@ -518,7 +519,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
       context: context,
       builder: (context) => Container(
         height: 250,
-        color: CupertinoColors.systemBackground.resolveFrom(context),
+        color: RodaColors.systemBackground.resolveFrom(context),
         child: Column(
           children: [
             Row(

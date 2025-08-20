@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'dart:io';
+import 'package:roda/core/theme/roda_colors.dart';
 
 class BirthdayPicker extends StatefulWidget {
   final DateTime? initialDate;
@@ -61,16 +62,16 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
       builder: (BuildContext context) {
         return Container(
           height: 300,
-          color: CupertinoColors.systemBackground,
+          color: RodaColors.systemBackground,
           child: Column(
             children: [
               // Header with Done button
               Container(
                 height: 44,
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey6,
+                  color: RodaColors.systemGrey6,
                   border: Border(
-                    bottom: BorderSide(color: CupertinoColors.systemGrey4),
+                    bottom: BorderSide(color: RodaColors.systemGrey4),
                   ),
                 ),
                 child: Row(
@@ -85,7 +86,7 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
-                        color: CupertinoColors.label,
+                        color: RodaColors.label,
                       ),
                     ),
                     CupertinoButton(
@@ -146,7 +147,7 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         decoration: BoxDecoration(
-          border: Border.all(color: CupertinoColors.systemGrey4),
+          border: Border.all(color: RodaColors.systemGrey4),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -157,7 +158,7 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: CupertinoColors.label,
+                color: RodaColors.label,
               ),
             ),
             const SizedBox(height: 4),
@@ -171,8 +172,8 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
                   style: TextStyle(
                     fontSize: 16,
                     color: _selectedDate != null 
-                        ? CupertinoColors.label
-                        : CupertinoColors.secondaryLabel,
+                        ? RodaColors.label
+                        : RodaColors.secondaryLabel,
                   ),
                 ),
                 if (_selectedDate != null)
@@ -180,10 +181,10 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
                     'Age: ${_calculateAge(_selectedDate!)}',
                     style: const TextStyle(
                       fontSize: 14,
-                      color: CupertinoColors.secondaryLabel,
+                      color: RodaColors.secondaryLabel,
                     ),
                   ),
-                const Icon(CupertinoIcons.calendar, color: CupertinoColors.systemGrey),
+                const Icon(CupertinoIcons.calendar, color: RodaColors.systemGrey),
               ],
             ),
           ],
@@ -265,14 +266,14 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: CupertinoColors.secondaryLabel,
+                    color: RodaColors.secondaryLabel,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   height: 120,
                   decoration: BoxDecoration(
-                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    border: Border.all(color: RodaColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ListView.builder(
@@ -292,8 +293,8 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: isSelected 
-                                ? CupertinoColors.activeBlue 
-                                : CupertinoColors.systemBackground,
+                                ? RodaColors.activeBlue 
+                                : RodaColors.systemBackground,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -302,7 +303,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? CupertinoColors.white : CupertinoColors.label,
+                              color: isSelected ? RodaColors.white : RodaColors.label,
                             ),
                           ),
                         ),
@@ -323,7 +324,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: CupertinoColors.secondaryLabel,
+                    color: RodaColors.secondaryLabel,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -352,13 +353,13 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: isSelected 
-                                ? CupertinoColors.activeBlue 
-                                : CupertinoColors.systemGrey6,
+                                ? RodaColors.activeBlue 
+                                : RodaColors.systemGrey6,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isSelected 
-                                  ? CupertinoColors.activeBlue 
-                                  : CupertinoColors.systemGrey4,
+                                  ? RodaColors.activeBlue 
+                                  : RodaColors.systemGrey4,
                             ),
                           ),
                           child: Text(
@@ -366,7 +367,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? CupertinoColors.white : CupertinoColors.label,
+                              color: isSelected ? RodaColors.white : RodaColors.label,
                             ),
                           ),
                         ),
@@ -387,7 +388,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: CupertinoColors.secondaryLabel,
+                    color: RodaColors.secondaryLabel,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -415,13 +416,13 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: isSelected 
-                                ? CupertinoColors.activeBlue 
-                                : CupertinoColors.systemBackground,
+                                ? RodaColors.activeBlue 
+                                : RodaColors.systemBackground,
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isSelected 
-                                  ? CupertinoColors.activeBlue 
-                                  : CupertinoColors.systemGrey4,
+                                  ? RodaColors.activeBlue 
+                                  : RodaColors.systemGrey4,
                             ),
                           ),
                           child: Text(
@@ -429,7 +430,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? CupertinoColors.white : CupertinoColors.label,
+                              color: isSelected ? RodaColors.white : RodaColors.label,
                             ),
                           ),
                         ),
@@ -445,13 +446,13 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: CupertinoColors.systemGrey6,
+                color: RodaColors.systemGrey6,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(CupertinoIcons.gift, size: 20, color: CupertinoColors.systemGrey),
+                  const Icon(CupertinoIcons.gift, size: 20, color: RodaColors.systemGrey),
                   const SizedBox(width: 8),
                   Text(
                     '${months[selectedMonth - 1]} $selectedDay, $selectedYear',

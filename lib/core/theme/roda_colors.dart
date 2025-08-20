@@ -28,4 +28,23 @@ class RodaColors {
   static const error = Color(0xFFDC3545);          // Error red
   static const divider = Color(0xFFE0E0E0);        // Subtle dividers
   static const live = Color(0xFF00D9A3);           // Live indicator
+  
+  // Additional colors for Cupertino replacements
+  static const white = Color(0xFFFFFFFF);          // Pure white
+  static const black = Color(0xFF000000);          // Pure black
+  static const systemGrey = Color(0xFF8E8E93);     // System grey
+  static const systemGrey2 = Color(0xFFAEAEB2);    // System grey 2
+  static const systemGrey3 = Color(0xFFC7C7CC);    // System grey 3
+  static const systemGrey4 = Color(0xFFD1D1D6);    // System grey 4
+  static const systemGrey5 = Color(0xFFE5E5EA);    // System grey 5
+  static const systemGrey6 = Color(0xFFF2F2F7);    // System grey 6
+  static const activeBlue = Color(0xFF007AFF);     // iOS blue
+  static const destructiveRed = error;             // Use error red for destructive actions
+  static const label = textPrimary;                // Main text color
+  static const secondaryLabel = textSecondary;     // Secondary text color
+  static const tertiaryLabel = textHint;           // Tertiary text color
+  static const systemBackground = background;      // System background
+  static const secondarySystemBackground = surfaceAlt; // Secondary background
+  static const systemGroupedBackground = background;   // Grouped background
+  static const separator = divider;                // Separator color
 }

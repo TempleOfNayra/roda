@@ -119,7 +119,7 @@ class ProfilePage extends ConsumerWidget {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(CupertinoIcons.group, size: 14, color: CupertinoColors.secondaryLabel),
+                                Icon(CupertinoIcons.group, size: 14, color: RodaColors.secondaryLabel),
                                 const SizedBox(width: 4),
                                 Text(
                                   user.groupName!,
@@ -171,9 +171,9 @@ class ProfilePage extends ConsumerWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(CupertinoIcons.add, size: 18),
+                            Icon(CupertinoIcons.add, size: 18, color: RodaColors.white),
                             SizedBox(width: 4),
-                            Text('Create Group'),
+                            Text('Create Group', style: TextStyle(color: RodaColors.white)),
                           ],
                         ),
                       ),
@@ -291,7 +291,7 @@ class ProfilePage extends ConsumerWidget {
                                                       'ADMIN',
                                                       style: TextStyle(
                                                         fontSize: 10,
-                                                        color: CupertinoColors.white,
+                                                        color: RodaColors.white,
                                                         fontWeight: FontWeight.bold,
                                                       ),
                                                     ),
@@ -308,7 +308,7 @@ class ProfilePage extends ConsumerWidget {
                                                       'TEACHER',
                                                       style: TextStyle(
                                                         fontSize: 10,
-                                                        color: CupertinoColors.white,
+                                                        color: RodaColors.white,
                                                         fontWeight: FontWeight.bold,
                                                       ),
                                                     ),
@@ -405,7 +405,7 @@ class ProfilePage extends ConsumerWidget {
                           Icon(
                             CupertinoIcons.calendar,
                             size: 64,
-                            color: CupertinoColors.systemGrey,
+                            color: RodaColors.systemGrey,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -420,7 +420,7 @@ class ProfilePage extends ConsumerWidget {
                             'Find and register for classes near you',
                             style: TextStyle(
                               fontSize: 14,
-                              color: CupertinoColors.systemGrey,
+                              color: RodaColors.systemGrey,
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -431,9 +431,9 @@ class ProfilePage extends ConsumerWidget {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(CupertinoIcons.map),
+                                Icon(CupertinoIcons.map, color: RodaColors.white),
                                 SizedBox(width: 8),
-                                Text('Browse Classes'),
+                                Text('Browse Classes', style: TextStyle(color: RodaColors.white)),
                               ],
                             ),
                           ),

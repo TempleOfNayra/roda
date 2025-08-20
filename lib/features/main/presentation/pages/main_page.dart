@@ -5,6 +5,7 @@ import 'package:roda/core/routing/routes.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/core/utils/logger.dart';
+import 'package:roda/core/theme/roda_colors.dart';
 
 class MainPage extends ConsumerWidget {
   const MainPage({super.key});
@@ -53,7 +54,7 @@ class MainPage extends ConsumerWidget {
                   'Capoeira Class & Roda Tracker',
                   style: TextStyle(
                     fontSize: 16,
-                    color: CupertinoColors.systemGrey,
+                    color: RodaColors.systemGrey,
                   ),
                 ),
                 const SizedBox(height: 48),
@@ -153,7 +154,7 @@ class MainPage extends ConsumerWidget {
           },
           child: const Text(
             'Sign Out',
-            style: TextStyle(color: CupertinoColors.destructiveRed),
+            style: TextStyle(color: RodaColors.destructiveRed),
           ),
         ),
       ],
@@ -170,19 +171,19 @@ class MainPage extends ConsumerWidget {
       width: double.infinity,
       height: 56,
       child: CupertinoButton(
-        color: CupertinoColors.activeBlue,
+        color: RodaColors.activeBlue,
         borderRadius: BorderRadius.circular(12),
         onPressed: onPressed,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: CupertinoColors.white),
+            Icon(icon, color: RodaColors.white),
             const SizedBox(width: 8),
             Text(
               label,
               style: const TextStyle(
                 fontSize: 16,
-                color: CupertinoColors.white,
+                color: RodaColors.white,
               ),
             ),
           ],

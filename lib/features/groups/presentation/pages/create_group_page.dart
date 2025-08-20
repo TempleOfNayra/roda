@@ -9,6 +9,7 @@ import 'package:roda/application/group_controller.dart';
 import 'package:roda/core/services/r2_storage_service.dart';
 import 'package:roda/data/core/db_exceptions.dart';
 import 'package:roda/core/utils/logger.dart';
+import 'package:roda/core/theme/roda_colors.dart';
 
 class CreateGroupPage extends ConsumerStatefulWidget {
   const CreateGroupPage({super.key});
@@ -78,12 +79,12 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
       context: context,
       builder: (context) => Container(
         height: 250,
-        color: CupertinoColors.systemBackground,
+        color: RodaColors.systemBackground,
         child: Column(
           children: [
             Container(
               height: 50,
-              color: CupertinoColors.systemGrey6,
+              color: RodaColors.systemGrey6,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -261,10 +262,10 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                 child: Container(
                   height: 200,
                   decoration: BoxDecoration(
-                    color: CupertinoColors.systemGroupedBackground,
+                    color: RodaColors.systemGroupedBackground,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: CupertinoColors.separator,
+                      color: RodaColors.separator,
                       width: 2,
                     ),
                     image: _headerImageBytes != null
@@ -281,13 +282,13 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                           Icon(
                             CupertinoIcons.photo_on_rectangle,
                             size: 48,
-                            color: CupertinoColors.activeBlue,
+                            color: RodaColors.activeBlue,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Add Group Header Image',
                             style: const TextStyle(
-                              color: CupertinoColors.activeBlue,
+                              color: RodaColors.activeBlue,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -295,7 +296,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                           Text(
                             'Tap to upload',
                             style: const TextStyle(
-                              color: CupertinoColors.secondaryLabel,
+                              color: RodaColors.secondaryLabel,
                               fontSize: 12,
                             ),
                           ),
@@ -315,7 +316,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -324,11 +325,11 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     placeholder: 'e.g., ABADA, Senzala, Cordão de Ouro',
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8.0),
-                      child: Icon(CupertinoIcons.group, color: CupertinoColors.secondaryLabel),
+                      child: Icon(CupertinoIcons.group, color: RodaColors.secondaryLabel),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: CupertinoColors.separator),
+                      border: Border.all(color: RodaColors.separator),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     textCapitalization: TextCapitalization.words,
@@ -346,7 +347,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -355,11 +356,11 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     placeholder: 'e.g., SF, Oakland, Berkeley',
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8.0),
-                      child: Icon(CupertinoIcons.building_2_fill, color: CupertinoColors.secondaryLabel),
+                      child: Icon(CupertinoIcons.building_2_fill, color: RodaColors.secondaryLabel),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: CupertinoColors.separator),
+                      border: Border.all(color: RodaColors.separator),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     textCapitalization: TextCapitalization.words,
@@ -377,7 +378,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -387,22 +388,22 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                       decoration: BoxDecoration(
-                        border: Border.all(color: CupertinoColors.separator),
+                        border: Border.all(color: RodaColors.separator),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
                           const Padding(
                             padding: EdgeInsets.only(right: 8.0),
-                            child: Icon(CupertinoIcons.book, color: CupertinoColors.secondaryLabel),
+                            child: Icon(CupertinoIcons.book, color: RodaColors.secondaryLabel),
                           ),
                           Expanded(
                             child: Text(
                               _selectedTeacherTitle,
-                              style: const TextStyle(color: CupertinoColors.label),
+                              style: const TextStyle(color: RodaColors.label),
                             ),
                           ),
-                          const Icon(CupertinoIcons.chevron_down, color: CupertinoColors.secondaryLabel),
+                          const Icon(CupertinoIcons.chevron_down, color: RodaColors.secondaryLabel),
                         ],
                       ),
                     ),
@@ -420,7 +421,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -429,11 +430,11 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     placeholder: 'e.g., Mestre João Silva',
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8.0),
-                      child: Icon(CupertinoIcons.person, color: CupertinoColors.secondaryLabel),
+                      child: Icon(CupertinoIcons.person, color: RodaColors.secondaryLabel),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: CupertinoColors.separator),
+                      border: Border.all(color: RodaColors.separator),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     textCapitalization: TextCapitalization.words,
@@ -451,7 +452,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -460,11 +461,11 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     placeholder: 'e.g., San Francisco, Rio de Janeiro',
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8.0),
-                      child: Icon(CupertinoIcons.location, color: CupertinoColors.secondaryLabel),
+                      child: Icon(CupertinoIcons.location, color: RodaColors.secondaryLabel),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: CupertinoColors.separator),
+                      border: Border.all(color: RodaColors.separator),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     textCapitalization: TextCapitalization.words,
@@ -482,7 +483,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -517,7 +518,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -526,11 +527,11 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     placeholder: 'e.g., Mestre Bimba, Mestre Pastinha',
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8.0),
-                      child: Icon(CupertinoIcons.tree, color: CupertinoColors.secondaryLabel),
+                      child: Icon(CupertinoIcons.tree, color: RodaColors.secondaryLabel),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: CupertinoColors.separator),
+                      border: Border.all(color: RodaColors.separator),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     textCapitalization: TextCapitalization.words,
@@ -548,7 +549,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -557,11 +558,11 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     placeholder: 'Tell us about your group...',
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8.0, top: 8.0),
-                      child: Icon(CupertinoIcons.doc_text, color: CupertinoColors.secondaryLabel),
+                      child: Icon(CupertinoIcons.doc_text, color: RodaColors.secondaryLabel),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: CupertinoColors.separator),
+                      border: Border.all(color: RodaColors.separator),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     maxLines: 3,
@@ -580,7 +581,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: CupertinoColors.label,
+                      color: RodaColors.label,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -589,11 +590,11 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     placeholder: '@your-venmo-handle',
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8.0),
-                      child: Icon(CupertinoIcons.creditcard, color: CupertinoColors.secondaryLabel),
+                      child: Icon(CupertinoIcons.creditcard, color: RodaColors.secondaryLabel),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: CupertinoColors.separator),
+                      border: Border.all(color: RodaColors.separator),
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),

@@ -117,7 +117,7 @@ class SettingsPage extends ConsumerWidget {
                   child: const Text(
                     'Sign Out',
                     style: TextStyle(
-                      color: CupertinoColors.white,
+                      color: RodaColors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

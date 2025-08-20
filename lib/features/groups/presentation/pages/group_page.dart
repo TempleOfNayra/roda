@@ -267,7 +267,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   ),
                   child: const Icon(
                     CupertinoIcons.add,
-                    color: CupertinoColors.white,
+                    color: RodaColors.white,
                     size: 20,
                   ),
                 ),
@@ -347,7 +347,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               'Failed to load schedules',
               style: TextStyle(
                 fontSize: 14,
-                color: CupertinoColors.systemRed,
+                color: RodaColors.error,
               ),
             ),
           ),
@@ -379,7 +379,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   ),
                   child: const Icon(
                     CupertinoIcons.add,
-                    color: CupertinoColors.white,
+                    color: RodaColors.white,
                     size: 20,
                   ),
                 ),
@@ -492,7 +492,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
           child: Text(
             'No announcements yet',
             style: TextStyle(
-              color: CupertinoColors.systemGrey,
+              color: RodaColors.systemGrey,
             ),
           ),
         ),
@@ -533,7 +533,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
         child: Text(
           'No media yet',
           style: TextStyle(
-            color: CupertinoColors.systemGrey,
+            color: RodaColors.systemGrey,
           ),
         ),
       ),
@@ -566,7 +566,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
         margin: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        color: CupertinoColors.systemBackground.resolveFrom(context),
+        color: RodaColors.systemBackground.resolveFrom(context),
         child: SafeArea(
           top: false,
           child: Column(

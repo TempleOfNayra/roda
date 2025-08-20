@@ -5,7 +5,7 @@ class RodaTheme {
   static CupertinoThemeData get theme => const CupertinoThemeData(
     brightness: Brightness.light,
     primaryColor: RodaColors.primary,
-    primaryContrastingColor: CupertinoColors.white,
+    primaryContrastingColor: RodaColors.white,
     scaffoldBackgroundColor: RodaColors.background,
     barBackgroundColor: RodaColors.surface,
     textTheme: CupertinoTextThemeData(

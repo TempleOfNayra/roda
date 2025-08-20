@@ -13,6 +13,7 @@ import 'package:roda/core/utils/venmo_helper.dart';
 import 'package:roda/core/config/app_config.dart';
 import 'dart:async';
 import 'package:roda/core/utils/logger.dart';
+import 'package:roda/core/theme/roda_colors.dart';
 
 // Group classes by location for map display
 class LocationGroup {
@@ -248,7 +249,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(CupertinoIcons.exclamationmark_triangle, size: 48, color: CupertinoColors.destructiveRed),
+              const Icon(CupertinoIcons.exclamationmark_triangle, size: 48, color: RodaColors.destructiveRed),
               const SizedBox(height: 16),
               Text('Error: $error'),
               const SizedBox(height: 16),
@@ -269,11 +270,11 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(CupertinoIcons.calendar_badge_minus, size: 64, color: CupertinoColors.systemGrey),
+                      Icon(CupertinoIcons.calendar_badge_minus, size: 64, color: RodaColors.systemGrey),
                       SizedBox(height: 16),
                       Text(
                         'No upcoming classes or rodas',
-                        style: TextStyle(fontSize: 18, color: CupertinoColors.systemGrey),
+                        style: TextStyle(fontSize: 18, color: RodaColors.systemGrey),
                       ),
                     ],
                   ),
@@ -284,13 +285,13 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                   left: 16,
                   child: Container(
                     decoration: const BoxDecoration(
-                      color: CupertinoColors.white,
+                      color: RodaColors.white,
                       shape: BoxShape.circle,
                     ),
                     child: CupertinoButton(
                       padding: const EdgeInsets.all(8),
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Icon(CupertinoIcons.back, color: CupertinoColors.black, size: 20),
+                      child: const Icon(CupertinoIcons.back, color: RodaColors.black, size: 20),
                     ),
                   ),
                 ),
@@ -338,13 +339,13 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                 left: 16,
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: CupertinoColors.white,
+                    color: RodaColors.white,
                     shape: BoxShape.circle,
                   ),
                   child: CupertinoButton(
                     padding: const EdgeInsets.all(8),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Icon(CupertinoIcons.back, color: CupertinoColors.black, size: 20),
+                    child: const Icon(CupertinoIcons.back, color: RodaColors.black, size: 20),
                   ),
                 ),
               ),
@@ -355,13 +356,13 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                 right: 16,
                 child: Container(
                   decoration: const BoxDecoration(
-                    color: CupertinoColors.white,
+                    color: RodaColors.white,
                     shape: BoxShape.circle,
                   ),
                   child: CupertinoButton(
                     padding: const EdgeInsets.all(8),
                     onPressed: _getCurrentLocation,
-                    child: const Icon(CupertinoIcons.location, color: CupertinoColors.black, size: 20),
+                    child: const Icon(CupertinoIcons.location, color: RodaColors.black, size: 20),
                   ),
                 ),
               ),
@@ -372,11 +373,11 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                 left: 16,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: CupertinoColors.systemBackground,
+                    color: RodaColors.systemBackground,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: const [
                       BoxShadow(
-                        color: CupertinoColors.systemGrey4,
+                        color: RodaColors.systemGrey4,
                         blurRadius: 4,
                         offset: Offset(0, 2),
                       ),
@@ -390,22 +391,22 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(CupertinoIcons.info_circle, size: 16, color: CupertinoColors.systemGrey),
+                            Icon(CupertinoIcons.info_circle, size: 16, color: RodaColors.systemGrey),
                             const SizedBox(width: 4),
                             Text(
                               'Map Legend',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
-                                color: CupertinoColors.label,
+                                color: RodaColors.label,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        _buildLegendItem(CupertinoColors.systemBlue, 'Classes only'),
-                        _buildLegendItem(CupertinoColors.systemOrange, 'Rodas only'),
-                        _buildLegendItem(CupertinoColors.systemPurple, 'Both'),
+                        _buildLegendItem(RodaColors.activeBlue, 'Classes only'),
+                        _buildLegendItem(RodaColors.secondary, 'Rodas only'),
+                        _buildLegendItem(RodaColors.primary, 'Both'),
                       ],
                     ),
                 ),
@@ -456,11 +457,11 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
         maxHeight: MediaQuery.of(context).size.height * 0.6, // Max 60% of screen
       ),
       decoration: const BoxDecoration(
-        color: CupertinoColors.systemBackground,
+        color: RodaColors.systemBackground,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: CupertinoColors.systemGrey4,
+            color: RodaColors.systemGrey4,
             blurRadius: 10,
             offset: Offset(0, -2),
           ),
@@ -475,7 +476,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
             height: 4,
             margin: const EdgeInsets.only(top: 12, bottom: 8),
             decoration: BoxDecoration(
-              color: CupertinoColors.systemGrey4,
+              color: RodaColors.systemGrey4,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -485,7 +486,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               children: [
-                const Icon(CupertinoIcons.location_solid, color: CupertinoColors.destructiveRed),
+                const Icon(CupertinoIcons.location_solid, color: RodaColors.destructiveRed),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -502,7 +503,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                         '${location.classes.length} upcoming events',
                         style: TextStyle(
                           fontSize: 12,
-                          color: CupertinoColors.systemGrey,
+                          color: RodaColors.systemGrey,
                         ),
                       ),
                     ],
@@ -523,7 +524,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
           
           Container(
             height: 1,
-            color: CupertinoColors.separator,
+            color: RodaColors.separator,
           ),
           
           // Scrollable list of upcoming classes
@@ -533,7 +534,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                     padding: EdgeInsets.all(32.0),
                     child: Text(
                       'No upcoming events',
-                      style: TextStyle(color: CupertinoColors.systemGrey),
+                      style: TextStyle(color: RodaColors.systemGrey),
                     ),
                   )
                 : ListView.separated(
@@ -542,7 +543,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                     itemCount: upcomingEvents.length,
                     separatorBuilder: (context, index) => Container(
                       height: 1,
-                      color: CupertinoColors.separator,
+                      color: RodaColors.separator,
                     ),
                     itemBuilder: (context, index) {
                       final classData = upcomingEvents[index];
@@ -569,12 +570,12 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isRoda ? CupertinoColors.systemOrange.withOpacity(0.1) : CupertinoColors.systemBlue.withOpacity(0.1),
+              color: isRoda ? RodaColors.secondary.withOpacity(0.1) : RodaColors.activeBlue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               isRoda ? CupertinoIcons.music_note : CupertinoIcons.sportscourt,
-              color: isRoda ? CupertinoColors.systemOrange : CupertinoColors.systemBlue,
+              color: isRoda ? RodaColors.secondary : RodaColors.activeBlue,
               size: 24,
             ),
           ),
@@ -600,7 +601,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isRoda ? CupertinoColors.systemOrange : CupertinoColors.systemBlue,
+                        color: isRoda ? RodaColors.secondary : RodaColors.activeBlue,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -608,7 +609,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: CupertinoColors.white,
+                          color: RodaColors.white,
                         ),
                       ),
                     ),
@@ -618,7 +619,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                         '${dateFormat.format(classData.scheduledDate)} • ${timeFormat.format(classData.startTime)}',
                         style: TextStyle(
                           fontSize: 13,
-                          color: CupertinoColors.secondaryLabel,
+                          color: RodaColors.secondaryLabel,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -635,7 +636,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                           'by ${classData.teacherName}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: CupertinoColors.secondaryLabel,
+                            color: RodaColors.secondaryLabel,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -645,7 +646,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                         '\$${classData.price!.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 14,
-                          color: CupertinoColors.systemGreen,
+                          color: RodaColors.success,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -666,12 +667,12 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                 // Show Register button
                 return CupertinoButton(
                   onPressed: () => _handleRegister(classData, isRegistered),
-                  color: isRoda ? CupertinoColors.systemOrange : CupertinoColors.systemBlue,
+                  color: isRoda ? RodaColors.secondary : RodaColors.activeBlue,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   borderRadius: BorderRadius.circular(20),
                   child: const Text(
                     'Register',
-                    style: TextStyle(fontSize: 13, color: CupertinoColors.white),
+                    style: TextStyle(fontSize: 13, color: RodaColors.white),
                   ),
                 );
               } else {
@@ -685,7 +686,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                         padding: const EdgeInsets.only(right: 8),
                         child: Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: CupertinoColors.systemGreen),
+                            border: Border.all(color: RodaColors.success),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: CupertinoButton(
@@ -695,11 +696,11 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(CupertinoIcons.money_dollar, size: 16, color: CupertinoColors.systemGreen),
+                                Icon(CupertinoIcons.money_dollar, size: 16, color: RodaColors.success),
                                 SizedBox(width: 4),
                                 Text(
                                   'Pay',
-                                  style: TextStyle(fontSize: 13, color: CupertinoColors.systemGreen),
+                                  style: TextStyle(fontSize: 13, color: RodaColors.success),
                                 ),
                               ],
                             ),
@@ -709,12 +710,12 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                     // Cancel button
                     CupertinoButton(
                       onPressed: () => _handleRegister(classData, isRegistered),
-                      color: CupertinoColors.destructiveRed,
+                      color: RodaColors.destructiveRed,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       borderRadius: BorderRadius.circular(20),
                       child: const Text(
                         'Cancel',
-                        style: TextStyle(fontSize: 13, color: CupertinoColors.white),
+                        style: TextStyle(fontSize: 13, color: RodaColors.white),
                       ),
                     ),
                   ],
@@ -882,7 +883,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: CupertinoColors.systemGrey4),
+        border: Border.all(color: RodaColors.systemGrey4),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -904,7 +905,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                   title,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: CupertinoColors.systemGrey,
+                    color: RodaColors.systemGrey,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -919,7 +920,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                   timeFormat.format(classData.startTime),
                   style: TextStyle(
                     fontSize: 14,
-                    color: CupertinoColors.secondaryLabel,
+                    color: RodaColors.secondaryLabel,
                   ),
                 ),
                 if (classData.groupName.isNotEmpty)
@@ -927,7 +928,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
                     classData.groupName,
                     style: TextStyle(
                       fontSize: 12,
-                      color: CupertinoColors.tertiaryLabel,
+                      color: RodaColors.tertiaryLabel,
                     ),
                   ),
               ],

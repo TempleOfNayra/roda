@@ -10,6 +10,7 @@ import 'package:roda/features/auth/presentation/widgets/auth_button.dart';
 import 'package:roda/core/widgets/birthday_picker.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 import 'package:roda/core/utils/logger.dart';
+import 'package:roda/core/theme/roda_colors.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
   const SignUpPage({super.key});
@@ -93,7 +94,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           'Sign in to get started',
           style: TextStyle(
             fontSize: 16,
-            color: CupertinoColors.secondaryLabel,
+            color: RodaColors.secondaryLabel,
           ),
           textAlign: TextAlign.center,
         ),
@@ -117,7 +118,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: CupertinoColors.separator,
+                color: RodaColors.separator,
                 width: 0.0,
               ),
             ),
@@ -130,7 +131,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.bug_report, color: CupertinoColors.white),
+              const Icon(Icons.bug_report, color: RodaColors.white),
               const SizedBox(width: 8),
               const Text('DEBUG: Sign in as First User'),
             ],
@@ -168,7 +169,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 autocorrect: false,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: CupertinoColors.systemGrey4),
+                  border: Border.all(color: RodaColors.systemGrey4),
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
@@ -191,7 +192,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 autocorrect: false,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: CupertinoColors.systemGrey4),
+                  border: Border.all(color: RodaColors.systemGrey4),
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
@@ -225,7 +226,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    border: Border.all(color: RodaColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -233,9 +234,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     children: [
                       Text(
                         _selectedRole.name.toUpperCase(),
-                        style: const TextStyle(color: CupertinoColors.label),
+                        style: const TextStyle(color: RodaColors.label),
                       ),
-                      const Icon(CupertinoIcons.chevron_down, color: CupertinoColors.systemGrey),
+                      const Icon(CupertinoIcons.chevron_down, color: RodaColors.systemGrey),
                     ],
                   ),
                 ),
@@ -250,7 +251,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: CupertinoColors.separator,
+                    color: RodaColors.separator,
                     width: 0.0,
                   ),
                 ),
@@ -280,7 +281,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   autocorrect: false,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    border: Border.all(color: RodaColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -304,7 +305,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   padding: const EdgeInsets.all(16),
                   placeholder: 'Optional',
                   decoration: BoxDecoration(
-                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    border: Border.all(color: RodaColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -327,7 +328,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   autocorrect: false,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    border: Border.all(color: RodaColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -351,7 +352,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: CupertinoColors.systemGrey4),
+                      border: Border.all(color: RodaColors.systemGrey4),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -359,9 +360,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                       children: [
                         Text(
                           _selectedCountry == 'US' ? 'United States' : _selectedCountry,
-                          style: const TextStyle(color: CupertinoColors.label),
+                          style: const TextStyle(color: RodaColors.label),
                         ),
-                        const Icon(CupertinoIcons.chevron_down, color: CupertinoColors.systemGrey),
+                        const Icon(CupertinoIcons.chevron_down, color: RodaColors.systemGrey),
                       ],
                     ),
                   ),
@@ -387,10 +388,10 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   placeholder: 'your-venmo-handle',
                   prefix: const Padding(
                     padding: EdgeInsets.only(left: 16),
-                    child: Text('@', style: TextStyle(color: CupertinoColors.label)),
+                    child: Text('@', style: TextStyle(color: RodaColors.label)),
                   ),
                   decoration: BoxDecoration(
-                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    border: Border.all(color: RodaColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -401,7 +402,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               'Note: You\'ll set up your class schedule after signing up.',
               style: TextStyle(
                 fontSize: 14,
-                color: CupertinoColors.secondaryLabel,
+                color: RodaColors.secondaryLabel,
               ),
             ),
           ] else ...[
@@ -420,7 +421,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   controller: _groupNameController,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    border: Border.all(color: RodaColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -442,7 +443,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   controller: _teacherNameController,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: CupertinoColors.systemGrey4),
+                    border: Border.all(color: RodaColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
@@ -453,7 +454,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           CupertinoButton.filled(
             onPressed: _isLoading ? null : _submitForm,
             child: _isLoading
-                ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+                ? const CupertinoActivityIndicator(color: RodaColors.white)
                 : const Text(
                     'Complete Sign Up',
                     style: TextStyle(fontSize: 16),
@@ -742,7 +743,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           margin: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          color: CupertinoColors.systemBackground.resolveFrom(context),
+          color: RodaColors.systemBackground.resolveFrom(context),
           child: SafeArea(
             top: false,
             child: CupertinoPicker(
@@ -783,7 +784,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           margin: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          color: CupertinoColors.systemBackground.resolveFrom(context),
+          color: RodaColors.systemBackground.resolveFrom(context),
           child: SafeArea(
             top: false,
             child: CupertinoPicker(

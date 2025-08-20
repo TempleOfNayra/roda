@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:roda/core/theme/roda_colors.dart';
 
 class CleanMapPage extends ConsumerWidget {
   const CleanMapPage({super.key});
@@ -17,14 +18,14 @@ class CleanMapPage extends ConsumerWidget {
             Icon(
               CupertinoIcons.map,
               size: 64,
-              color: CupertinoColors.systemGrey,
+              color: RodaColors.systemGrey,
             ),
             SizedBox(height: 16),
             Text(
               'Map Coming Soon',
               style: TextStyle(
                 fontSize: 18,
-                color: CupertinoColors.systemGrey,
+                color: RodaColors.systemGrey,
               ),
             ),
           ],
