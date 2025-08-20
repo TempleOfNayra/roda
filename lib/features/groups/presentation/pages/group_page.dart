@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roda/core/models/capoeira_group.dart';
@@ -6,6 +7,7 @@ import 'package:roda/data/core/supabase_client.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 import 'package:roda/features/groups/providers/schedule_providers.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
+import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/theme/roda_colors.dart';
 import 'package:roda/core/theme/roda_theme.dart';
@@ -103,6 +105,10 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                     
                     // Tabs Section
                     _buildTabsSection(group),
+                    
+                    // Delete Group Link (only for group creator)
+                    if (currentUser != null && group.createdBy == currentUser.id)
+                      _buildDeleteGroupSection(context, ref, group),
                   ],
                 ),
               ),
@@ -256,7 +262,9 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
-                  _showScheduleClassModal(context);
+                  // Pass group's location if available
+                  final groupLocation = group.locationAddress ?? group.locationName;
+                  _showScheduleClassModal(context, groupLocation);
                 },
                 child: Container(
                   width: 32,
@@ -301,43 +309,87 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                 children: schedules.map((schedule) {
                   final scheduleText = formatScheduleTime(schedule);
                   final price = schedule['price'] as num?;
+                  final description = schedule['description'] as String?;
                   
-                  return Row(
-                    children: [
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () {
-                          _showEditScheduleModal(context, scheduleText, schedule['id'] as String);
-                        },
-                        child: const Icon(
-                          CupertinoIcons.pencil,
-                          size: 16,
-                          color: RodaColors.textHint,
-                        ),
+                  // Option 1: iOS-style swipe actions with flutter_slidable
+                  final scheduleWidget = Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.systemBackground,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Text(
-                              scheduleText,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            if (price != null) ...[
-                              const SizedBox(width: 8),
-                              Text(
-                                '\$${price.toStringAsFixed(price is int ? 0 : 2)}',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: RodaColors.success,
-                                  fontWeight: FontWeight.w500,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  scheduleText,
+                                  style: const TextStyle(fontSize: 14),
                                 ),
                               ),
+                              if (price != null) ...[
+                                Text(
+                                  '\$${price.toStringAsFixed(price is int ? 0 : 2)}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: RodaColors.success,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ],
+                          ),
+                          if (description != null && description.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              description,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: RodaColors.textHint,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
+                  );
+                  
+                  // Wrap with Slidable for swipe actions
+                  return Slidable(
+                    key: Key(schedule['id'] as String),
+                    // Swipe from right to left (iOS standard)
+                    endActionPane: ActionPane(
+                      motion: const ScrollMotion(),
+                      children: [
+                        SlidableAction(
+                          onPressed: (_) => _editSchedule(schedule),
+                          backgroundColor: RodaColors.activeBlue,
+                          foregroundColor: RodaColors.white,
+                          icon: CupertinoIcons.pencil,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(8),
+                            bottomLeft: Radius.circular(8),
+                          ),
+                        ),
+                        SlidableAction(
+                          onPressed: (_) => _deleteSchedule(schedule['id'] as String),
+                          backgroundColor: RodaColors.error,
+                          foregroundColor: RodaColors.white,
+                          icon: CupertinoIcons.delete,
+                          borderRadius: const BorderRadius.only(
+                            topRight: Radius.circular(8),
+                            bottomRight: Radius.circular(8),
+                          ),
+                        ),
+                      ],
+                    ),
+                    child: scheduleWidget,
                   );
                 }).toList(),
               );
@@ -540,21 +592,75 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     );
   }
   
-  void _showScheduleClassModal(BuildContext context) {
-    // TODO: Implement schedule class functionality
-    showCupertinoDialog(
+  void _showScheduleClassModal(BuildContext context, [String? groupLocation]) {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) => ScheduleTemplatesPage(
+          groupId: widget.groupId,
+          groupLocationAddress: groupLocation,
+        ),
+      ),
+    );
+  }
+  
+  void _editSchedule(Map<String, dynamic> schedule) {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) => ScheduleTemplatesPage(
+          groupId: widget.groupId,
+          scheduleToEdit: schedule,
+        ),
+      ),
+    );
+  }
+  
+  Future<void> _deleteSchedule(String scheduleId) async {
+    final confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text('Coming Soon'),
-        content: const Text('Schedule class functionality not yet implemented'),
+        title: const Text('Delete Schedule'),
+        content: const Text('Are you sure you want to delete this schedule?'),
         actions: [
           CupertinoDialogAction(
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
         ],
       ),
     );
+    
+    if (confirmed == true) {
+      try {
+        final supabase = ref.read(supabaseClientProvider);
+        await supabase
+            .from('schedules')
+            .update({'is_active': false})
+            .eq('id', scheduleId);
+        ref.invalidate(groupSchedulesProvider(widget.groupId));
+      } catch (e) {
+        if (mounted) {
+          showCupertinoDialog(
+            context: context,
+            builder: (context) => CupertinoAlertDialog(
+              title: const Text('Error'),
+              content: Text('Failed to delete schedule: $e'),
+              actions: [
+                CupertinoDialogAction(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    }
   }
   
   void _showScheduleRodaModal(BuildContext context) {
@@ -611,47 +717,75 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     );
   }
   
-  void _showEditScheduleModal(BuildContext context, String schedule, String scheduleId) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (BuildContext context) => CupertinoActionSheet(
-        title: Text('Edit Schedule: $schedule'),
-        message: const Text('What would you like to do?'),
-        actions: <CupertinoActionSheetAction>[
-          CupertinoActionSheetAction(
-            child: const Text('Edit Time'),
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Navigate to edit schedule page with scheduleId
-            },
+  Widget _buildDeleteGroupSection(BuildContext context, WidgetRef ref, CapoeiraGroup group) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Center(
+        child: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => _showDeleteConfirmation(context, ref, group),
+          child: const Text(
+            'Delete Group',
+            style: TextStyle(
+              fontSize: 14,
+              color: RodaColors.destructiveRed,
+            ),
           ),
-          CupertinoActionSheetAction(
+        ),
+      ),
+    );
+  }
+  
+  void _showDeleteConfirmation(BuildContext context, WidgetRef ref, CapoeiraGroup group) {
+    showCupertinoDialog(
+      context: context,
+      builder: (BuildContext context) => CupertinoAlertDialog(
+        title: const Text('Delete Group'),
+        content: Text('Are you sure you want to delete "${group.displayName}"? This action cannot be undone.'),
+        actions: <CupertinoDialogAction>[
+          CupertinoDialogAction(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
             isDestructiveAction: true,
-            child: const Text('Delete'),
             onPressed: () async {
-              Navigator.pop(context);
-              // Delete this schedule
+              Navigator.pop(context); // Close dialog
+              
               try {
+                // Delete the group
                 final supabase = ref.read(supabaseClientProvider);
                 await supabase
-                    .from('schedules')
-                    .update({'is_active': false})
-                    .eq('id', scheduleId);
-                // Refresh the schedules
-                ref.invalidate(groupSchedulesProvider);
+                    .from('groups')
+                    .delete()
+                    .eq('id', group.id);
+                
+                // Navigate back to the previous screen
+                if (context.mounted) {
+                  context.pop();
+                }
               } catch (e) {
-                // Handle error
+                // Show error
+                if (context.mounted) {
+                  showCupertinoDialog(
+                    context: context,
+                    builder: (context) => CupertinoAlertDialog(
+                      title: const Text('Error'),
+                      content: const Text('Failed to delete group. Please try again.'),
+                      actions: [
+                        CupertinoDialogAction(
+                          child: const Text('OK'),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  );
+                }
               }
             },
+            child: const Text('Delete'),
           ),
         ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          child: const Text('Cancel'),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
       ),
     );
   }

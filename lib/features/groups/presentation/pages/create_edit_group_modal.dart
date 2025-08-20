@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:roda/features/teacher/presentation/widgets/google_places_address_field.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/application/group_controller.dart';
 import 'package:roda/core/services/r2_storage_service.dart';
@@ -28,10 +29,18 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
   final _nameController = TextEditingController();
   final _branchController = TextEditingController();
   final _cityController = TextEditingController();
+  final _locationController = TextEditingController();
   final _teacherNameController = TextEditingController();
   final _lineageController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _venmoController = TextEditingController();
+  
+  // Location data
+  String? _locationAddress;
+  String? _locationName;
+  double? _latitude;
+  double? _longitude;
+  String? _placeId;
   
   CapoeiraStyle _selectedStyle = CapoeiraStyle.contemporanea;
   String _selectedTeacherTitle = 'Professor';
@@ -63,6 +72,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     _nameController.text = group.name;
     _branchController.text = group.branch ?? '';
     _cityController.text = group.city;
+    _locationController.text = group.locationAddress ?? '';
     _teacherNameController.text = group.teacherFullName;
     _lineageController.text = group.lineage ?? '';
     _descriptionController.text = group.description ?? '';
@@ -70,6 +80,13 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     _selectedStyle = group.capoeiraStyle;
     _selectedTeacherTitle = group.teacherTitle;
     _existingHeaderImageUrl = group.headerImageUrl;
+    
+    // Location data
+    _locationAddress = group.locationAddress;
+    _locationName = group.locationName;
+    _latitude = group.latitude;
+    _longitude = group.longitude;
+    _placeId = group.placeId;
   }
 
   @override
@@ -77,6 +94,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     _nameController.dispose();
     _branchController.dispose();
     _cityController.dispose();
+    _locationController.dispose();
     _teacherNameController.dispose();
     _lineageController.dispose();
     _descriptionController.dispose();
@@ -141,6 +159,11 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
               : '${_nameController.text.trim()} ${_branchController.text.trim()}',
           description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
           city: _cityController.text.trim().toUpperCase(),
+          locationAddress: _locationAddress ?? (_locationController.text.trim().isEmpty ? null : _locationController.text.trim()),
+          locationName: _locationName,
+          latitude: _latitude,
+          longitude: _longitude,
+          placeId: _placeId,
           teacherTitle: _selectedTeacherTitle,
           teacherFullName: _teacherNameController.text.trim(),
           capoeiraStyle: _selectedStyle,
@@ -167,6 +190,11 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           name: _nameController.text.trim(),
           branch: _branchController.text.trim().isEmpty ? null : _branchController.text.trim(),
           city: _cityController.text.trim().toUpperCase(),
+          locationAddress: _locationAddress ?? (_locationController.text.trim().isEmpty ? null : _locationController.text.trim()),
+          locationName: _locationName,
+          latitude: _latitude,
+          longitude: _longitude,
+          placeId: _placeId,
           teacherTitle: _selectedTeacherTitle,
           teacherFullName: _teacherNameController.text.trim(),
           capoeiraStyle: _selectedStyle,
@@ -377,6 +405,10 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   ),
                   const SizedBox(height: 16),
 
+                  // Physical Location (Google Places)
+                  _buildLocationPicker(),
+                  const SizedBox(height: 16),
+
                   // Teacher Title
                   CupertinoButton(
                     padding: EdgeInsets.zero,
@@ -511,6 +543,30 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
       maxLines: maxLines,
       textCapitalization: textCapitalization,
       inputFormatters: inputFormatters,
+    );
+  }
+
+  Widget _buildLocationPicker() {
+    return GooglePlacesAddressField(
+      controller: _locationController,
+      hint: 'Physical Location (optional)',
+      onLocationSelected: (address, lat, lng) {
+        setState(() {
+          _locationAddress = address;
+          _locationName = address; // Use the address as the name for now
+          _latitude = lat;
+          _longitude = lng;
+          
+          // Auto-fill city if empty
+          if (_cityController.text.isEmpty && address.isNotEmpty) {
+            // Extract city from address
+            final parts = address.split(',');
+            if (parts.length >= 2) {
+              _cityController.text = parts[parts.length - 2].trim().toUpperCase();
+            }
+          }
+        });
+      },
     );
   }
 

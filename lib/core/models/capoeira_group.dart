@@ -26,6 +26,11 @@ class CapoeiraGroup {
   final String displayName; // Full display (e.g., "ABADA SF")
   final String? description;
   final String city; // City where group is located
+  final String? locationAddress; // Full address from Google Places
+  final String? locationName; // Location name from Google Places
+  final double? latitude; // Latitude for map display
+  final double? longitude; // Longitude for map display
+  final String? placeId; // Google Places ID
   final String teacherTitle; // Teacher title (e.g., "Mestre", "Professor", "Instrutor")
   final String teacherFullName; // Teacher's full name
   final CapoeiraStyle capoeiraStyle; // Angola, Regional, Contemporânea, Other
@@ -48,6 +53,11 @@ class CapoeiraGroup {
     required this.displayName,
     this.description,
     required this.city,
+    this.locationAddress,
+    this.locationName,
+    this.latitude,
+    this.longitude,
+    this.placeId,
     required this.teacherTitle,
     required this.teacherFullName,
     required this.capoeiraStyle,
@@ -78,6 +88,11 @@ class CapoeiraGroup {
       displayName: map['display_name'] ?? CapoeiraGroup.createDisplayName(map['name'], map['branch']),
       description: map['description'],
       city: map['city'] ?? map['location'] ?? 'Unknown City',  // Fallback to location field
+      locationAddress: map['location_address'],
+      locationName: map['location_name'],
+      latitude: map['latitude']?.toDouble(),
+      longitude: map['longitude']?.toDouble(),
+      placeId: map['place_id'],
       teacherTitle: map['teacher_title'] ?? 'Professor',
       teacherFullName: map['teacher_full_name'] ?? 'Unknown Teacher',
       capoeiraStyle: map['capoeira_style'] != null 
@@ -110,6 +125,11 @@ class CapoeiraGroup {
       'display_name': displayName,
       'description': description,
       'city': city,
+      'location_address': locationAddress,
+      'location_name': locationName,
+      'latitude': latitude,
+      'longitude': longitude,
+      'place_id': placeId,
       'teacher_title': teacherTitle,
       'teacher_full_name': teacherFullName,
       'capoeira_style': capoeiraStyle.name,
