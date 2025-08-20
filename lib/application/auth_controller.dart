@@ -13,8 +13,17 @@ final authStateProvider = StreamProvider<User?>((ref) {
     return Stream.value(null);
   }
   
-  final authRepository = ref.watch(authRepositoryProvider);
-  return authRepository.authStateChanges;
+  try {
+    final authRepository = ref.watch(authRepositoryProvider);
+    return authRepository.authStateChanges.handleError((error, stack) {
+      Logger.debug('Auth stream error: $error');
+      Logger.debug('Stack trace: $stack');
+      // Don't throw error, continue with current state
+    });
+  } catch (e) {
+    Logger.debug('Failed to setup auth stream: $e');
+    return Stream.value(null);
+  }
 });
 
 final currentUserProvider = StreamProvider<UserModel?>((ref) {
@@ -26,10 +35,22 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
       if (user == null) {
         return Stream.value(null);
       }
-      return userRepository.getUserStream(user.id);
+      try {
+        return userRepository.getUserStream(user.id).handleError((error, stack) {
+          Logger.debug('User stream error: $error');
+          Logger.debug('Stack trace: $stack');
+          // Don't throw error, continue with current state
+        });
+      } catch (e) {
+        Logger.debug('Failed to get user stream: $e');
+        return Stream.value(null);
+      }
     },
     loading: () => Stream.value(null),
-    error: (_, __) => Stream.value(null),
+    error: (error, stack) {
+      Logger.debug('Auth state error: $error');
+      return Stream.value(null);
+    },
   );
 });
 

@@ -99,27 +99,33 @@ class UserRepository extends BaseRepository {
   }
   
   Stream<UserModel?> getUserStream(String userId) {
-    return executeStream(
-      () {
-        Logger.debug('Setting up user stream for ID: $userId');
-        
-        return _client
-            .from('users')
-            .stream(primaryKey: ['id'])
-            .eq('id', userId)
-            .map((data) {
-              if (data.isEmpty) {
-                Logger.debug('No user data in stream for ID: $userId');
-                return null;
-              }
-              
-              final userData = data.first;
-              Logger.debug('User stream data received');
-              return UserModel.fromJson(userData);
-            });
-      },
-      operationName: 'User Stream',
-    );
+    Logger.debug('Setting up user stream for ID: $userId');
+    
+    try {
+      return _client
+          .from('users')
+          .stream(primaryKey: ['id'])
+          .eq('id', userId)
+          .map((data) {
+            if (data.isEmpty) {
+              Logger.debug('No user data in stream for ID: $userId');
+              return null;
+            }
+            
+            final userData = data.first;
+            Logger.debug('User stream data received');
+            return UserModel.fromJson(userData);
+          })
+          .handleError((error, stack) {
+            Logger.debug('User stream error: $error');
+            Logger.debug('Stack trace: $stack');
+            // Don't throw error, let stream continue with last known state
+          });
+    } catch (e) {
+      Logger.debug('Failed to setup realtime stream, falling back to single fetch: $e');
+      // Fallback to a simple stream that emits the current user data
+      return Stream.fromFuture(getUser(userId));
+    }
   }
   
   Future<List<UserModel>> getUsersByGroup(String groupId) async {

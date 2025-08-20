@@ -146,15 +146,6 @@ class MainPage extends ConsumerWidget {
           label: 'Class Map',
           onPressed: () => context.push(Routes.map),
         ),
-        if (isTeacher) ...[
-          const SizedBox(height: 16),
-          _buildMainButton(
-            context: context,
-            icon: CupertinoIcons.square_grid_2x2,
-            label: 'Teacher Dashboard',
-            onPressed: () => context.push(Routes.teacherDashboard),
-          ),
-        ],
         const SizedBox(height: 32),
         CupertinoButton(
           onPressed: () async {

@@ -5,7 +5,6 @@ import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/data/core/supabase_client.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 import 'package:roda/features/groups/providers/schedule_providers.dart';
-import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/theme/roda_colors.dart';
@@ -542,9 +541,18 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   }
   
   void _showScheduleClassModal(BuildContext context) {
-    Navigator.of(context).push(
-      CupertinoPageRoute(
-        builder: (context) => const ScheduleTemplatesPage(),
+    // TODO: Implement schedule class functionality
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Coming Soon'),
+        content: const Text('Schedule class functionality not yet implemented'),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('OK'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
       ),
     );
   }

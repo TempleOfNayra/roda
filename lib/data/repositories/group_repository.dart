@@ -262,29 +262,35 @@ class GroupRepository extends BaseRepository {
   }
   
   Stream<List<CapoeiraGroup>> getUserGroupsStream(String userId) {
-    return executeStream(
-      () {
-        Logger.debug('Setting up group stream for user: $userId');
-        
-        return _client
-            .from('groups')
-            .stream(primaryKey: ['id'])
-            .order('created_at')
-            .map((data) {
-              // Filter in memory since stream doesn't support 'or' operator
-              final filteredData = data.where((item) {
-                final createdBy = item['created_by'] == userId;
-                final teacherIds = (item['teacher_ids'] as List?)?.contains(userId) ?? false;
-                final memberIds = (item['member_ids'] as List?)?.contains(userId) ?? false;
-                return createdBy || teacherIds || memberIds;
-              }).toList();
-              
-              return filteredData.map<CapoeiraGroup>((item) {
-                return CapoeiraGroup.fromJson(item);
-              }).toList();
-            });
-      },
-      operationName: 'User Groups Stream',
-    );
+    Logger.debug('Setting up group stream for user: $userId');
+    
+    try {
+      return _client
+          .from('groups')
+          .stream(primaryKey: ['id'])
+          .order('created_at')
+          .map((data) {
+            // Filter in memory since stream doesn't support 'or' operator
+            final filteredData = data.where((item) {
+              final createdBy = item['created_by'] == userId;
+              final teacherIds = (item['teacher_ids'] as List?)?.contains(userId) ?? false;
+              final memberIds = (item['member_ids'] as List?)?.contains(userId) ?? false;
+              return createdBy || teacherIds || memberIds;
+            }).toList();
+            
+            return filteredData.map<CapoeiraGroup>((item) {
+              return CapoeiraGroup.fromJson(item);
+            }).toList();
+          })
+          .handleError((error, stack) {
+            Logger.debug('Groups stream error: $error');
+            Logger.debug('Stack trace: $stack');
+            // Don't throw error, let stream continue with last known state
+          });
+    } catch (e) {
+      Logger.debug('Failed to setup groups stream, falling back to single fetch: $e');
+      // Fallback to a simple stream that emits the current groups data
+      return Stream.fromFuture(getUserGroups(userId));
+    }
   }
 }

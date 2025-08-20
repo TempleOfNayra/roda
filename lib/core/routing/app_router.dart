@@ -5,7 +5,6 @@ import 'package:roda/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:roda/features/auth/presentation/pages/profile_page.dart';
 import 'package:roda/features/auth/presentation/pages/edit_profile_page.dart';
 import 'package:roda/features/main/presentation/pages/main_page.dart';
-import 'package:roda/features/teacher/presentation/pages/teacher_dashboard_page.dart';
 import 'package:roda/features/classes/presentation/pages/clean_map_page.dart';
 import 'package:roda/features/settings/presentation/pages/settings_page.dart';
 import 'package:roda/features/groups/presentation/pages/group_page.dart';
@@ -47,11 +46,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: Routes.editProfile,
         name: Routes.editProfile,
         builder: (context, state) => const EditProfilePage(),
-      ),
-      GoRoute(
-        path: Routes.teacherDashboard,
-        name: Routes.teacherDashboard,
-        builder: (context, state) => const TeacherDashboardPage(),
       ),
       GoRoute(
         path: Routes.map,

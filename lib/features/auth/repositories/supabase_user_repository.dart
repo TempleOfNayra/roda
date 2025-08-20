@@ -105,36 +105,43 @@ class SupabaseUserRepository {
   // Stream user data
   Stream<UserModel?> getUserStream(String userId) {
     Logger.debug('Setting up user stream for ID: $userId');
-    return _client
-        .from('users')
-        .stream(primaryKey: ['id'])
-        .eq('id', userId)
-        .handleError((error) {
-          Logger.debug('User stream error handled: $error');
-          // Return null on error to prevent app crash
-          return null;
-        })
-        .map((data) {
-          Logger.debug('User stream data received');
-          if (data.isEmpty) {
-            Logger.debug('No user data in stream for ID: $userId');
-            return null;
-          }
-          final user = data.first;
-          return UserModel(
-            id: user['id'],
-            email: user['email'],
-            fullName: user['full_name'],
-            capoeiraName: user['capoeira_name'],
-            dateOfBirth: DateTime.parse(user['date_of_birth']),
-            role: UserRole.values.firstWhere(
-              (e) => e.name == user['role'],
-            ),
-            profilePictureUrl: user['profile_picture_url'],
-            createdAt: DateTime.parse(user['created_at']),
-            updatedAt: DateTime.parse(user['updated_at']),
-          );
-        });
+    
+    try {
+      return _client
+          .from('users')
+          .stream(primaryKey: ['id'])
+          .eq('id', userId)
+          .handleError((error, stack) {
+            Logger.debug('User stream error: $error');
+            Logger.debug('Stack trace: $stack');
+            // Don't throw error, continue with current state
+          })
+          .map((data) {
+            Logger.debug('User stream data received');
+            if (data.isEmpty) {
+              Logger.debug('No user data in stream for ID: $userId');
+              return null;
+            }
+            final user = data.first;
+            return UserModel(
+              id: user['id'],
+              email: user['email'],
+              fullName: user['full_name'],
+              capoeiraName: user['capoeira_name'],
+              dateOfBirth: DateTime.parse(user['date_of_birth']),
+              role: UserRole.values.firstWhere(
+                (e) => e.name == user['role'],
+              ),
+              profilePictureUrl: user['profile_picture_url'],
+              createdAt: DateTime.parse(user['created_at']),
+              updatedAt: DateTime.parse(user['updated_at']),
+            );
+          });
+    } catch (e) {
+      Logger.debug('Failed to setup user stream, falling back to single fetch: $e');
+      // Fallback to a simple stream that emits the current user data
+      return Stream.fromFuture(getUser(userId));
+    }
   }
   
   // Get users by group

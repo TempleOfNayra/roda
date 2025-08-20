@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/core/routing/routes.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
-import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:roda/application/group_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
@@ -38,13 +37,6 @@ class ProfilePage extends ConsumerWidget {
                 final isTeacher = user?.role == UserRole.teacher || 
                                  (user?.teachingGroupIds.isNotEmpty ?? false);
                 
-                if (isTeacher) {
-                  return CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: () => context.push(Routes.teacherDashboard),
-                    child: const Icon(CupertinoIcons.square_grid_2x2),
-                  );
-                }
                 return const SizedBox.shrink();
               },
             ),
@@ -62,7 +54,8 @@ class ProfilePage extends ConsumerWidget {
             return const Center(child: Text('No user data'));
           }
           
-          final registeredClasses = ref.watch(userRegisteredClassesProvider(user.id));
+          // TODO: Re-implement registered classes provider
+          const registeredClasses = AsyncValue<List<dynamic>>.data([]);
           
           return SingleChildScrollView(
             child: Column(
@@ -605,27 +598,7 @@ class ProfilePage extends ConsumerWidget {
                 ),
               ),
             ),
-            // Teacher Dashboard (if teacher) or Settings
-            if (isTeacher)
-              InkWell(
-                onTap: () => context.push(Routes.teacherDashboard),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(CupertinoIcons.book, size: 20),
-                      SizedBox(height: 2),
-                      Text(
-                        'Teach',
-                        style: TextStyle(fontSize: 10),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
+            // Settings
               InkWell(
                 onTap: () => context.push(Routes.editProfile),
                 child: const Padding(
