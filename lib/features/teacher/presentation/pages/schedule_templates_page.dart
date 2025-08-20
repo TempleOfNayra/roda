@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/teacher/presentation/widgets/google_places_address_field.dart';
+import 'package:roda/features/teacher/presentation/widgets/teacher_search_field.dart';
 import 'package:roda/data/core/supabase_client.dart';
 import 'package:roda/core/utils/logger.dart';
 import 'package:roda/features/groups/providers/schedule_providers.dart';
@@ -27,6 +28,8 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
   final _locationController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _teacherController = TextEditingController();
+  String _selectedTeacherId = '';
   int _selectedDay = 1; // Monday (1-6 for Mon-Sat, 0 for Sunday)
   DateTime _startTime = DateTime(2024, 1, 1, 18, 0);
   DateTime _endTime = DateTime(2024, 1, 1, 19, 30);
@@ -39,9 +42,20 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
     super.initState();
     if (widget.scheduleToEdit != null) {
       _loadScheduleData();
-    } else if (widget.groupLocationAddress != null && widget.groupLocationAddress!.isNotEmpty) {
-      // Prefill location with group's address for new schedules
-      _locationController.text = widget.groupLocationAddress!;
+    } else {
+      // For new schedules
+      if (widget.groupLocationAddress != null && widget.groupLocationAddress!.isNotEmpty) {
+        // Prefill location with group's address
+        _locationController.text = widget.groupLocationAddress!;
+      }
+      // Default teacher to current user
+      final currentUser = ref.read(currentUserProvider).value;
+      if (currentUser != null) {
+        _selectedTeacherId = currentUser.id;
+        _teacherController.text = currentUser.capoeiraName.isNotEmpty 
+            ? currentUser.capoeiraName 
+            : currentUser.fullName;
+      }
     }
   }
   
@@ -50,6 +64,10 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
     _selectedDay = schedule['day_of_week'] ?? 1;
     _locationController.text = schedule['location_name'] ?? '';
     _descriptionController.text = schedule['description'] ?? '';
+    
+    // Load teacher info
+    _selectedTeacherId = schedule['teacher_id'] ?? '';
+    _teacherController.text = schedule['name'] ?? '';
     
     if (schedule['price'] != null) {
       _priceController.text = schedule['price'].toString();
@@ -77,6 +95,7 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
     _locationController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
+    _teacherController.dispose();
     super.dispose();
   }
 
@@ -214,6 +233,20 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
                       ),
                     ),
                   ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Teacher Selection Field
+                TeacherSearchField(
+                  controller: _teacherController,
+                  initialTeacherId: _selectedTeacherId,
+                  initialTeacherName: _teacherController.text,
+                  onTeacherSelected: (teacherId, teacherName) {
+                    setState(() {
+                      _selectedTeacherId = teacherId;
+                    });
+                  },
                 ),
                 
                 const SizedBox(height: 16),
@@ -427,8 +460,8 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
       
       // Prepare schedule data
       final scheduleData = {
-        'teacher_id': user.id,
-        'name': user.capoeiraName.isNotEmpty ? user.capoeiraName : user.fullName,
+        'teacher_id': _selectedTeacherId.isNotEmpty ? _selectedTeacherId : user.id,
+        'name': _teacherController.text.isNotEmpty ? _teacherController.text : (user.capoeiraName.isNotEmpty ? user.capoeiraName : user.fullName),
         'group_id': widget.groupId,  // Use the group ID from the group page
         'event_type': 'class', // For now just classes, not rodas
         'recurrence_type': 'weekly',
