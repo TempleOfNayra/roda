@@ -332,9 +332,6 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     final groupsAsync = ref.watch(mapLocationGroupsProvider);
     
     return CupertinoPageScaffold(
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Map'),
-      ),
       child: groupsAsync.when(
         loading: () => const Center(child: CupertinoActivityIndicator()),
         error: (error, stack) => Center(
@@ -427,7 +424,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
               
               // Back button - top left
               Positioned(
-                top: MediaQuery.of(context).padding.top + 8,
+                top: MediaQuery.of(context).padding.top + 16,
                 left: 16,
                 child: Container(
                   decoration: const BoxDecoration(
@@ -444,7 +441,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
               
               // My location button - top right
               Positioned(
-                top: MediaQuery.of(context).padding.top + 8,
+                top: MediaQuery.of(context).padding.top + 16,
                 right: 16,
                 child: Container(
                   decoration: const BoxDecoration(
@@ -461,7 +458,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
               
               // Manual refresh button - below location button
               Positioned(
-                top: MediaQuery.of(context).padding.top + 60,
+                top: MediaQuery.of(context).padding.top + 68,
                 right: 16,
                 child: Container(
                   decoration: const BoxDecoration(
@@ -482,7 +479,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
               
               // Legend - moved below back button
               Positioned(
-                top: MediaQuery.of(context).padding.top + 110,
+                top: MediaQuery.of(context).padding.top + 68,
                 left: 16,
                 child: Container(
                   decoration: BoxDecoration(
