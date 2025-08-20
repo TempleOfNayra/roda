@@ -6,6 +6,8 @@ import 'package:roda/data/core/supabase_client.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 import 'package:roda/features/groups/providers/schedule_providers.dart';
 import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
+import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
+import 'package:roda/features/auth/providers/auth_provider.dart';
 
 class GroupPage extends ConsumerStatefulWidget {
   final String groupId;
@@ -25,7 +27,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   @override
   Widget build(BuildContext context) {
     final groupAsync = ref.watch(groupByIdProvider(widget.groupId));
-    // final currentUser = ref.watch(currentUserProvider).value; // Unused
+    final currentUser = ref.watch(currentUserProvider).value;
     
     return CupertinoPageScaffold(
       child: DefaultTextStyle(
@@ -49,13 +51,26 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   onPressed: () => context.pop(),
                   child: const Icon(CupertinoIcons.back),
                 ),
-                trailing: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    // Show options menu
-                  },
-                  child: const Icon(CupertinoIcons.ellipsis),
-                ),
+                trailing: currentUser != null && group.createdBy == currentUser.id
+                    ? CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          showCupertinoModalPopup(
+                            context: context,
+                            builder: (context) => CreateEditGroupModal(
+                              groupId: group.id,
+                              existingGroup: group,
+                            ),
+                          ).then((result) {
+                            if (result == true) {
+                              // Group was updated successfully, refresh
+                              ref.invalidate(groupByIdProvider(widget.groupId));
+                            }
+                          });
+                        },
+                        child: const Icon(CupertinoIcons.pencil),
+                      )
+                    : null,
               ),
               
               // Content
@@ -326,7 +341,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               );
             },
             loading: () => const CupertinoActivityIndicator(),
-            error: (error, _) => Text(
+            error: (error, _) => const Text(
               'Failed to load schedules',
               style: TextStyle(
                 fontSize: 14,

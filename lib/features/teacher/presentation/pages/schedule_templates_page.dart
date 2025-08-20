@@ -19,8 +19,8 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
   DateTime _startTime = DateTime(2024, 1, 1, 18, 0);
   DateTime _endTime = DateTime(2024, 1, 1, 19, 30);
   bool _isLoading = false;
-  double? _latitude;
-  double? _longitude;
+  // double? _latitude;  // TODO: Use for location-based features
+  // double? _longitude; // TODO: Use for location-based features
 
   @override
   void dispose() {
@@ -172,8 +172,9 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
                   controller: _locationController,
                   hint: 'Search for a place',
                   onLocationSelected: (address, lat, lng) {
-                    _latitude = lat;
-                    _longitude = lng;
+                    // TODO: Store lat/lng for location-based features
+                    // _latitude = lat;
+                    // _longitude = lng;
                   },
                 ),
                 
@@ -424,8 +425,8 @@ class _ScheduleTemplatesPageState extends ConsumerState<ScheduleTemplatesPage> {
         _selectedDay = 1;
         _startTime = DateTime(2024, 1, 1, 18, 0);
         _endTime = DateTime(2024, 1, 1, 19, 30);
-        _latitude = null;
-        _longitude = null;
+        // _latitude = null;
+        // _longitude = null;
       });
       
       if (mounted) {

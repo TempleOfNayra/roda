@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roda/core/models/user_model.dart';
@@ -8,6 +9,7 @@ import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:roda/application/group_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -147,7 +149,17 @@ class ProfilePage extends ConsumerWidget {
                     ),
                     if (user.role == UserRole.teacher)
                       ElevatedButton.icon(
-                        onPressed: () => context.push(Routes.createGroup),
+                        onPressed: () {
+                          showCupertinoModalPopup(
+                            context: context,
+                            builder: (context) => CreateEditGroupModal(),
+                          ).then((result) {
+                            if (result == true) {
+                              // Group was created successfully, refresh the list
+                              ref.invalidate(userGroupsProvider);
+                            }
+                          });
+                        },
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Create Group'),
                         style: ElevatedButton.styleFrom(
