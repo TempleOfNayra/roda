@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show WidgetsFlutterBinding, MediaQuery, TextScaler;
+import 'package:flutter/foundation.dart' show WidgetsFlutterBinding;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/routing/app_router.dart';
-import 'package:roda/core/theme/ios_theme.dart';
+import 'package:roda/core/theme/roda_theme.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:app_links/app_links.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -60,17 +60,11 @@ class RodaApp extends ConsumerWidget {
     
     return CupertinoApp.router(
       title: 'RODA',
-      theme: IOSTheme.lightTheme,
+      theme: RodaTheme.theme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
-        return MediaQuery(
-          // Prevent text from scaling too much
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2)),
-          ),
-          child: child!,
-        );
+        return child!;
       },
     );
   }

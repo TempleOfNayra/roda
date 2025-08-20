@@ -8,6 +8,8 @@ import 'package:roda/features/groups/providers/schedule_providers.dart';
 import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
+import 'package:roda/core/theme/roda_colors.dart';
+import 'package:roda/core/theme/roda_theme.dart';
 
 class GroupPage extends ConsumerStatefulWidget {
   final String groupId;
@@ -30,8 +32,9 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     final currentUser = ref.watch(currentUserProvider).value;
     
     return CupertinoPageScaffold(
+      backgroundColor: RodaColors.background,
       child: DefaultTextStyle(
-        style: CupertinoTheme.of(context).textTheme.textStyle,
+        style: const TextStyle(color: RodaColors.textPrimary),
         child: groupAsync.when(
           data: (group) {
             if (group == null) {
@@ -44,8 +47,8 @@ class _GroupPageState extends ConsumerState<GroupPage> {
             slivers: [
               // Header with back button
               CupertinoSliverNavigationBar(
-                largeTitle: Text(group.name),
-                backgroundColor: CupertinoColors.systemBackground.withOpacity(0.8),
+                largeTitle: Text(group.name, style: const TextStyle(color: RodaColors.neutral)),
+                backgroundColor: RodaColors.surface.withOpacity(0.95),
                 leading: CupertinoButton(
                   padding: EdgeInsets.zero,
                   onPressed: () => context.pop(),
@@ -123,7 +126,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
       height: 200,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: CupertinoColors.systemGrey5,
+        color: RodaColors.surfaceAlt,
         image: group.headerImageUrl != null
             ? DecorationImage(
                 image: NetworkImage(group.headerImageUrl!),
@@ -136,7 +139,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               child: Icon(
                 CupertinoIcons.photo,
                 size: 50,
-                color: CupertinoColors.systemGrey,
+                color: RodaColors.textHint,
               ),
             )
           : null,
@@ -162,7 +165,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               group.lineage!.toUpperCase(),
               style: const TextStyle(
                 fontSize: 16,
-                color: CupertinoColors.systemGrey,
+                color: RodaColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -171,7 +174,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
             group.city.toUpperCase(),
             style: const TextStyle(
               fontSize: 14,
-              color: CupertinoColors.systemGrey,
+              color: RodaColors.textSecondary,
             ),
           ),
         ],
@@ -189,7 +192,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
             height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: CupertinoColors.systemGrey5,
+              color: RodaColors.surfaceAlt,
               image: group.teacherProfilePicture != null
                   ? DecorationImage(
                       image: NetworkImage(group.teacherProfilePicture!),
@@ -200,7 +203,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
             child: group.teacherProfilePicture == null
                 ? const Icon(
                     CupertinoIcons.person,
-                    color: CupertinoColors.systemGrey,
+                    color: RodaColors.textHint,
                   )
                 : null,
           ),
@@ -260,7 +263,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: CupertinoColors.activeBlue,
+                    color: RodaColors.primary,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
@@ -289,7 +292,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   'No scheduled classes yet',
                   style: TextStyle(
                     fontSize: 14,
-                    color: CupertinoColors.systemGrey,
+                    color: RodaColors.textHint,
                   ),
                 );
               }
@@ -310,7 +313,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                         child: const Icon(
                           CupertinoIcons.pencil,
                           size: 16,
-                          color: CupertinoColors.systemGrey,
+                          color: RodaColors.textHint,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -327,7 +330,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                                 '\$${price.toStringAsFixed(price is int ? 0 : 2)}',
                                 style: const TextStyle(
                                   fontSize: 14,
-                                  color: CupertinoColors.systemGreen,
+                                  color: RodaColors.success,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -372,7 +375,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: CupertinoColors.systemOrange,
+                    color: RodaColors.secondary,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
@@ -395,7 +398,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                 '10/10/2024',
                 style: TextStyle(
                   fontSize: 14,
-                  color: CupertinoColors.systemGrey,
+                  color: RodaColors.textSecondary,
                 ),
               ),
             ],
@@ -431,11 +434,11 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   height: 40,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: CupertinoColors.systemGrey5,
+                    color: RodaColors.surfaceAlt,
                   ),
                   child: const Icon(
                     CupertinoIcons.person,
-                    color: CupertinoColors.systemGrey,
+                    color: RodaColors.textHint,
                     size: 20,
                   ),
                 );
@@ -501,11 +504,8 @@ class _GroupPageState extends ConsumerState<GroupPage> {
       children: group.announcements.map((announcement) {
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: CupertinoColors.systemGrey6,
-            borderRadius: BorderRadius.circular(8),
-          ),
+          padding: const EdgeInsets.all(16),
+          decoration: RodaTheme.cardDecoration,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -568,7 +568,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                 height: 4,
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: CupertinoColors.systemGrey4,
+                  color: RodaColors.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

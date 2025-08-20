@@ -8,6 +8,8 @@ import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart
 import 'package:roda/application/group_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
+import 'package:roda/core/theme/roda_colors.dart';
+import 'package:roda/core/theme/roda_theme.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -17,8 +19,9 @@ class ProfilePage extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider);
     
     return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.systemGroupedBackground,
+      backgroundColor: RodaColors.background,
       navigationBar: CupertinoNavigationBar(
+        backgroundColor: RodaColors.surface,
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
           onPressed: () => context.go(Routes.main),
@@ -66,7 +69,7 @@ class ProfilePage extends ConsumerWidget {
               children: [
                 // Condensed profile info at top
                 Container(
-                color: CupertinoColors.systemBackground,
+                color: RodaColors.surface,
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
@@ -75,7 +78,7 @@ class ProfilePage extends ConsumerWidget {
                       height: 80,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: CupertinoColors.activeBlue.withValues(alpha: 0.2),
+                        color: RodaColors.primary.withOpacity(0.1),
                         image: user.profilePictureUrl != null 
                             ? DecorationImage(
                                 image: NetworkImage(user.profilePictureUrl!),
@@ -92,7 +95,7 @@ class ProfilePage extends ConsumerWidget {
                                 style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  color: CupertinoColors.activeBlue,
+                                  color: RodaColors.primary,
                                 ),
                               ),
                             )
@@ -116,7 +119,7 @@ class ProfilePage extends ConsumerWidget {
                             user.fullName,
                             style: TextStyle(
                               fontSize: 14,
-                              color: CupertinoColors.secondaryLabel,
+                              color: RodaColors.textSecondary,
                             ),
                           ),
                           if (user.groupName != null) ...[
@@ -129,7 +132,7 @@ class ProfilePage extends ConsumerWidget {
                                   user.groupName!,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: CupertinoColors.secondaryLabel,
+                                    color: RodaColors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -159,7 +162,7 @@ class ProfilePage extends ConsumerWidget {
                     if (user.role == UserRole.teacher)
                       CupertinoButton(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        color: CupertinoColors.activeBlue,
+                        color: RodaColors.primary,
                         borderRadius: BorderRadius.circular(20),
                         onPressed: () {
                           showCupertinoModalPopup(
@@ -196,17 +199,14 @@ class ProfilePage extends ConsumerWidget {
                         return Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.systemGrey6,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          decoration: RodaTheme.cardDecoration,
                           child: Center(
                             child: Column(
                               children: [
                                 Icon(
                                   CupertinoIcons.group,
                                   size: 48,
-                                  color: CupertinoColors.systemGrey,
+                                  color: RodaColors.textHint,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -214,7 +214,7 @@ class ProfilePage extends ConsumerWidget {
                                       ? 'No groups yet. Create your first group!' 
                                       : 'You haven\'t joined any groups yet',
                                   style: TextStyle(
-                                    color: CupertinoColors.secondaryLabel,
+                                    color: RodaColors.textSecondary,
                                     fontSize: 14,
                                   ),
                                   textAlign: TextAlign.center,
@@ -237,17 +237,7 @@ class ProfilePage extends ConsumerWidget {
                               onPressed: () => context.push('${Routes.group}/${group.id}'),
                               child: Container(
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: CupertinoColors.systemBackground,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: CupertinoColors.systemGrey.withValues(alpha: 0.2),
-                                      offset: const Offset(0, 1),
-                                      blurRadius: 3,
-                                    ),
-                                  ],
-                                ),
+                                decoration: RodaTheme.cardDecoration,
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Row(
@@ -264,7 +254,7 @@ class ProfilePage extends ConsumerWidget {
                                                   fit: BoxFit.cover,
                                                 )
                                               : null,
-                                          color: CupertinoColors.systemGrey5,
+                                          color: RodaColors.surfaceAlt,
                                         ),
                                         child: group.headerImageUrl == null
                                             ? Text(
@@ -274,7 +264,7 @@ class ProfilePage extends ConsumerWidget {
                                                 style: TextStyle(
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
-                                                  color: CupertinoColors.activeBlue,
+                                                  color: RodaColors.primary,
                                                 ),
                                               )
                                             : null,
@@ -301,7 +291,7 @@ class ProfilePage extends ConsumerWidget {
                                                     margin: const EdgeInsets.only(left: 8),
                                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                     decoration: BoxDecoration(
-                                                      color: CupertinoColors.systemPurple,
+                                                      color: RodaColors.secondary,
                                                       borderRadius: BorderRadius.circular(12),
                                                     ),
                                                     child: const Text(
@@ -318,7 +308,7 @@ class ProfilePage extends ConsumerWidget {
                                                     margin: const EdgeInsets.only(left: 8),
                                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                     decoration: BoxDecoration(
-                                                      color: CupertinoColors.systemOrange,
+                                                      color: RodaColors.secondaryDark,
                                                       borderRadius: BorderRadius.circular(12),
                                                     ),
                                                     child: const Text(
@@ -338,28 +328,28 @@ class ProfilePage extends ConsumerWidget {
                                                 Icon(
                                                   CupertinoIcons.location_solid,
                                                   size: 14,
-                                                  color: CupertinoColors.secondaryLabel,
+                                                  color: RodaColors.textSecondary,
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   group.city,
                                                   style: TextStyle(
                                                     fontSize: 14,
-                                                    color: CupertinoColors.secondaryLabel,
+                                                    color: RodaColors.textSecondary,
                                                   ),
                                                 ),
                                                 const SizedBox(width: 12),
                                                 Icon(
                                                   CupertinoIcons.person_2,
                                                   size: 14,
-                                                  color: CupertinoColors.secondaryLabel,
+                                                  color: RodaColors.textSecondary,
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   '${group.memberIds.length} members',
                                                   style: TextStyle(
                                                     fontSize: 14,
-                                                    color: CupertinoColors.secondaryLabel,
+                                                    color: RodaColors.textSecondary,
                                                   ),
                                                 ),
                                               ],
@@ -371,7 +361,7 @@ class ProfilePage extends ConsumerWidget {
                                       Icon(
                                         CupertinoIcons.chevron_forward,
                                         size: 16,
-                                        color: CupertinoColors.systemGrey,
+                                        color: RodaColors.textHint,
                                       ),
                                     ],
                                   ),
@@ -429,7 +419,7 @@ class ProfilePage extends ConsumerWidget {
                             'No registered classes',
                             style: TextStyle(
                               fontSize: 16,
-                              color: CupertinoColors.secondaryLabel,
+                              color: RodaColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -442,7 +432,7 @@ class ProfilePage extends ConsumerWidget {
                           ),
                           const SizedBox(height: 24),
                           CupertinoButton(
-                            color: CupertinoColors.activeBlue,
+                            color: RodaColors.primary,
                             borderRadius: BorderRadius.circular(20),
                             onPressed: () => context.push(Routes.map),
                             child: const Row(
@@ -466,14 +456,7 @@ class ProfilePage extends ConsumerWidget {
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         child: Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.systemBackground,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: CupertinoColors.systemGrey4,
-                              width: 0.5,
-                            ),
-                          ),
+                          decoration: RodaTheme.cardDecoration,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -485,7 +468,7 @@ class ProfilePage extends ConsumerWidget {
                               const Text(
                                 'Class details',
                                 style: TextStyle(
-                                  color: CupertinoColors.secondaryLabel,
+                                  color: RodaColors.textSecondary,
                                   fontSize: 14,
                                 ),
                               ),
