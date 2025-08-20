@@ -1,10 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/core/routing/routes.dart';
-import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:roda/application/group_controller.dart';
@@ -18,42 +16,44 @@ class ProfilePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
     
-    return SafeScaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+    return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.systemGroupedBackground,
+      navigationBar: CupertinoNavigationBar(
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
           onPressed: () => context.go(Routes.main),
+          child: const Icon(CupertinoIcons.back),
         ),
-        title: const Text('My Profile'),
-        centerTitle: true,
-        actions: [
-          // Show teacher dashboard button if user is a teacher or has teaching groups
-          Consumer(
-            builder: (context, ref, child) {
-              final user = ref.watch(currentUserProvider).value;
-              final isTeacher = user?.role == UserRole.teacher || 
-                               (user?.teachingGroupIds.isNotEmpty ?? false);
-              
-              if (isTeacher) {
-                return IconButton(
-                  icon: const Icon(Icons.dashboard),
-                  tooltip: 'Teacher Dashboard',
-                  onPressed: () => context.push(Routes.teacherDashboard),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-            onPressed: () => context.push(Routes.settings),
-          ),
-        ],
+        middle: const Text('My Profile'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Show teacher dashboard button if user is a teacher or has teaching groups
+            Consumer(
+              builder: (context, ref, child) {
+                final user = ref.watch(currentUserProvider).value;
+                final isTeacher = user?.role == UserRole.teacher || 
+                                 (user?.teachingGroupIds.isNotEmpty ?? false);
+                
+                if (isTeacher) {
+                  return CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => context.push(Routes.teacherDashboard),
+                    child: const Icon(CupertinoIcons.square_grid_2x2),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => context.push(Routes.settings),
+              child: const Icon(CupertinoIcons.settings),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: _buildBottomAppBar(context, ref),
-      body: currentUser.when(
+      child: currentUser.when(
         data: (user) {
           if (user == null) {
             return const Center(child: Text('No user data'));
@@ -66,25 +66,34 @@ class ProfilePage extends ConsumerWidget {
               children: [
                 // Condensed profile info at top
                 Container(
-                color: Colors.white,
+                color: CupertinoColors.systemBackground,
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-                      backgroundImage: user.profilePictureUrl != null 
-                          ? NetworkImage(user.profilePictureUrl!) 
-                          : null,
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: CupertinoColors.activeBlue.withValues(alpha: 0.2),
+                        image: user.profilePictureUrl != null 
+                            ? DecorationImage(
+                                image: NetworkImage(user.profilePictureUrl!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
                       child: user.profilePictureUrl == null
-                          ? Text(
-                              user.capoeiraName.isNotEmpty 
-                                  ? user.capoeiraName[0].toUpperCase() 
-                                  : 'U',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).primaryColor,
+                          ? Center(
+                              child: Text(
+                                user.capoeiraName.isNotEmpty 
+                                    ? user.capoeiraName[0].toUpperCase() 
+                                    : 'U',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: CupertinoColors.activeBlue,
+                                ),
                               ),
                             )
                           : null,
@@ -107,20 +116,20 @@ class ProfilePage extends ConsumerWidget {
                             user.fullName,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: CupertinoColors.secondaryLabel,
                             ),
                           ),
                           if (user.groupName != null) ...[
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(Icons.group, size: 14, color: Colors.grey[600]),
+                                Icon(CupertinoIcons.group, size: 14, color: CupertinoColors.secondaryLabel),
                                 const SizedBox(width: 4),
                                 Text(
                                   user.groupName!,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    color: Colors.grey[600],
+                                    color: CupertinoColors.secondaryLabel,
                                   ),
                                 ),
                               ],
@@ -148,7 +157,10 @@ class ProfilePage extends ConsumerWidget {
                       ),
                     ),
                     if (user.role == UserRole.teacher)
-                      ElevatedButton.icon(
+                      CupertinoButton(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        color: CupertinoColors.activeBlue,
+                        borderRadius: BorderRadius.circular(20),
                         onPressed: () {
                           showCupertinoModalPopup(
                             context: context,
@@ -160,10 +172,13 @@ class ProfilePage extends ConsumerWidget {
                             }
                           });
                         },
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Create Group'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(CupertinoIcons.add, size: 18),
+                            SizedBox(width: 4),
+                            Text('Create Group'),
+                          ],
                         ),
                       ),
                   ],
@@ -182,16 +197,16 @@ class ProfilePage extends ConsumerWidget {
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: CupertinoColors.systemGrey6,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Center(
                             child: Column(
                               children: [
                                 Icon(
-                                  Icons.group_outlined,
+                                  CupertinoIcons.group,
                                   size: 48,
-                                  color: Colors.grey[400],
+                                  color: CupertinoColors.systemGrey,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -199,7 +214,7 @@ class ProfilePage extends ConsumerWidget {
                                       ? 'No groups yet. Create your first group!' 
                                       : 'You haven\'t joined any groups yet',
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: CupertinoColors.secondaryLabel,
                                     fontSize: 14,
                                   ),
                                   textAlign: TextAlign.center,
@@ -217,22 +232,40 @@ class ProfilePage extends ConsumerWidget {
                           
                           return Container(
                             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            child: Card(
-                              elevation: 1,
-                              child: InkWell(
-                                onTap: () => context.push('${Routes.group}/${group.id}'),
-                                borderRadius: BorderRadius.circular(12),
+                            child: CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () => context.push('${Routes.group}/${group.id}'),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: CupertinoColors.systemBackground,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: CupertinoColors.systemGrey.withValues(alpha: 0.2),
+                                      offset: const Offset(0, 1),
+                                      blurRadius: 3,
+                                    ),
+                                  ],
+                                ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Row(
                                     children: [
                                       // Group Avatar
-                                      CircleAvatar(
-                                        radius: 30,
-                                        backgroundImage: group.headerImageUrl != null
-                                            ? CachedNetworkImageProvider(group.headerImageUrl!)
-                                            : null,
-                                        backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          image: group.headerImageUrl != null
+                                              ? DecorationImage(
+                                                  image: CachedNetworkImageProvider(group.headerImageUrl!),
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : null,
+                                          color: CupertinoColors.systemGrey5,
+                                        ),
                                         child: group.headerImageUrl == null
                                             ? Text(
                                                 group.displayName.isNotEmpty 
@@ -241,7 +274,7 @@ class ProfilePage extends ConsumerWidget {
                                                 style: TextStyle(
                                                   fontSize: 20,
                                                   fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).primaryColor,
+                                                  color: CupertinoColors.activeBlue,
                                                 ),
                                               )
                                             : null,
@@ -268,14 +301,14 @@ class ProfilePage extends ConsumerWidget {
                                                     margin: const EdgeInsets.only(left: 8),
                                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.purple,
+                                                      color: CupertinoColors.systemPurple,
                                                       borderRadius: BorderRadius.circular(12),
                                                     ),
                                                     child: const Text(
                                                       'ADMIN',
                                                       style: TextStyle(
                                                         fontSize: 10,
-                                                        color: Colors.white,
+                                                        color: CupertinoColors.white,
                                                         fontWeight: FontWeight.bold,
                                                       ),
                                                     ),
@@ -285,14 +318,14 @@ class ProfilePage extends ConsumerWidget {
                                                     margin: const EdgeInsets.only(left: 8),
                                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.orange,
+                                                      color: CupertinoColors.systemOrange,
                                                       borderRadius: BorderRadius.circular(12),
                                                     ),
                                                     child: const Text(
                                                       'TEACHER',
                                                       style: TextStyle(
                                                         fontSize: 10,
-                                                        color: Colors.white,
+                                                        color: CupertinoColors.white,
                                                         fontWeight: FontWeight.bold,
                                                       ),
                                                     ),
@@ -303,30 +336,30 @@ class ProfilePage extends ConsumerWidget {
                                             Row(
                                               children: [
                                                 Icon(
-                                                  Icons.location_on,
+                                                  CupertinoIcons.location_solid,
                                                   size: 14,
-                                                  color: Colors.grey[600],
+                                                  color: CupertinoColors.secondaryLabel,
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   group.city,
                                                   style: TextStyle(
                                                     fontSize: 14,
-                                                    color: Colors.grey[600],
+                                                    color: CupertinoColors.secondaryLabel,
                                                   ),
                                                 ),
                                                 const SizedBox(width: 12),
                                                 Icon(
-                                                  Icons.people,
+                                                  CupertinoIcons.person_2,
                                                   size: 14,
-                                                  color: Colors.grey[600],
+                                                  color: CupertinoColors.secondaryLabel,
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   '${group.memberIds.length} members',
                                                   style: TextStyle(
                                                     fontSize: 14,
-                                                    color: Colors.grey[600],
+                                                    color: CupertinoColors.secondaryLabel,
                                                   ),
                                                 ),
                                               ],
@@ -336,9 +369,9 @@ class ProfilePage extends ConsumerWidget {
                                       ),
                                       // Arrow
                                       Icon(
-                                        Icons.arrow_forward_ios,
+                                        CupertinoIcons.chevron_forward,
                                         size: 16,
-                                        color: Colors.grey[400],
+                                        color: CupertinoColors.systemGrey,
                                       ),
                                     ],
                                   ),
@@ -351,7 +384,7 @@ class ProfilePage extends ConsumerWidget {
                     },
                     loading: () => const Padding(
                       padding: EdgeInsets.all(32),
-                      child: Center(child: CircularProgressIndicator()),
+                      child: const Center(child: CupertinoActivityIndicator()),
                     ),
                     error: (error, _) => Padding(
                       padding: const EdgeInsets.all(16),
@@ -387,16 +420,16 @@ class ProfilePage extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.calendar_today,
+                            CupertinoIcons.calendar,
                             size: 64,
-                            color: Colors.grey[400],
+                            color: CupertinoColors.systemGrey,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'No registered classes',
                             style: TextStyle(
                               fontSize: 16,
-                              color: Colors.grey[600],
+                              color: CupertinoColors.secondaryLabel,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -404,19 +437,21 @@ class ProfilePage extends ConsumerWidget {
                             'Find and register for classes near you',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[500],
+                              color: CupertinoColors.systemGrey,
                             ),
                           ),
                           const SizedBox(height: 24),
-                          ElevatedButton.icon(
+                          CupertinoButton(
+                            color: CupertinoColors.activeBlue,
+                            borderRadius: BorderRadius.circular(20),
                             onPressed: () => context.push(Routes.map),
-                            icon: const Icon(Icons.map),
-                            label: const Text('Browse Classes'),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(CupertinoIcons.map),
+                                SizedBox(width: 8),
+                                Text('Browse Classes'),
+                              ],
                             ),
                           ),
                         ],
@@ -429,10 +464,32 @@ class ProfilePage extends ConsumerWidget {
                       // TODO: Re-implement _buildClassCard with new data structure
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: Card(
-                          child: ListTile(
-                            title: Text('Class ${classes.indexOf(classData) + 1}'),
-                            subtitle: const Text('Class details'),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: CupertinoColors.systemBackground,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: CupertinoColors.systemGrey4,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Class ${classes.indexOf(classData) + 1}',
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Class details',
+                                style: TextStyle(
+                                  color: CupertinoColors.secondaryLabel,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -441,7 +498,7 @@ class ProfilePage extends ConsumerWidget {
                 },
                 loading: () => const Padding(
                   padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: const Center(child: CupertinoActivityIndicator()),
                 ),
                 error: (error, _) => Padding(
                   padding: const EdgeInsets.all(16),
@@ -453,13 +510,14 @@ class ProfilePage extends ConsumerWidget {
           ),
         );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CupertinoActivityIndicator()),
         error: (error, _) => Center(child: Text('Error: $error')),
       ),
     );
   }
 
   
+  /*
   Widget _buildBottomAppBar(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).value;
     final isTeacher = user?.role == UserRole.teacher || 
@@ -481,7 +539,7 @@ class ProfilePage extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.home, size: 20),
+                    Icon(CupertinoIcons.house, size: 20),
                     SizedBox(height: 2),
                     Text(
                       'Home',
@@ -500,7 +558,7 @@ class ProfilePage extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.map, size: 20),
+                    Icon(CupertinoIcons.map, size: 20),
                     SizedBox(height: 2),
                     Text(
                       'Map',
@@ -527,7 +585,7 @@ class ProfilePage extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.calendar_today, size: 20),
+                    Icon(CupertinoIcons.calendar_today, size: 20),
                     SizedBox(height: 2),
                     Text(
                       'Schedule',
@@ -554,7 +612,7 @@ class ProfilePage extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.group, size: 20),
+                    Icon(CupertinoIcons.group, size: 20),
                     SizedBox(height: 2),
                     Text(
                       'Groups',
@@ -574,7 +632,7 @@ class ProfilePage extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.school, size: 20),
+                      Icon(CupertinoIcons.book, size: 20),
                       SizedBox(height: 2),
                       Text(
                         'Teach',
@@ -593,7 +651,7 @@ class ProfilePage extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.settings, size: 20),
+                      Icon(CupertinoIcons.settings, size: 20),
                       SizedBox(height: 2),
                       Text(
                         'Settings',
@@ -608,5 +666,6 @@ class ProfilePage extends ConsumerWidget {
       ),
     );
   }
+  */
 
 }

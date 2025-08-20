@@ -215,9 +215,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      type: MaterialType.transparency,
-      child: Container(
+    return Container(
         height: MediaQuery.of(context).size.height * 0.9,
         decoration: const BoxDecoration(
           color: CupertinoColors.systemBackground,
@@ -512,13 +510,6 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
       maxLines: maxLines,
       textCapitalization: textCapitalization,
       inputFormatters: inputFormatters,
-      style: const TextStyle(
-        decoration: TextDecoration.none,
-      ),
-      placeholderStyle: const TextStyle(
-        color: CupertinoColors.placeholderText,
-        decoration: TextDecoration.none,
-      ),
     );
   }
 

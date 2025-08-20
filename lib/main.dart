@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show WidgetsFlutterBinding, Brightness, MediaQuery, TextScaler;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/routing/app_router.dart';
-import 'package:roda/core/theme/app_theme.dart';
+import 'package:roda/core/theme/ios_theme.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:app_links/app_links.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -57,11 +58,9 @@ class RodaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     
-    return MaterialApp.router(
+    return CupertinoApp.router(
       title: 'RODA',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.lightTheme,  // Use light theme for dark mode too
-      themeMode: ThemeMode.light,  // Always use light theme
+      theme: IOSTheme.lightTheme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
