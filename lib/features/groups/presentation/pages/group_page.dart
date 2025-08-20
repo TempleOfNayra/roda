@@ -129,33 +129,65 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   }
   
   Widget _buildHeaderBanner(CapoeiraGroup group) {
-    return Container(
-      height: 200,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: RodaColors.surfaceAlt,
-        image: group.headerImageUrl != null
-            ? DecorationImage(
-                image: NetworkImage(group.headerImageUrl!),
-                fit: BoxFit.cover,
-              )
-            : null,
-      ),
-      child: group.headerImageUrl == null
-          ? const Center(
-              child: Icon(
-                CupertinoIcons.photo,
-                size: 50,
-                color: RodaColors.textHint,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Header Image
+        Container(
+          height: 200,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: RodaColors.surfaceAlt,
+            image: group.headerImageUrl != null
+                ? DecorationImage(
+                    image: NetworkImage(group.headerImageUrl!),
+                    fit: BoxFit.cover,
+                  )
+                : null,
+          ),
+          child: group.headerImageUrl == null
+              ? const Center(
+                  child: Icon(
+                    CupertinoIcons.photo,
+                    size: 50,
+                    color: RodaColors.textHint,
+                  ),
+                )
+              : null,
+        ),
+        // Logo overlay - positioned at bottom left, half in/half out
+        if (group.logoImageUrl != null)
+          Positioned(
+            left: 16,
+            bottom: -30, // Half of the 60px logo height
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: RodaColors.white,
+                  width: 3,
+                ),
+                image: DecorationImage(
+                  image: NetworkImage(group.logoImageUrl!),
+                  fit: BoxFit.cover,
+                ),
               ),
-            )
-          : null,
+            ),
+          ),
+      ],
     );
   }
   
   Widget _buildGroupInfo(CapoeiraGroup group) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: group.logoImageUrl != null ? 40 : 16, // Extra padding if logo exists
+        bottom: 16,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

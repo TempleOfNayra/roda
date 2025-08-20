@@ -59,6 +59,9 @@ class GroupController {
     String? description,
     String? venmoHandle,
     String? headerImageUrl,
+    String? logoImageUrl,
+    String? contactNumber,
+    String? email,
   }) async {
     try {
       Logger.debug('Creating new group with details: $name $branch');
@@ -107,6 +110,9 @@ class GroupController {
         createdBy: currentUser.id,
         teacherProfilePicture: userProfile.profilePictureUrl,
         headerImageUrl: headerImageUrl,
+        logoImageUrl: logoImageUrl,
+        contactNumber: contactNumber,
+        email: email,
         createdAt: DateTime.now(),
       );
       

@@ -42,6 +42,9 @@ class CapoeiraGroup {
   final String createdBy; // Teacher who created it
   final String? teacherProfilePicture; // Teacher's profile picture URL
   final String? headerImageUrl; // Group header image URL
+  final String? logoImageUrl; // Group logo image URL
+  final String? contactNumber; // Contact phone number
+  final String? email; // Contact email
   final List<GroupAnnouncement> announcements; // Group announcements
   final DateTime createdAt;
   final bool isActive;
@@ -69,6 +72,9 @@ class CapoeiraGroup {
     required this.createdBy,
     this.teacherProfilePicture,
     this.headerImageUrl,
+    this.logoImageUrl,
+    this.contactNumber,
+    this.email,
     List<GroupAnnouncement>? announcements,
     required this.createdAt,
     this.isActive = true,
@@ -108,6 +114,9 @@ class CapoeiraGroup {
       createdBy: map['created_by'] ?? '',
       teacherProfilePicture: map['teacher_profile_picture'],
       headerImageUrl: map['header_image_url'],
+      logoImageUrl: map['logo_image_url'],
+      contactNumber: map['contact_number'],
+      email: map['email'],
       createdAt: DateTime.parse(map['created_at']),
       isActive: map['is_active'] ?? true,
     );
@@ -141,6 +150,9 @@ class CapoeiraGroup {
       'created_by': createdBy,
       'teacher_profile_picture': teacherProfilePicture,
       'header_image_url': headerImageUrl,
+      'logo_image_url': logoImageUrl,
+      'contact_number': contactNumber,
+      'email': email,
       'created_at': createdAt.toIso8601String(),
       'is_active': isActive,
     };

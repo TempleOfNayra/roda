@@ -36,6 +36,8 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
   final _lineageController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _venmoController = TextEditingController();
+  final _contactNumberController = TextEditingController();
+  final _emailController = TextEditingController();
   
   // Location data
   String? _locationAddress;
@@ -44,12 +46,15 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
   double? _longitude;
   String? _placeId;
   
-  CapoeiraStyle _selectedStyle = CapoeiraStyle.contemporanea;
+  CapoeiraStyle _selectedStyle = CapoeiraStyle.angola; // Changed default to angola
   String _selectedTeacherTitle = 'Professor';
   bool _isLoading = false;
   XFile? _selectedHeaderImage;
   Uint8List? _headerImageBytes;
   String? _existingHeaderImageUrl;
+  XFile? _selectedLogoImage;
+  Uint8List? _logoImageBytes;
+  String? _existingLogoImageUrl;
 
   final List<String> _teacherTitles = [
     'Mestre',
@@ -81,9 +86,12 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     _lineageController.text = group.lineage ?? '';
     _descriptionController.text = group.description ?? '';
     _venmoController.text = group.venmoHandle ?? '';
+    _contactNumberController.text = group.contactNumber ?? '';
+    _emailController.text = group.email ?? '';
     _selectedStyle = group.capoeiraStyle;
     _selectedTeacherTitle = group.teacherTitle;
     _existingHeaderImageUrl = group.headerImageUrl;
+    _existingLogoImageUrl = group.logoImageUrl;
     
     // Location data
     _locationAddress = group.locationAddress;
@@ -103,7 +111,47 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     _lineageController.dispose();
     _descriptionController.dispose();
     _venmoController.dispose();
+    _contactNumberController.dispose();
+    _emailController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickLogoImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+    
+    if (image != null) {
+      // Crop the image with square aspect ratio
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Square for logo
+        uiSettings: [
+          IOSUiSettings(
+            title: 'Crop Logo Image',
+            cancelButtonTitle: 'Cancel',
+            doneButtonTitle: 'Done',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+            rotateButtonsHidden: true,
+            rotateClockwiseButtonHidden: true,
+          ),
+        ],
+      );
+      
+      if (croppedFile != null) {
+        final bytes = await croppedFile.readAsBytes();
+        setState(() {
+          _selectedLogoImage = XFile(croppedFile.path);
+          _logoImageBytes = bytes;
+        });
+      }
+    }
   }
 
   Future<void> _pickHeaderImage() async {
@@ -158,8 +206,10 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
       final groupController = ref.read(groupControllerProvider);
       
       if (isEditMode && widget.groupId != null && widget.existingGroup != null) {
-        // For edit mode, upload image first since we have the group ID
+        // For edit mode, upload images first since we have the group ID
         String? headerImageUrl = _existingHeaderImageUrl;
+        String? logoImageUrl = _existingLogoImageUrl;
+        
         if (_selectedHeaderImage != null && _headerImageBytes != null) {
           try {
             headerImageUrl = await R2StorageService.uploadGroupImage(
@@ -169,7 +219,20 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
             );
             Logger.debug('Header image uploaded successfully: $headerImageUrl');
           } catch (e) {
-            Logger.debug('Image upload failed, continuing: $e');
+            Logger.debug('Header image upload failed, continuing: $e');
+          }
+        }
+        
+        if (_selectedLogoImage != null && _logoImageBytes != null) {
+          try {
+            logoImageUrl = await R2StorageService.uploadGroupImage(
+              groupId: widget.groupId!,
+              imageFile: _selectedLogoImage!,
+              imageType: 'logo',
+            );
+            Logger.debug('Logo image uploaded successfully: $logoImageUrl');
+          } catch (e) {
+            Logger.debug('Logo image upload failed, continuing: $e');
           }
         }
         // Create updated group object
@@ -198,6 +261,9 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           createdBy: widget.existingGroup!.createdBy,
           teacherProfilePicture: widget.existingGroup!.teacherProfilePicture,
           headerImageUrl: headerImageUrl,
+          logoImageUrl: logoImageUrl,
+          contactNumber: _contactNumberController.text.trim().isEmpty ? null : _contactNumberController.text.trim(),
+          email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
           announcements: widget.existingGroup!.announcements,
           createdAt: widget.existingGroup!.createdAt,
           isActive: widget.existingGroup!.isActive,
@@ -224,62 +290,77 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           lineage: _lineageController.text.trim().isEmpty ? null : _lineageController.text.trim(),
           description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
           venmoHandle: _venmoController.text.trim().isEmpty ? null : _venmoController.text.trim(),
-          headerImageUrl: null, // Don't pass image URL yet
+          contactNumber: _contactNumberController.text.trim().isEmpty ? null : _contactNumberController.text.trim(),
+          email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+          headerImageUrl: null, // Don't pass image URLs yet
+          logoImageUrl: null,
         );
         
-        // Now upload image if selected, using the real group ID
+        // Now upload images if selected, using the real group ID
+        String? headerImageUrl;
+        String? logoImageUrl;
+        
         if (_selectedHeaderImage != null && _headerImageBytes != null) {
           try {
-            Logger.debug('Attempting to upload header image for group: ${createdGroup.id}');
-            Logger.debug('Image file: ${_selectedHeaderImage!.name}');
-            
-            final headerImageUrl = await R2StorageService.uploadGroupImage(
+            headerImageUrl = await R2StorageService.uploadGroupImage(
               groupId: createdGroup.id,
               imageFile: _selectedHeaderImage!,
               imageType: 'header',
             );
-            
-            Logger.debug('R2 upload returned URL: $headerImageUrl');
-            
-            if (headerImageUrl != null) {
-              Logger.debug('Header image uploaded successfully: $headerImageUrl');
-              
-              // Update the group with the header image URL
-              final updatedGroup = CapoeiraGroup(
-                id: createdGroup.id,
-                name: createdGroup.name,
-                branch: createdGroup.branch,
-                displayName: createdGroup.displayName,
-                description: createdGroup.description,
-                city: createdGroup.city,
-                locationAddress: createdGroup.locationAddress,
-                locationName: createdGroup.locationName,
-                latitude: createdGroup.latitude,
-                longitude: createdGroup.longitude,
-                placeId: createdGroup.placeId,
-                teacherTitle: createdGroup.teacherTitle,
-                teacherFullName: createdGroup.teacherFullName,
-                capoeiraStyle: createdGroup.capoeiraStyle,
-                lineage: createdGroup.lineage,
-                venmoHandle: createdGroup.venmoHandle,
-                adminIds: createdGroup.adminIds,
-                teacherIds: createdGroup.teacherIds,
-                memberIds: createdGroup.memberIds,
-                createdBy: createdGroup.createdBy,
-                teacherProfilePicture: createdGroup.teacherProfilePicture,
-                headerImageUrl: headerImageUrl,
-                announcements: createdGroup.announcements,
-                createdAt: createdGroup.createdAt,
-                isActive: createdGroup.isActive,
-              );
-              
-              await groupController.updateGroup(updatedGroup);
-              Logger.debug('Group updated with header image');
-            }
+            Logger.debug('Header image uploaded successfully: $headerImageUrl');
           } catch (e) {
-            Logger.debug('Image upload failed after group creation: $e');
-            // Group is already created, just continue without image
+            Logger.debug('Header image upload failed: $e');
           }
+        }
+        
+        if (_selectedLogoImage != null && _logoImageBytes != null) {
+          try {
+            logoImageUrl = await R2StorageService.uploadGroupImage(
+              groupId: createdGroup.id,
+              imageFile: _selectedLogoImage!,
+              imageType: 'logo',
+            );
+            Logger.debug('Logo image uploaded successfully: $logoImageUrl');
+          } catch (e) {
+            Logger.debug('Logo image upload failed: $e');
+          }
+        }
+        
+        // Update the group with image URLs if any were uploaded
+        if (headerImageUrl != null || logoImageUrl != null) {
+          final updatedGroup = CapoeiraGroup(
+            id: createdGroup.id,
+            name: createdGroup.name,
+            branch: createdGroup.branch,
+            displayName: createdGroup.displayName,
+            description: createdGroup.description,
+            city: createdGroup.city,
+            locationAddress: createdGroup.locationAddress,
+            locationName: createdGroup.locationName,
+            latitude: createdGroup.latitude,
+            longitude: createdGroup.longitude,
+            placeId: createdGroup.placeId,
+            teacherTitle: createdGroup.teacherTitle,
+            teacherFullName: createdGroup.teacherFullName,
+            capoeiraStyle: createdGroup.capoeiraStyle,
+            lineage: createdGroup.lineage,
+            venmoHandle: createdGroup.venmoHandle,
+            adminIds: createdGroup.adminIds,
+            teacherIds: createdGroup.teacherIds,
+            memberIds: createdGroup.memberIds,
+            createdBy: createdGroup.createdBy,
+            teacherProfilePicture: createdGroup.teacherProfilePicture,
+            headerImageUrl: headerImageUrl ?? createdGroup.headerImageUrl,
+            logoImageUrl: logoImageUrl ?? createdGroup.logoImageUrl,
+            contactNumber: createdGroup.contactNumber,
+            email: createdGroup.email,
+            announcements: createdGroup.announcements,
+            createdAt: createdGroup.createdAt,
+            isActive: createdGroup.isActive,
+          );
+          
+          await groupController.updateGroup(updatedGroup);
+          Logger.debug('Group updated with images');
         }
       }
 
@@ -418,6 +499,70 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                             ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  
+                  // Logo Image Upload
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _pickLogoImage,
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: RodaColors.systemGrey6,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: RodaColors.systemGrey4,
+                              width: 1,
+                            ),
+                            image: _logoImageBytes != null
+                                ? DecorationImage(
+                                    image: MemoryImage(_logoImageBytes!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : _existingLogoImageUrl != null
+                                    ? DecorationImage(
+                                        image: NetworkImage(_existingLogoImageUrl!),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                          ),
+                          child: (_logoImageBytes == null && _existingLogoImageUrl == null)
+                              ? const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      CupertinoIcons.photo_on_rectangle,
+                                      size: 24,
+                                      color: RodaColors.activeBlue,
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'Logo',
+                                      style: TextStyle(
+                                        color: RodaColors.activeBlue,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Text(
+                          'Optional group logo (square format)\nWill display on group header',
+                          style: TextStyle(
+                            color: RodaColors.systemGrey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
 
                   // Group Name
@@ -426,6 +571,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                     placeholder: 'Group Name *',
                     prefix: const Icon(CupertinoIcons.group, size: 20),
                     textCapitalization: TextCapitalization.words,
+                    autocorrect: false,
                   ),
                   const SizedBox(height: 16),
 
@@ -484,9 +630,10 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   // Teacher Name
                   _buildTextField(
                     controller: _teacherNameController,
-                    placeholder: 'Your Teacher Name *',
+                    placeholder: 'Your Capoeira Name *',
                     prefix: const Icon(CupertinoIcons.person, size: 20),
                     textCapitalization: TextCapitalization.words,
+                    autocorrect: false,
                   ),
                   const SizedBox(height: 16),
 
@@ -547,7 +694,28 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   _buildTextField(
                     controller: _venmoController,
                     placeholder: 'Venmo Handle (optional)',
-                    prefix: const Icon(CupertinoIcons.money_dollar, size: 20),
+                    prefix: const Icon(CupertinoIcons.at, size: 20),
+                    autocorrect: false,
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Contact Number
+                  _buildTextField(
+                    controller: _contactNumberController,
+                    placeholder: 'Contact Number (optional)',
+                    prefix: const Icon(CupertinoIcons.phone, size: 20),
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [PhoneNumberFormatter()],
+                    autocorrect: false,
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Email
+                  _buildTextField(
+                    controller: _emailController,
+                    placeholder: 'Email (optional)',
+                    prefix: const Icon(CupertinoIcons.mail, size: 20),
+                    keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 32),
             ],
@@ -564,6 +732,8 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     int maxLines = 1,
     TextCapitalization textCapitalization = TextCapitalization.none,
     List<TextInputFormatter>? inputFormatters,
+    TextInputType? keyboardType,
+    bool autocorrect = true,
   }) {
     return CupertinoTextField(
       controller: controller,
@@ -586,6 +756,8 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
       maxLines: maxLines,
       textCapitalization: textCapitalization,
       inputFormatters: inputFormatters,
+      keyboardType: keyboardType,
+      autocorrect: autocorrect,
     );
   }
 
@@ -678,7 +850,24 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                 ),
                 onSelectedItemChanged: (index) {
                   setState(() {
+                    final oldTitle = _selectedTeacherTitle;
                     _selectedTeacherTitle = _teacherTitles[index];
+                    
+                    // Update teacher name field to prepend title
+                    String currentName = _teacherNameController.text.trim();
+                    
+                    // Remove old title if it exists at the beginning
+                    for (String title in _teacherTitles) {
+                      if (currentName.startsWith('$title ')) {
+                        currentName = currentName.substring(title.length + 1);
+                        break;
+                      }
+                    }
+                    
+                    // Add new title
+                    if (currentName.isNotEmpty) {
+                      _teacherNameController.text = '$_selectedTeacherTitle $currentName';
+                    }
                   });
                 },
                 children: _teacherTitles.map((title) => Text(title)).toList(),
@@ -701,6 +890,43 @@ class UpperCaseTextFormatter extends TextInputFormatter {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
       selection: newValue.selection,
+    );
+  }
+}
+
+// Phone number formatter for US numbers
+class PhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Remove all non-digits
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    
+    // Limit to 10 digits
+    final truncated = digitsOnly.length > 10 ? digitsOnly.substring(0, 10) : digitsOnly;
+    
+    // Format as (XXX) XXX-XXXX
+    String formatted = '';
+    for (int i = 0; i < truncated.length; i++) {
+      if (i == 0) formatted += '(';
+      if (i == 3) formatted += ') ';
+      if (i == 6) formatted += '-';
+      formatted += truncated[i];
+    }
+    
+    // Calculate new cursor position
+    int cursorPosition = formatted.length;
+    
+    // If user is deleting, adjust cursor position
+    if (oldValue.text.length > newValue.text.length) {
+      cursorPosition = newValue.selection.baseOffset;
+    }
+    
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: cursorPosition),
     );
   }
 }
