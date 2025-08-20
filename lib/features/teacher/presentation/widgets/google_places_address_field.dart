@@ -1,0 +1,289 @@
+import 'package:flutter/cupertino.dart';
+import 'package:google_places_sdk/google_places_sdk.dart';
+
+const String googleApiKey = 'AIzaSyD0RWCliozfGpgzQX-cJDFFHV224-bNwGY';
+
+class GooglePlacesAddressField extends StatefulWidget {
+  final TextEditingController controller;
+  final String label;
+  final String hint;
+  final Function(String address, double? lat, double? lng)? onLocationSelected;
+  final String? Function(String?)? validator;
+
+  const GooglePlacesAddressField({
+    super.key,
+    required this.controller,
+    this.label = 'Location',
+    this.hint = 'Search for a place',
+    this.onLocationSelected,
+    this.validator,
+  });
+
+  @override
+  State<GooglePlacesAddressField> createState() => _GooglePlacesAddressFieldState();
+}
+
+class _GooglePlacesAddressFieldState extends State<GooglePlacesAddressField> {
+  final GooglePlaces _places = GooglePlaces();
+  bool _isSearching = false;
+  bool _isInitialized = false;
+  List<PlaceSuggestion> _suggestions = [];
+  bool _showSuggestions = false;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePlaces();
+    widget.controller.addListener(_onTextChanged);
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) {
+        setState(() => _showSuggestions = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTextChanged);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializePlaces() async {
+    await _places.initialize(googleApiKey);
+    setState(() {
+      _isInitialized = true;
+    });
+  }
+
+  void _onTextChanged() {
+    if (widget.controller.text.length > 2) {
+      _searchPlaces(widget.controller.text);
+    } else {
+      setState(() {
+        _suggestions = [];
+        _showSuggestions = false;
+      });
+    }
+  }
+
+  Future<void> _searchPlaces(String query) async {
+    if (query.isEmpty || query.length < 2 || !_isInitialized) return;
+    
+    setState(() => _isSearching = true);
+    
+    try {
+      final predictions = await _places.getAutoCompletePredictions(
+        query,
+        countryCodes: ['US'],
+      );
+      
+      setState(() {
+        _isSearching = false;
+        _suggestions = predictions.map((prediction) {
+          return PlaceSuggestion(
+            placeId: prediction.placeId ?? '',
+            description: prediction.fullName ?? '',
+            mainText: prediction.primaryText ?? '',
+            secondaryText: prediction.secondaryText ?? '',
+          );
+        }).toList();
+        _showSuggestions = _suggestions.isNotEmpty;
+      });
+    } catch (e) {
+      setState(() {
+        _isSearching = false;
+        _suggestions = [
+          PlaceSuggestion(
+            placeId: '',
+            description: query,
+            mainText: query,
+            secondaryText: 'Use as typed',
+          ),
+        ];
+        _showSuggestions = true;
+      });
+    }
+  }
+
+  Future<void> _getPlaceDetails(PlaceSuggestion suggestion) async {
+    if (suggestion.placeId.isEmpty) {
+      widget.onLocationSelected?.call(suggestion.description, null, null);
+      return;
+    }
+    
+    try {
+      final place = await _places.fetchPlaceDetails(
+        suggestion.placeId,
+        placeFields: [
+          PlaceField.latLng,
+          PlaceField.name,
+          PlaceField.address,
+        ],
+      );
+      
+      final lat = place.latLng?.lat;
+      final lng = place.latLng?.lng;
+      
+      widget.onLocationSelected?.call(
+        suggestion.description,
+        lat,
+        lng,
+      );
+    } catch (e) {
+      widget.onLocationSelected?.call(suggestion.description, null, null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CupertinoTextField(
+          controller: widget.controller,
+          focusNode: _focusNode,
+          placeholder: widget.hint,
+          padding: const EdgeInsets.all(12),
+          maxLines: 2,
+          decoration: BoxDecoration(
+            color: CupertinoColors.systemGrey6,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          prefix: const Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: Icon(
+              CupertinoIcons.location,
+              color: CupertinoColors.systemGrey,
+              size: 20,
+            ),
+          ),
+          suffix: _isSearching
+              ? const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: CupertinoActivityIndicator(radius: 10),
+                )
+              : widget.controller.text.isNotEmpty
+                  ? CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      child: const Icon(
+                        CupertinoIcons.clear_circled_solid,
+                        color: CupertinoColors.systemGrey,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        widget.controller.clear();
+                        widget.onLocationSelected?.call('', null, null);
+                      },
+                    )
+                  : null,
+          onTap: () {
+            setState(() => _showSuggestions = true);
+          },
+        ),
+        if (_showSuggestions && _suggestions.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            constraints: const BoxConstraints(maxHeight: 200),
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemBackground,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: CupertinoColors.separator,
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: CupertinoColors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _suggestions.length,
+              itemBuilder: (context, index) {
+                final suggestion = _suggestions[index];
+                return CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  onPressed: () {
+                    widget.controller.text = suggestion.description;
+                    _getPlaceDetails(suggestion);
+                    setState(() => _showSuggestions = false);
+                    _focusNode.unfocus();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: index != _suggestions.length - 1
+                          ? const Border(
+                              bottom: BorderSide(
+                                color: CupertinoColors.separator,
+                                width: 0.5,
+                              ),
+                            )
+                          : null,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          suggestion.placeId.isNotEmpty
+                              ? CupertinoIcons.location_solid
+                              : CupertinoIcons.pencil,
+                          color: suggestion.placeId.isNotEmpty
+                              ? CupertinoColors.systemGreen
+                              : CupertinoColors.systemGrey,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                suggestion.mainText,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: CupertinoColors.label,
+                                ),
+                              ),
+                              if (suggestion.secondaryText.isNotEmpty)
+                                Text(
+                                  suggestion.secondaryText,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: CupertinoColors.secondaryLabel,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class PlaceSuggestion {
+  final String placeId;
+  final String description;
+  final String mainText;
+  final String secondaryText;
+
+  PlaceSuggestion({
+    required this.placeId,
+    required this.description,
+    required this.mainText,
+    required this.secondaryText,
+  });
+}

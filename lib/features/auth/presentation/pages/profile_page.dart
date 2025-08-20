@@ -456,7 +456,7 @@ class ProfilePage extends ConsumerWidget {
     return BottomAppBar(
       elevation: 8,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
@@ -464,12 +464,13 @@ class ProfilePage extends ConsumerWidget {
             InkWell(
               onTap: () => context.go(Routes.main),
               child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.home),
+                    Icon(Icons.home, size: 20),
+                    SizedBox(height: 2),
                     Text(
                       'Home',
                       style: TextStyle(fontSize: 10),
@@ -482,12 +483,13 @@ class ProfilePage extends ConsumerWidget {
             InkWell(
               onTap: () => context.push(Routes.map),
               child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.map),
+                    Icon(Icons.map, size: 20),
+                    SizedBox(height: 2),
                     Text(
                       'Map',
                       style: TextStyle(fontSize: 10),
@@ -508,12 +510,13 @@ class ProfilePage extends ConsumerWidget {
                 );
               },
               child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.calendar_today),
+                    Icon(Icons.calendar_today, size: 20),
+                    SizedBox(height: 2),
                     Text(
                       'Schedule',
                       style: TextStyle(fontSize: 10),
@@ -534,12 +537,13 @@ class ProfilePage extends ConsumerWidget {
                 );
               },
               child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.group),
+                    Icon(Icons.group, size: 20),
+                    SizedBox(height: 2),
                     Text(
                       'Groups',
                       style: TextStyle(fontSize: 10),
@@ -553,12 +557,13 @@ class ProfilePage extends ConsumerWidget {
               InkWell(
                 onTap: () => context.push(Routes.teacherDashboard),
                 child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.school),
+                      Icon(Icons.school, size: 20),
+                      SizedBox(height: 2),
                       Text(
                         'Teach',
                         style: TextStyle(fontSize: 10),
@@ -571,12 +576,13 @@ class ProfilePage extends ConsumerWidget {
               InkWell(
                 onTap: () => context.push(Routes.editProfile),
                 child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.settings),
+                      Icon(Icons.settings, size: 20),
+                      SizedBox(height: 2),
                       Text(
                         'Settings',
                         style: TextStyle(fontSize: 10),

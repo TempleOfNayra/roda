@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roda/core/models/capoeira_group.dart';
+import 'package:roda/data/core/supabase_client.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
+import 'package:roda/features/groups/providers/schedule_providers.dart';
 import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 
 class GroupPage extends ConsumerStatefulWidget {
@@ -165,11 +167,11 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   Widget _buildTeacherSection(CapoeiraGroup group) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: Column(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: CupertinoColors.systemGrey5,
@@ -187,11 +189,11 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   )
                 : null,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(height: 8),
           Text(
             group.teacherFullName,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -224,6 +226,8 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   }
   
   Widget _buildScheduledClassesSection(CapoeiraGroup group) {
+    final schedulesAsync = ref.watch(groupSchedulesProvider(group.id));
+    
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -231,15 +235,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
         children: [
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Schedule',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
@@ -259,38 +255,84 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                   ),
                 ),
               ),
+              const SizedBox(width: 12),
+              const Text(
+                'Schedule',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          // TODO: Add actual schedule data from the model
-          _buildScheduleItem('Mon 7-8 pm'),
-          _buildScheduleItem('Tue 6-7 pm'),
-          _buildScheduleItem('Thu 7-8 pm'),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildScheduleItem(String schedule) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () {
-              _showEditScheduleModal(context, schedule);
+          // Load actual schedules from database
+          schedulesAsync.when(
+            data: (schedules) {
+              if (schedules.isEmpty) {
+                return const Text(
+                  'No scheduled classes yet',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: CupertinoColors.systemGrey,
+                  ),
+                );
+              }
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: schedules.map((schedule) {
+                  final scheduleText = formatScheduleTime(schedule);
+                  final price = schedule['price'] as num?;
+                  
+                  return Row(
+                    children: [
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: () {
+                          _showEditScheduleModal(context, scheduleText, schedule['id'] as String);
+                        },
+                        child: const Icon(
+                          CupertinoIcons.pencil,
+                          size: 16,
+                          color: CupertinoColors.systemGrey,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Text(
+                              scheduleText,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            if (price != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '\$${price.toStringAsFixed(price is int ? 0 : 2)}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: CupertinoColors.systemGreen,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              );
             },
-            child: const Icon(
-              CupertinoIcons.pencil,
-              size: 16,
-              color: CupertinoColors.systemGrey,
+            loading: () => const CupertinoActivityIndicator(),
+            error: (error, _) => Text(
+              'Failed to load schedules',
+              style: TextStyle(
+                fontSize: 14,
+                color: CupertinoColors.systemRed,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            schedule,
-            style: const TextStyle(fontSize: 14),
           ),
         ],
       ),
@@ -305,27 +347,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
         children: [
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Text(
-                    'Upcoming Roda',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Text(
-                    '10/10/2024',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: CupertinoColors.systemGrey,
-                    ),
-                  ),
-                ],
-              ),
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
@@ -343,6 +365,22 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                     color: CupertinoColors.white,
                     size: 20,
                   ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Upcoming Roda',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '10/10/2024',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: CupertinoColors.systemGrey,
                 ),
               ),
             ],
@@ -550,7 +588,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     );
   }
   
-  void _showEditScheduleModal(BuildContext context, String schedule) {
+  void _showEditScheduleModal(BuildContext context, String schedule, String scheduleId) {
     showCupertinoModalPopup(
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
@@ -561,15 +599,26 @@ class _GroupPageState extends ConsumerState<GroupPage> {
             child: const Text('Edit Time'),
             onPressed: () {
               Navigator.pop(context);
-              // TODO: Show time picker
+              // TODO: Navigate to edit schedule page with scheduleId
             },
           ),
           CupertinoActionSheetAction(
             isDestructiveAction: true,
             child: const Text('Delete'),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: Delete this schedule
+              // Delete this schedule
+              try {
+                final supabase = ref.read(supabaseClientProvider);
+                await supabase
+                    .from('schedules')
+                    .update({'is_active': false})
+                    .eq('id', scheduleId);
+                // Refresh the schedules
+                ref.invalidate(groupSchedulesProvider);
+              } catch (e) {
+                // Handle error
+              }
             },
           ),
         ],
