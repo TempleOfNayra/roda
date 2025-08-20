@@ -519,7 +519,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
       context: context,
       builder: (context) => Container(
         height: 250,
-        color: RodaColors.systemBackground.resolveFrom(context),
+        color: RodaColors.systemBackground,
         child: Column(
           children: [
             Row(

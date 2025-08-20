@@ -743,7 +743,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           margin: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          color: RodaColors.systemBackground.resolveFrom(context),
+          color: RodaColors.systemBackground,
           child: SafeArea(
             top: false,
             child: CupertinoPicker(
@@ -784,7 +784,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           margin: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          color: RodaColors.systemBackground.resolveFrom(context),
+          color: RodaColors.systemBackground,
           child: SafeArea(
             top: false,
             child: CupertinoPicker(

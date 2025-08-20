@@ -566,7 +566,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
         margin: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        color: RodaColors.systemBackground.resolveFrom(context),
+        color: RodaColors.systemBackground,
         child: SafeArea(
           top: false,
           child: Column(
