@@ -66,7 +66,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
   ];
 
   bool get isEditMode => widget.existingGroup != null;
-
+  
   @override
   void initState() {
     super.initState();
@@ -75,14 +75,40 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     }
   }
 
+  String _extractNameWithoutTitle(String dbCapoeiraName) {
+    Logger.debug('extractNameWithoutTitle input: "$dbCapoeiraName"');
+    
+    String nameOnly = dbCapoeiraName.trim();
+    String nameLower = nameOnly.toLowerCase();
+    
+    // Remove any title prefix from the name (case-insensitive)
+    for (String title in _teacherTitles) {
+      String titleLower = title.toLowerCase();
+      if (nameLower.startsWith('$titleLower ')) {
+        nameOnly = nameOnly.substring(title.length + 1).trim();
+        Logger.debug('Found and removed title "$title", result: "$nameOnly"');
+        break;
+      }
+    }
+    
+    Logger.debug('extractNameWithoutTitle output: "$nameOnly"');
+    return nameOnly;
+  }
+
   void _populateExistingData(CapoeiraGroup group) {
+    Logger.debug('=== POPULATING EXISTING DATA FOR EDIT ===');
+    Logger.debug('Group name: ${group.name}, Teacher: ${group.teacherFullName}');
+    
     _nameController.text = group.name;
     _branchController.text = group.branch ?? '';
     _cityController.text = group.city;
     if (group.locationAddress != null && group.locationAddress!.isNotEmpty) {
       _locationController.text = group.locationAddress!;
     }
-    _teacherNameController.text = group.teacherFullName;
+    
+    // Extract name without title using our debug function
+    String nameForField = _extractNameWithoutTitle(group.teacherFullName);
+    _teacherNameController.text = nameForField;
     _lineageController.text = group.lineage ?? '';
     _descriptionController.text = group.description ?? '';
     _venmoController.text = group.venmoHandle ?? '';
@@ -251,7 +277,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           longitude: _longitude,
           placeId: _placeId,
           teacherTitle: _selectedTeacherTitle,
-          teacherFullName: _teacherNameController.text.trim(),
+          teacherFullName: '$_selectedTeacherTitle ${_teacherNameController.text.trim()}',
           capoeiraStyle: _selectedStyle,
           lineage: _lineageController.text.trim().isEmpty ? null : _lineageController.text.trim(),
           venmoHandle: _venmoController.text.trim().isEmpty ? null : _venmoController.text.trim(),
@@ -285,7 +311,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           longitude: _longitude,
           placeId: _placeId,
           teacherTitle: _selectedTeacherTitle,
-          teacherFullName: _teacherNameController.text.trim(),
+          teacherFullName: '$_selectedTeacherTitle ${_teacherNameController.text.trim()}',
           capoeiraStyle: _selectedStyle,
           lineage: _lineageController.text.trim().isEmpty ? null : _lineageController.text.trim(),
           description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
@@ -600,40 +626,49 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   _buildLocationPicker(),
                   const SizedBox(height: 16),
 
-                  // Teacher Title
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: () => _showTitlePicker(),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: RodaColors.systemGrey6,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(CupertinoIcons.person_badge_plus, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Title: $_selectedTeacherTitle',
-                              style: const TextStyle(fontSize: 16),
+                  // Teacher Title and Name Row
+                  Row(
+                    children: [
+                      // Title Picker (fixed width)
+                      SizedBox(
+                        width: 140,
+                        child: CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: () => _showTitlePicker(),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: RodaColors.systemGrey6,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    _selectedTeacherTitle,
+                                    style: const TextStyle(fontSize: 16),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(CupertinoIcons.chevron_down, size: 16),
+                              ],
                             ),
                           ),
-                          const Icon(CupertinoIcons.chevron_down, size: 16),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Teacher Name
-                  _buildTextField(
-                    controller: _teacherNameController,
-                    placeholder: 'Your Capoeira Name *',
-                    prefix: const Icon(CupertinoIcons.person, size: 20),
-                    textCapitalization: TextCapitalization.words,
-                    autocorrect: false,
+                      const SizedBox(width: 8),
+                      // Teacher Name Field (expandable)
+                      Expanded(
+                        child: _buildTextField(
+                          controller: _teacherNameController,
+                          placeholder: 'Capoeira Name *',
+                          textCapitalization: TextCapitalization.words,
+                          autocorrect: false,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
 
@@ -777,6 +812,9 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
   }
 
   void _showStylePicker() {
+    // Remove any existing focus before showing picker
+    FocusScope.of(context).unfocus();
+    
     showCupertinoModalPopup(
       context: context,
       builder: (context) => Container(
@@ -822,6 +860,9 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
   }
   
   void _showTitlePicker() {
+    // Remove any existing focus before showing picker
+    FocusScope.of(context).unfocus();
+    
     showCupertinoModalPopup(
       context: context,
       builder: (context) => Container(
@@ -837,7 +878,10 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   child: const Text('Cancel'),
                 ),
                 CupertinoButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    // Don't set focus anywhere after closing
+                  },
                   child: const Text('Done'),
                 ),
               ],
@@ -850,24 +894,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                 ),
                 onSelectedItemChanged: (index) {
                   setState(() {
-                    final oldTitle = _selectedTeacherTitle;
                     _selectedTeacherTitle = _teacherTitles[index];
-                    
-                    // Update teacher name field to prepend title
-                    String currentName = _teacherNameController.text.trim();
-                    
-                    // Remove old title if it exists at the beginning
-                    for (String title in _teacherTitles) {
-                      if (currentName.startsWith('$title ')) {
-                        currentName = currentName.substring(title.length + 1);
-                        break;
-                      }
-                    }
-                    
-                    // Add new title
-                    if (currentName.isNotEmpty) {
-                      _teacherNameController.text = '$_selectedTeacherTitle $currentName';
-                    }
                   });
                 },
                 children: _teacherTitles.map((title) => Text(title)).toList(),

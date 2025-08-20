@@ -6,6 +6,7 @@ import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/data/core/supabase_client.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 import 'package:roda/features/groups/providers/schedule_providers.dart';
+import 'package:roda/application/group_controller.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
 import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
@@ -778,6 +779,9 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                     .from('groups')
                     .delete()
                     .eq('id', group.id);
+                
+                // Invalidate the user groups provider to refresh the list
+                ref.invalidate(userGroupsProvider);
                 
                 // Navigate back to the previous screen
                 if (context.mounted) {
