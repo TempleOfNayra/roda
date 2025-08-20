@@ -242,7 +242,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('CLEAN MAP PAGE'),
-        backgroundColor: Colors.blue.withOpacity(0.8),
+        backgroundColor: Colors.blue.withValues(alpha: 0.8),
         elevation: 2,
       ),
       body: groupsAsync.when(
@@ -763,6 +763,7 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     );
     
     if (!success && context.mounted) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Could not open Venmo. Please install the Venmo app.'),
@@ -820,6 +821,8 @@ class _CleanMapPageState extends ConsumerState<CleanMapPage> {
     }
   }
   
+  // Unused method - kept for potential future use
+  // ignore: unused_element
   Widget _buildEventCard({
     required IconData icon,
     required Color iconColor,

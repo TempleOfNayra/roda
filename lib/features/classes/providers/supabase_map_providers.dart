@@ -153,7 +153,7 @@ class SupabaseMapService {
       
       // Filter by distance in memory
       final classes = _mapResponseToClasses(response);
-      final radiusKm = radiusMeters / 1000;
+      // final radiusKm = radiusMeters / 1000; // Unused - TODO: implement distance filtering
       
       // TODO: Filter by distance using schedule template location
       return classes;
@@ -164,6 +164,7 @@ class SupabaseMapService {
   }
   
   // Calculate distance between two points (Haversine formula)
+  // ignore: unused_element
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const double earthRadius = 6371; // km
     final double dLat = _toRadians(lat2 - lat1);
@@ -185,25 +186,26 @@ class SupabaseMapService {
     if (response == null) return [];
     
     return (response as List).map<ClassInstance>((data) {
-      // Parse location
-      double? latitude, longitude;
-      if (data['location'] != null) {
-        final pointStr = data['location'] as String;
-        final matches = RegExp(r'POINT\(([-\d.]+) ([-\d.]+)\)').firstMatch(pointStr);
-        if (matches != null) {
-          longitude = double.parse(matches.group(1)!);
-          latitude = double.parse(matches.group(2)!);
-        }
-      }
+      // Parse location - commented out as values aren't used
+      // double? latitude, longitude;
+      // if (data['location'] != null) {
+      //   final pointStr = data['location'] as String;
+      //   final matches = RegExp(r'POINT\(([-\d.]+) ([-\d.]+)\)').firstMatch(pointStr);
+      //   if (matches != null) {
+      //     longitude = double.parse(matches.group(1)!);
+      //     latitude = double.parse(matches.group(2)!);
+      //   }
+      // }
       
       final scheduledDate = DateTime.parse(data['scheduled_date']);
-      DateTime startTime;
+      // DateTime startTime;
       
-      if (data['start_datetime_utc'] != null) {
-        startTime = DateTime.parse(data['start_datetime_utc']).toLocal();
-      } else {
-        startTime = scheduledDate;
-      }
+      // Compute startTime but don't use it (it's not used in the return statement)
+      // if (data['start_datetime_utc'] != null) {
+      //   startTime = DateTime.parse(data['start_datetime_utc']).toLocal();
+      // } else {
+      //   startTime = scheduledDate;
+      // }
       
       return ClassInstance(
         id: data['id'],
@@ -315,181 +317,25 @@ final mapUpcomingClassesProvider = FutureProvider<List<Map<String, dynamic>>>((r
   }
 });
 
-// Provider for classes in current map bounds
-final mapClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
-  final bounds = ref.watch(mapBoundsProvider);
-  if (bounds == null) return [];
-  
-  final service = ref.read(supabaseMapServiceProvider);
-  return service.getClassesInBounds(bounds: bounds);
-});
+// Unused providers - removed by DCM
+// // Provider for classes in current map bounds
+// final mapClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
+//   final bounds = ref.watch(mapBoundsProvider);
+//   if (bounds == null) return [];
+//   
+//   final service = ref.read(supabaseMapServiceProvider);
+//   return service.getClassesInBounds(bounds: bounds);
+// });
 
-// Provider for classes near user location
-final nearbyClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
-  final center = ref.watch(mapCenterProvider);
-  final radius = ref.watch(searchRadiusProvider);
-  
-  final service = ref.read(supabaseMapServiceProvider);
-  return service.getClassesNearPoint(
-    center: center,
-    radiusMeters: radius,
-  );
-});
+// // Provider for classes near user location
+// final nearbyClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
+//   final center = ref.watch(mapCenterProvider);
+//   final radius = ref.watch(searchRadiusProvider);
+//   
+//   final service = ref.read(supabaseMapServiceProvider);
+//   return service.getClassesNearPoint(
+//     center: center,
+//     radiusMeters: radius,
+//   );
+// });
 
-// Create the stored procedures in Supabase
-const String createStoredProcedures = '''
--- Get classes within a polygon boundary
-CREATE OR REPLACE FUNCTION get_classes_in_bounds(
-  bounds_polygon TEXT,
-  start_date DATE,
-  end_date DATE
-) RETURNS TABLE (
-  id UUID,
-  schedule_id UUID,
-  scheduled_date DATE,
-  start_datetime_utc TIMESTAMPTZ,
-  location GEOGRAPHY,
-  location_name TEXT,
-  name TEXT,
-  event_type TEXT,
-  teacher_id UUID,
-  group_id UUID,
-  price DECIMAL,
-  max_students INT,
-  is_cancelled BOOLEAN,
-  cancellation_reason TEXT,
-  registered_count BIGINT,
-  group_name TEXT,
-  teacher_name TEXT
-) AS \$\$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    mc.id,
-    mc.schedule_id,
-    mc.scheduled_date,
-    mc.start_datetime_utc,
-    mc.location,
-    mc.location_name,
-    mc.name,
-    mc.event_type,
-    mc.teacher_id,
-    mc.group_id,
-    mc.price,
-    mc.max_students,
-    mc.is_cancelled,
-    mc.cancellation_reason,
-    mc.registered_count,
-    mc.group_name,
-    mc.teacher_name
-  FROM map_classes mc
-  WHERE ST_Within(mc.location, ST_GeomFromText(bounds_polygon, 4326)::geography)
-    AND mc.scheduled_date >= start_date
-    AND mc.scheduled_date <= end_date
-    AND NOT mc.is_cancelled;
-END;
-\$\$ LANGUAGE plpgsql;
-
--- Get classes near a point
-CREATE OR REPLACE FUNCTION get_classes_near_point(
-  center_lat DOUBLE PRECISION,
-  center_lng DOUBLE PRECISION,
-  radius_meters DOUBLE PRECISION,
-  start_date DATE,
-  end_date DATE
-) RETURNS TABLE (
-  id UUID,
-  schedule_id UUID,
-  scheduled_date DATE,
-  start_datetime_utc TIMESTAMPTZ,
-  location GEOGRAPHY,
-  location_name TEXT,
-  name TEXT,
-  event_type TEXT,
-  teacher_id UUID,
-  group_id UUID,
-  price DECIMAL,
-  max_students INT,
-  is_cancelled BOOLEAN,
-  cancellation_reason TEXT,
-  registered_count BIGINT,
-  group_name TEXT,
-  teacher_name TEXT,
-  distance FLOAT
-) AS \$\$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    mc.id,
-    mc.schedule_id,
-    mc.scheduled_date,
-    mc.start_datetime_utc,
-    mc.location,
-    mc.location_name,
-    mc.name,
-    mc.event_type,
-    mc.teacher_id,
-    mc.group_id,
-    mc.price,
-    mc.max_students,
-    mc.is_cancelled,
-    mc.cancellation_reason,
-    mc.registered_count,
-    mc.group_name,
-    mc.teacher_name,
-    ST_Distance(
-      mc.location,
-      ST_MakePoint(center_lng, center_lat)::geography
-    ) as distance
-  FROM map_classes mc
-  WHERE ST_DWithin(
-    mc.location,
-    ST_MakePoint(center_lng, center_lat)::geography,
-    radius_meters
-  )
-    AND mc.scheduled_date >= start_date
-    AND mc.scheduled_date <= end_date
-    AND NOT mc.is_cancelled
-  ORDER BY distance;
-END;
-\$\$ LANGUAGE plpgsql;
-
--- Get classes along a route
-CREATE OR REPLACE FUNCTION get_classes_along_route(
-  route_line TEXT,
-  buffer_meters DOUBLE PRECISION,
-  start_date DATE,
-  end_date DATE
-) RETURNS TABLE (
-  id UUID,
-  location GEOGRAPHY,
-  location_name TEXT,
-  name TEXT,
-  scheduled_date DATE,
-  distance FLOAT
-) AS \$\$
-BEGIN
-  RETURN QUERY
-  SELECT 
-    mc.id,
-    mc.location,
-    mc.location_name,
-    mc.name,
-    mc.scheduled_date,
-    ST_Distance(
-      mc.location,
-      ST_GeomFromText(route_line, 4326)::geography
-    ) as distance
-  FROM map_classes mc
-  WHERE ST_DWithin(
-    mc.location,
-    ST_Buffer(ST_GeomFromText(route_line, 4326)::geography, buffer_meters),
-    0
-  )
-    AND mc.scheduled_date >= start_date
-    AND mc.scheduled_date <= end_date
-    AND NOT mc.is_cancelled
-  ORDER BY distance;
-END;
-\$\$ LANGUAGE plpgsql;
-''';

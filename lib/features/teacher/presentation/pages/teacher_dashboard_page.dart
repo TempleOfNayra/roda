@@ -5,7 +5,6 @@ import 'package:roda/features/auth/providers/auth_provider.dart';
 // import 'package:roda/features/classes/providers/class_providers.dart';
 // import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 // import 'package:roda/features/teacher/presentation/pages/class_attendance_page.dart';
-import 'package:intl/intl.dart';
 
 class TeacherDashboardPage extends ConsumerWidget {
   const TeacherDashboardPage({super.key});
@@ -49,7 +48,7 @@ class TeacherDashboardPage extends ConsumerWidget {
           }
           
           // TODO: Replace with proper provider
-          final upcomingClasses = AsyncValue<List<dynamic>>.data([]);
+          const upcomingClasses = AsyncValue<List<dynamic>>.data([]);
           
           return upcomingClasses.when(
             data: (classes) => _buildDashboardContent(context, ref, classes),
@@ -203,12 +202,12 @@ class TeacherDashboardPage extends ConsumerWidget {
     const timeRange = 'Time TBD';
     const attendingCount = 0; // TODO: Fix when data model is updated
     const presentCount = 0; // TODO: Fix when data model is updated
-    const paidCount = 0; // TODO: Fix when data model is updated
+    // const paidCount = 0; // TODO: Fix when data model is updated - unused for now
     
     // TODO: Determine event type when model is updated
-    const isRoda = false;
+    // const isRoda = false; // Unused - will be used when event type is implemented
     const eventTypeLabel = 'CLASS';
-    final tagColor = Colors.blue;
+    const tagColor = Colors.blue;
     
     return Card(
       child: InkWell(
@@ -239,9 +238,9 @@ class TeacherDashboardPage extends ConsumerWidget {
                             color: tagColor,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text(
+                          child: const Text(
                             eventTypeLabel,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -249,9 +248,9 @@ class TeacherDashboardPage extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
+                        const Text(
                           'Date TBD', // TODO: Get date from class data when model is updated
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -259,9 +258,9 @@ class TeacherDashboardPage extends ConsumerWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(
+                    const Text(
                       timeRange,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
                       ),
@@ -298,22 +297,23 @@ class TeacherDashboardPage extends ConsumerWidget {
                             ),
                           ),
                         ],
-                        if (false) ...[ // TODO: Check price when model is updated
-                          const SizedBox(width: 12),
-                          Icon(
-                            Icons.attach_money,
-                            size: 16,
-                            color: Colors.orange[700],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$paidCount/$attendingCount paid',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.orange[700],
-                            ),
-                          ),
-                        ],
+                        // TODO: Enable when price is available in model
+                        // if (false) ...[ 
+                        //   const SizedBox(width: 12),
+                        //   Icon(
+                        //     Icons.attach_money,
+                        //     size: 16,
+                        //     color: Colors.orange[700],
+                        //   ),
+                        //   const SizedBox(width: 4),
+                        //   Text(
+                        //     '$paidCount/$attendingCount paid',
+                        //     style: TextStyle(
+                        //       fontSize: 14,
+                        //       color: Colors.orange[700],
+                        //     ),
+                        //   ),
+                        // ],
                       ],
                     ),
                   ],
@@ -397,6 +397,7 @@ class TeacherDashboardPage extends ConsumerWidget {
   //   );
   // }
 
+  // ignore: unused_element
   Widget _buildAttendanceSection(
     String title,
     int count,

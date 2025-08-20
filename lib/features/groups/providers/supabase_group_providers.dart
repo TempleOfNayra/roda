@@ -235,8 +235,9 @@ final groupByIdProvider = StreamProvider.family<CapoeiraGroup?, String>((ref, gr
   return repository.getGroup(groupId).asStream();
 });
 
-// Provider for all groups
-final allGroupsProvider = StreamProvider<List<CapoeiraGroup>>((ref) {
-  final repository = ref.watch(groupRepositoryProvider);
-  return repository.searchGroups().asStream();
-});
+// Unused - removed by DCM
+// // Provider for all groups
+// final allGroupsProvider = StreamProvider<List<CapoeiraGroup>>((ref) {
+//   final repository = ref.watch(groupRepositoryProvider);
+//   return repository.searchGroups().asStream();
+// });

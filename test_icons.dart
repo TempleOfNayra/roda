@@ -1,3 +1,7 @@
+// COMMENTED OUT - Test script for checking icon availability
+// Keeping for reference but not needed in production
+
+/*
 import 'package:flutter/cupertino.dart';
 
 // Test if icons exist - these are the most commonly available CupertinoIcons
@@ -10,3 +14,4 @@ void main() {
   print(CupertinoIcons.square_grid_2x2); // grid icon
   print(CupertinoIcons.arrow_right); // arrow right
 }
+*/

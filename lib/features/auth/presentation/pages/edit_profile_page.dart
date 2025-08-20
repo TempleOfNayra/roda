@@ -386,6 +386,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         );
         
         if (profilePictureUrl == null && mounted) {
+          // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Failed to upload profile picture'),

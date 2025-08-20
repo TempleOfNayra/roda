@@ -1,4 +1,9 @@
+// COMMENTED OUT - Migration script used for initial database setup
+// Keeping for reference but not needed in production
+
+/*
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:roda/core/utils/logger.dart';
 
 void main() async {
   // Initialize Supabase
@@ -93,3 +98,4 @@ ON CONFLICT (id) DO NOTHING;
   print('If you see any ❌ above, please run the provided SQL in your Supabase Dashboard.');
   print('Dashboard URL: https://supabase.com/dashboard/project/enukwrgrbbglxvllcjjn/sql');
 }
+*/

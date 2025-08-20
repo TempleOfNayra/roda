@@ -12,38 +12,31 @@ abstract class AppException implements Exception {
 }
 
 class AuthException extends AppException {
-  AuthException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  AuthException(super.message, {super.code, super.originalError});
 }
 
 class DatabaseException extends AppException {
-  DatabaseException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  DatabaseException(super.message, {super.code, super.originalError});
 }
 
 class StorageException extends AppException {
-  StorageException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  StorageException(super.message, {super.code, super.originalError});
 }
 
 class NetworkException extends AppException {
-  NetworkException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  NetworkException(super.message, {super.code, super.originalError});
 }
 
 class ValidationException extends AppException {
-  ValidationException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  ValidationException(super.message, {super.code, super.originalError});
 }
 
 class NotFoundException extends AppException {
-  NotFoundException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  NotFoundException(super.message, {super.code, super.originalError});
 }
 
 class PermissionException extends AppException {
-  PermissionException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  PermissionException(super.message, {super.code, super.originalError});
 }
 
 class ExceptionMapper {

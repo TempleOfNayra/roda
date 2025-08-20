@@ -1,11 +1,12 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import 'package:flutter_riverpod/flutter_riverpod.dart'; // Unused - removed by DCM
 import 'package:roda/core/models/user_model.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:roda/core/utils/logger.dart';
 
-final supabaseUserRepositoryProvider = Provider<SupabaseUserRepository>((ref) {
-  return SupabaseUserRepository();
-});
+// Unused - removed by DCM
+// final supabaseUserRepositoryProvider = Provider<SupabaseUserRepository>((ref) {
+//   return SupabaseUserRepository();
+// });
 
 class SupabaseUserRepository {
   final _client = SupabaseConfig.client;

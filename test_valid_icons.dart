@@ -1,3 +1,7 @@
+// COMMENTED OUT - Test script for checking valid icons
+// Keeping for reference but not needed in production
+
+/*
 import 'package:flutter/cupertino.dart';
 
 void main() {
@@ -19,3 +23,4 @@ void main() {
   print('square_grid_2x2: ${CupertinoIcons.square_grid_2x2}');
   print('square_grid_2x2_fill: ${CupertinoIcons.square_grid_2x2_fill}');
 }
+*/

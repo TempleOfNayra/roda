@@ -500,7 +500,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             
             if (shouldJoin == true) {
               // Create user and join existing group
-              final newUser = await authService.createUser(
+              await authService.createUser(
                 fullName: _fullNameController.text,
                 capoeiraName: _capoeiraNameController.text,
                 dateOfBirth: _dateOfBirth!,
@@ -540,7 +540,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       }
       
       // No existing group or not a teacher, proceed with normal creation
-      final newUser = await authService.createUser(
+      await authService.createUser(
         fullName: _fullNameController.text,
         capoeiraName: _capoeiraNameController.text,
         dateOfBirth: _dateOfBirth!,

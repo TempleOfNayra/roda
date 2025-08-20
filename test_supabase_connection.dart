@@ -13,6 +13,7 @@ void main() async {
           .select()
           .limit(1);
     } catch (e) {
+      // Table might not exist
     }
     
     try {
@@ -21,6 +22,7 @@ void main() async {
           .select()
           .limit(1);
     } catch (e) {
+      // Table might not exist
     }
     
     try {
@@ -29,9 +31,11 @@ void main() async {
           .select()
           .limit(1);
     } catch (e) {
+      // Table might not exist
     }
     
     
   } catch (e) {
+    // Connection failed
   }
 }

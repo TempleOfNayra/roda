@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:roda/core/utils/logger.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:roda/core/models/class_instance.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
@@ -202,33 +201,34 @@ class SupabaseClassService {
   
   // Helper to map database response to ClassInstance
   ClassInstance _mapToClassInstance(Map<String, dynamic> data) {
-    final schedule = data['schedules'] as Map<String, dynamic>;
+    // final schedule = data['schedules'] as Map<String, dynamic>; // Used in commented code below
     
-    // Parse times
-    final startTimeParts = (data['custom_start_time'] ?? schedule['start_time'] as String).split(':');
-    final endTimeParts = (data['custom_end_time'] ?? schedule['end_time'] as String).split(':');
+    // Parse times - commented out as values aren't used
+    // final startTimeParts = (data['custom_start_time'] ?? schedule['start_time'] as String).split(':');
+    // final endTimeParts = (data['custom_end_time'] ?? schedule['end_time'] as String).split(':');
     
     final scheduledDate = DateTime.parse(data['scheduled_date']);
-    final startTime = DateTime(
-      scheduledDate.year, scheduledDate.month, scheduledDate.day,
-      int.parse(startTimeParts[0]), int.parse(startTimeParts[1]),
-    );
-    final endTime = DateTime(
-      scheduledDate.year, scheduledDate.month, scheduledDate.day,
-      int.parse(endTimeParts[0]), int.parse(endTimeParts[1]),
-    );
+    // Unused - commenting out to avoid lint warnings
+    // final startTime = DateTime(
+    //   scheduledDate.year, scheduledDate.month, scheduledDate.day,
+    //   int.parse(startTimeParts[0]), int.parse(startTimeParts[1]),
+    // );
+    // final endTime = DateTime(
+    //   scheduledDate.year, scheduledDate.month, scheduledDate.day,
+    //   int.parse(endTimeParts[0]), int.parse(endTimeParts[1]),
+    // );
     
-    // Parse location
-    double? latitude, longitude;
-    final location = data['custom_location'] ?? schedule['location'];
-    if (location != null) {
-      final pointStr = location as String;
-      final matches = RegExp(r'POINT\(([-\d.]+) ([-\d.]+)\)').firstMatch(pointStr);
-      if (matches != null) {
-        longitude = double.parse(matches.group(1)!);
-        latitude = double.parse(matches.group(2)!);
-      }
-    }
+    // Parse location - commented out as values aren't used
+    // double? latitude, longitude;
+    // final location = data['custom_location'] ?? schedule['location'];
+    // if (location != null) {
+    //   final pointStr = location as String;
+    //   final matches = RegExp(r'POINT\(([-\d.]+) ([-\d.]+)\)').firstMatch(pointStr);
+    //   if (matches != null) {
+    //     longitude = double.parse(matches.group(1)!);
+    //     latitude = double.parse(matches.group(2)!);
+    //   }
+    // }
     
     return ClassInstance(
       id: data['id'],
@@ -244,19 +244,19 @@ class SupabaseClassService {
   
   // Helper to map view response to ClassInstance (from map_classes view)
   ClassInstance _mapViewToClassInstance(Map<String, dynamic> data) {
-    // Parse location
-    double? latitude, longitude;
-    if (data['location'] != null) {
-      final pointStr = data['location'] as String;
-      final matches = RegExp(r'POINT\(([-\d.]+) ([-\d.]+)\)').firstMatch(pointStr);
-      if (matches != null) {
-        longitude = double.parse(matches.group(1)!);
-        latitude = double.parse(matches.group(2)!);
-      }
-    }
+    // Parse location - commented out as values aren't used
+    // double? latitude, longitude;
+    // if (data['location'] != null) {
+    //   final pointStr = data['location'] as String;
+    //   final matches = RegExp(r'POINT\(([-\d.]+) ([-\d.]+)\)').firstMatch(pointStr);
+    //   if (matches != null) {
+    //     longitude = double.parse(matches.group(1)!);
+    //     latitude = double.parse(matches.group(2)!);
+    //   }
+    // }
     
     final scheduledDate = DateTime.parse(data['scheduled_date']);
-    final startUtc = DateTime.parse(data['start_datetime_utc']);
+    // final startUtc = DateTime.parse(data['start_datetime_utc']); // Unused
     
     return ClassInstance(
       id: data['id'],
@@ -271,32 +271,33 @@ class SupabaseClassService {
   }
 }
 
-// Provider for upcoming classes (for map and lists)
-final upcomingClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
-  final service = ref.watch(supabaseClassServiceProvider);
-  
-  // Get classes for next 30 days
-  // In production, this would use location from user
-  return service.getClassesNearLocation(
-    latitude: 37.7749, // Default to SF
-    longitude: -122.4194,
-    radiusMeters: 50000, // 50km
-  );
-});
+// Unused providers - removed by DCM
+// // Provider for upcoming classes (for map and lists)
+// final upcomingClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
+//   final service = ref.watch(supabaseClassServiceProvider);
+//   
+//   // Get classes for next 30 days
+//   // In production, this would use location from user
+//   return service.getClassesNearLocation(
+//     latitude: 37.7749, // Default to SF
+//     longitude: -122.4194,
+//     radiusMeters: 50000, // 50km
+//   );
+// });
 
-// Provider for teacher's upcoming classes
-final teacherUpcomingClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
-  final currentUser = ref.watch(currentUserProvider).value;
-  if (currentUser == null) return [];
-  
-  final service = ref.watch(supabaseClassServiceProvider);
-  return service.getTeacherUpcomingClasses(currentUser.id);
-});
+// // Provider for teacher's upcoming classes
+// final teacherUpcomingClassesProvider = FutureProvider<List<ClassInstance>>((ref) async {
+//   final currentUser = ref.watch(currentUserProvider).value;
+//   if (currentUser == null) return [];
+//   
+//   final service = ref.watch(supabaseClassServiceProvider);
+//   return service.getTeacherUpcomingClasses(currentUser.id);
+// });
 
-// Provider for class attendance
-final classAttendanceProvider = FutureProvider.family<List<Map<String, dynamic>>, String>(
-  (ref, classId) async {
-    final service = ref.watch(supabaseClassServiceProvider);
-    return service.getClassAttendance(classId);
-  },
-);
+// // Provider for class attendance
+// final classAttendanceProvider = FutureProvider.family<List<Map<String, dynamic>>, String>(
+//   (ref, classId) async {
+//     final service = ref.watch(supabaseClassServiceProvider);
+//     return service.getClassAttendance(classId);
+//   },
+// );

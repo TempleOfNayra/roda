@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/config/supabase_config.dart';
 import 'package:roda/core/models/schedule_template.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
+import 'package:roda/core/utils/logger.dart';
 
 final supabaseScheduleServiceProvider = Provider((ref) => SupabaseScheduleService());
 
@@ -27,9 +28,9 @@ class SupabaseScheduleService {
     int? maxStudents,
   }) async {
     try {
-      print('[SupabaseScheduleService] Creating schedule for group: $groupId');
-      print('[SupabaseScheduleService] Location: $locationName at ($latitude, $longitude)');
-      print('[SupabaseScheduleService] Day: $dayOfWeek, Time: ${startTime.hour}:${startTime.minute} - ${endTime.hour}:${endTime.minute}');
+      Logger.debug('[SupabaseScheduleService] Creating schedule for group: $groupId');
+      Logger.debug('[SupabaseScheduleService] Location: $locationName at ($latitude, $longitude)');
+      Logger.debug('[SupabaseScheduleService] Day: $dayOfWeek, Time: ${startTime.hour}:${startTime.minute} - ${endTime.hour}:${endTime.minute}');
       
       // Create PostGIS point for location
       final point = 'POINT($longitude $latitude)';
@@ -52,7 +53,7 @@ class SupabaseScheduleService {
         'is_active': true,
       };
       
-      print('[SupabaseScheduleService] Inserting schedule with data: $insertData');
+      Logger.debug('[SupabaseScheduleService] Inserting schedule with data: $insertData');
       
       final response = await _client
           .from('schedules')
@@ -60,22 +61,22 @@ class SupabaseScheduleService {
           .select()
           .single();
       
-      print('[SupabaseScheduleService] Schedule created with ID: ${response['id']}');
+      Logger.debug('[SupabaseScheduleService] Schedule created with ID: ${response['id']}');
       final scheduleId = response['id'];
       
       // Generate initial class instances (next 4 months = 16 weeks)
-      print('[SupabaseScheduleService] Generating class instances...');
+      Logger.debug('[SupabaseScheduleService] Generating class instances...');
       await generateClassInstances(
         scheduleId: scheduleId,
         startDate: DateTime.now(),
         endDate: DateTime.now().add(const Duration(days: 16 * 7)), // 4 months
       );
       
-      print('[SupabaseScheduleService] Successfully created schedule and instances');
+      Logger.debug('[SupabaseScheduleService] Successfully created schedule and instances');
       return scheduleId;
     } catch (e, stackTrace) {
-      print('[SupabaseScheduleService] Error creating schedule: $e');
-      print('[SupabaseScheduleService] Stack trace: $stackTrace');
+      Logger.debug('[SupabaseScheduleService] Error creating schedule: $e');
+      Logger.debug('[SupabaseScheduleService] Stack trace: $stackTrace');
       throw Exception('Failed to create schedule: $e');
     }
   }
@@ -87,8 +88,8 @@ class SupabaseScheduleService {
     required DateTime endDate,
   }) async {
     try {
-      print('[SupabaseScheduleService] Calling generate_class_instances RPC');
-      print('[SupabaseScheduleService] Parameters: schedule_id=$scheduleId, start=${startDate.toIso8601String().split('T')[0]}, end=${endDate.toIso8601String().split('T')[0]}');
+      Logger.debug('[SupabaseScheduleService] Calling generate_class_instances RPC');
+      Logger.debug('[SupabaseScheduleService] Parameters: schedule_id=$scheduleId, start=${startDate.toIso8601String().split('T')[0]}, end=${endDate.toIso8601String().split('T')[0]}');
       
       // Call the database function to generate instances
       await _client.rpc('generate_class_instances', params: {
@@ -97,10 +98,10 @@ class SupabaseScheduleService {
         'p_end_date': endDate.toIso8601String().split('T')[0],
       });
       
-      print('[SupabaseScheduleService] Successfully generated class instances');
+      Logger.debug('[SupabaseScheduleService] Successfully generated class instances');
     } catch (e, stackTrace) {
-      print('[SupabaseScheduleService] Error generating instances: $e');
-      print('[SupabaseScheduleService] Stack trace: $stackTrace');
+      Logger.debug('[SupabaseScheduleService] Error generating instances: $e');
+      Logger.debug('[SupabaseScheduleService] Stack trace: $stackTrace');
       throw Exception('Failed to generate class instances: $e');
     }
   }
@@ -263,22 +264,23 @@ class SupabaseScheduleService {
   }
 }
 
-// Provider for teacher's schedules
-final teacherSchedulesProvider = FutureProvider<List<ScheduleTemplate>>((ref) async {
-  final currentUser = ref.watch(currentUserProvider).value;
-  if (currentUser == null) return [];
-  
-  final service = ref.watch(supabaseScheduleServiceProvider);
-  return service.getTeacherSchedules(currentUser.id);
-});
+// Unused - removed by DCM
+// // Provider for teacher's schedules
+// final teacherSchedulesProvider = FutureProvider<List<ScheduleTemplate>>((ref) async {
+//   final currentUser = ref.watch(currentUserProvider).value;
+//   if (currentUser == null) return [];
+//   
+//   final service = ref.watch(supabaseScheduleServiceProvider);
+//   return service.getTeacherSchedules(currentUser.id);
+// });
 
-// Provider for group's schedules
-final groupSchedulesProvider = FutureProvider.family<List<ScheduleTemplate>, String>(
-  (ref, groupId) async {
-    final service = ref.watch(supabaseScheduleServiceProvider);
-    return service.getGroupSchedules(groupId);
-  },
-);
+// // Provider for group's schedules
+// final groupSchedulesProvider = FutureProvider.family<List<ScheduleTemplate>, String>(
+//   (ref, groupId) async {
+//     final service = ref.watch(supabaseScheduleServiceProvider);
+//     return service.getGroupSchedules(groupId);
+//   },
+// );
 
 // Provider for user's registered classes
 final userRegisteredClassesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>(
@@ -300,56 +302,57 @@ final userRegisteredClassesProvider = FutureProvider.family<List<Map<String, dyn
   },
 );
 
-// Provider for group's class instances
-final groupClassInstancesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>(
-  (ref, groupId) async {
-    try {
-      final response = await SupabaseConfig.client
-          .from('class_instances')
-          .select('''
-            id,
-            schedule_id,
-            scheduled_date,
-            start_time,
-            end_time,
-            is_cancelled,
-            custom_name,
-            attending_student_ids,
-            present_student_ids,
-            schedules!inner (
-              name,
-              event_type,
-              location_name,
-              price,
-              group_id
-            )
-          ''')
-          .eq('schedules.group_id', groupId)
-          .gte('scheduled_date', DateTime.now().toIso8601String().split('T')[0])
-          .order('scheduled_date', ascending: true)
-          .limit(20);
-      
-      // Transform the response to flatten the schedule data
-      return (response as List).map((instance) {
-        final schedule = instance['schedules'];
-        return {
-          'id': instance['id'],
-          'schedule_id': instance['schedule_id'],
-          'scheduled_date': instance['scheduled_date'],
-          'start_time': instance['start_time'],
-          'end_time': instance['end_time'],
-          'is_cancelled': instance['is_cancelled'],
-          'name': instance['custom_name'] ?? schedule['name'],
-          'event_type': schedule['event_type'],
-          'location_name': schedule['location_name'],
-          'price': schedule['price'],
-          'attending_student_ids': instance['attending_student_ids'] ?? [],
-          'present_student_ids': instance['present_student_ids'] ?? [],
-        };
-      }).toList();
-    } catch (e) {
-      print('Error fetching group class instances: $e');
-      return [];
-    }
-  },
-);
+// Unused - removed by DCM
+// // Provider for group's class instances
+// final groupClassInstancesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>(
+//   (ref, groupId) async {
+//     try {
+//       final response = await SupabaseConfig.client
+//           .from('class_instances')
+//           .select('''
+//             id,
+//             schedule_id,
+//             scheduled_date,
+//             start_time,
+//             end_time,
+//             is_cancelled,
+//             custom_name,
+//             attending_student_ids,
+//             present_student_ids,
+//             schedules!inner (
+//               name,
+//               event_type,
+//               location_name,
+//               price,
+//               group_id
+//             )
+//           ''')
+//           .eq('schedules.group_id', groupId)
+//           .gte('scheduled_date', DateTime.now().toIso8601String().split('T')[0])
+//           .order('scheduled_date', ascending: true)
+//           .limit(20);
+//       
+//       // Transform the response to flatten the schedule data
+//       return (response as List).map((instance) {
+//         final schedule = instance['schedules'];
+//         return {
+//           'id': instance['id'],
+//           'schedule_id': instance['schedule_id'],
+//           'scheduled_date': instance['scheduled_date'],
+//           'start_time': instance['start_time'],
+//           'end_time': instance['end_time'],
+//           'is_cancelled': instance['is_cancelled'],
+//           'name': instance['custom_name'] ?? schedule['name'],
+//           'event_type': schedule['event_type'],
+//           'location_name': schedule['location_name'],
+//           'price': schedule['price'],
+//           'attending_student_ids': instance['attending_student_ids'] ?? [],
+//           'present_student_ids': instance['present_student_ids'] ?? [],
+//         };
+//       }).toList();
+//     } catch (e) {
+//       Logger.debug('Error fetching group class instances: $e');
+//       return [];
+//     }
+//   },
+// );

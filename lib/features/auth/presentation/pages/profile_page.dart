@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:roda/core/config/supabase_config.dart';
 import 'package:roda/core/models/user_model.dart';
-import 'package:roda/core/models/schedule_template.dart';
-import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/core/routing/routes.dart';
 import 'package:roda/core/widgets/safe_scaffold.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/features/teacher/providers/supabase_schedule_providers.dart';
 import 'package:roda/application/group_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:intl/intl.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});

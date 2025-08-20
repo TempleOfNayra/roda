@@ -1,3 +1,7 @@
+// COMMENTED OUT - Test script for checking map view database access
+// Keeping for reference but not needed in production
+
+/*
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -42,3 +46,4 @@ void main() async {
     print('Full query error: $e');
   }
 }
+*/

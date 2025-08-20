@@ -1,34 +1,28 @@
+// COMMENTED OUT - Script for creating Supabase storage buckets
+// Keeping for reference but not needed in production
+
+/*
 import 'package:supabase/supabase.dart';
 
 void main() async {
-  final client = SupabaseClient(
+  final supabase = SupabaseClient(
     'https://enukwrgrbbglxvllcjjn.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVudWt3cmdyYmJnbHh2bGxjampuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMzNDkxMzAsImV4cCI6MjA0ODkyNTEzMH0.1A5VqPQQnMQSvI-U25Y8yQ9y7OzVBkR6KT0jKYLpFa8',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   );
-  
+
   try {
-    // Check if buckets exist
-    final buckets = await client.storage.listBuckets();
-    print('Existing buckets: ${buckets.map((b) => b.id).toList()}');
+    print('Creating storage buckets...');
     
-    // Create buckets if they don't exist
-    final requiredBuckets = ['profile-pictures', 'group-images', 'announcement-images'];
-    
-    for (final bucketId in requiredBuckets) {
-      if (!buckets.any((b) => b.id == bucketId)) {
-        try {
-          await client.storage.createBucket(bucketId, BucketOptions(public: true));
-          print('Created bucket: $bucketId');
-        } catch (e) {
-          print('Error creating bucket $bucketId: $e');
-        }
-      } else {
-        print('Bucket already exists: $bucketId');
-      }
-    }
-    
-    print('Storage buckets setup complete!');
+    // Create profile-pictures bucket
+    await supabase.storage.createBucket(
+      'profile-pictures',
+      BucketOptions(public: true),
+    );
+    print('✅ Created profile-pictures bucket');
   } catch (e) {
-    print('Error: $e');
+    print('❌ Error creating profile-pictures bucket: $e');
   }
+
+  print('\nBucket creation complete!');
 }
+*/

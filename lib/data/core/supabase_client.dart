@@ -10,6 +10,7 @@ final supabaseAuthClientProvider = Provider<GoTrueClient>((ref) {
   return ref.watch(supabaseClientProvider).auth;
 });
 
-final supabaseStorageClientProvider = Provider<SupabaseStorageClient>((ref) {
-  return ref.watch(supabaseClientProvider).storage;
-});
+// Unused - removed by DCM
+// final supabaseStorageClientProvider = Provider<SupabaseStorageClient>((ref) {
+//   return ref.watch(supabaseClientProvider).storage;
+// });

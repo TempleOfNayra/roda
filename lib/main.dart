@@ -13,12 +13,7 @@ const bool useMockMode = false;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Just print overflow errors to console
-  FlutterError.onError = (details) {
-    if (details.exception.toString().contains('overflowed')) {
-      Logger.debug('OVERFLOW: ${details.exception}');
-    }
-  };
+  // Removed custom error handler - let Flutter handle errors normally
   
   // Initialize Supabase
   await SupabaseConfig.initialize();

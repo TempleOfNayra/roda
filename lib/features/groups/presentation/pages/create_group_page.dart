@@ -172,7 +172,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.3),
+                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
                       width: 2,
                     ),
                     image: _headerImageBytes != null
@@ -246,11 +246,11 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
 
               // Teacher Title
               DropdownButtonFormField<String>(
-                value: _selectedTeacherTitle,
                 decoration: const InputDecoration(
                   labelText: 'Your Title *',
                   prefixIcon: Icon(Icons.school),
                 ),
+                initialValue: _selectedTeacherTitle,
                 items: _teacherTitles.map((title) {
                   return DropdownMenuItem(
                     value: title,
