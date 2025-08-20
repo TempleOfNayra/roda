@@ -74,9 +74,10 @@ class R2StorageService {
       final bytes = await file.readAsBytes();
       Logger.debug('📊 File size: ${bytes.length} bytes');
       
-      // Build the path: roda/groups/<groupid>/header.extension
+      // Build the path: groups/<groupid>/<uuid>.extension
       final extension = imageFile.name.split('.').last;
-      final fileName = 'roda/groups/$groupId/$imageType.$extension';
+      final uuid = DateTime.now().millisecondsSinceEpoch.toString(); // Simple unique ID
+      final fileName = 'groups/$groupId/$uuid.$extension';
       Logger.debug('📂 Target path: $fileName');
       
       final request = http.MultipartRequest(
@@ -90,13 +91,14 @@ class R2StorageService {
         http.MultipartFile.fromBytes(
           'file',
           bytes,
-          filename: fileName,
+          filename: '$uuid.$extension',  // Use unique filename
         ),
       );
       
-      request.fields['groupId'] = groupId;
-      request.fields['type'] = 'group_$imageType';
+      // New generic worker only needs path
       request.fields['path'] = fileName;
+      
+      Logger.debug('📤 Request fields: path=$fileName');
       
       Logger.debug('📤 Sending request to Worker...');
       final response = await request.send();

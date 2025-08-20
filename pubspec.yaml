@@ -42,6 +42,7 @@ dependencies:
   
   # Image handling
   image_picker: ^1.0.7
+  image_cropper: ^8.0.2
   crypto: ^3.0.3
   path: ^1.8.3
   supabase_flutter: ^2.9.1

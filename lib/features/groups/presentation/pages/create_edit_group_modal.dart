@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:roda/features/teacher/presentation/widgets/google_places_address_field.dart';
 import 'package:roda/core/models/capoeira_group.dart';
 import 'package:roda/application/group_controller.dart';
@@ -10,6 +11,7 @@ import 'package:roda/data/core/db_exceptions.dart';
 import 'package:roda/core/utils/logger.dart';
 import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 import 'package:roda/core/theme/roda_colors.dart';
+import 'package:uuid/uuid.dart';
 
 class CreateEditGroupModal extends ConsumerStatefulWidget {
   final String? groupId; // null for create, has value for edit
@@ -114,11 +116,31 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     );
     
     if (image != null) {
-      final bytes = await image.readAsBytes();
-      setState(() {
-        _selectedHeaderImage = image;
-        _headerImageBytes = bytes;
-      });
+      // Crop the image
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: image.path,
+        aspectRatio: const CropAspectRatio(ratioX: 16, ratioY: 9), // 16:9 for header images
+        uiSettings: [
+          IOSUiSettings(
+            title: 'Crop Header Image',
+            cancelButtonTitle: 'Cancel',
+            doneButtonTitle: 'Done',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+            rotateButtonsHidden: true,
+            rotateClockwiseButtonHidden: true,
+          ),
+        ],
+      );
+      
+      if (croppedFile != null) {
+        final bytes = await croppedFile.readAsBytes();
+        setState(() {
+          _selectedHeaderImage = XFile(croppedFile.path);
+          _headerImageBytes = bytes;
+        });
+      }
     }
   }
 
@@ -135,22 +157,21 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     try {
       final groupController = ref.read(groupControllerProvider);
       
-      // Upload header image if selected
-      String? headerImageUrl = _existingHeaderImageUrl;
-      if (_selectedHeaderImage != null && _headerImageBytes != null) {
-        try {
-          final groupId = widget.groupId ?? DateTime.now().millisecondsSinceEpoch.toString();
-          headerImageUrl = await R2StorageService.uploadGroupImage(
-            groupId: groupId,
-            imageFile: _selectedHeaderImage!,
-            imageType: 'header',
-          );
-        } catch (e) {
-          Logger.debug('Image upload failed, continuing: $e');
-        }
-      }
-
       if (isEditMode && widget.groupId != null && widget.existingGroup != null) {
+        // For edit mode, upload image first since we have the group ID
+        String? headerImageUrl = _existingHeaderImageUrl;
+        if (_selectedHeaderImage != null && _headerImageBytes != null) {
+          try {
+            headerImageUrl = await R2StorageService.uploadGroupImage(
+              groupId: widget.groupId!,
+              imageFile: _selectedHeaderImage!,
+              imageType: 'header',
+            );
+            Logger.debug('Header image uploaded successfully: $headerImageUrl');
+          } catch (e) {
+            Logger.debug('Image upload failed, continuing: $e');
+          }
+        }
         // Create updated group object
         final updatedGroup = CapoeiraGroup(
           id: widget.existingGroup!.id,
@@ -187,8 +208,8 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
         // Invalidate the group provider to force refresh
         ref.invalidate(groupByIdProvider(widget.groupId!));
       } else {
-        // Create new group
-        await groupController.createGroupWithDetails(
+        // Create new group - first without image to get the ID
+        final createdGroup = await groupController.createGroupWithDetails(
           name: _nameController.text.trim(),
           branch: _branchController.text.trim().isEmpty ? null : _branchController.text.trim(),
           city: _cityController.text.trim().toUpperCase(),
@@ -203,8 +224,63 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           lineage: _lineageController.text.trim().isEmpty ? null : _lineageController.text.trim(),
           description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
           venmoHandle: _venmoController.text.trim().isEmpty ? null : _venmoController.text.trim(),
-          headerImageUrl: headerImageUrl,
+          headerImageUrl: null, // Don't pass image URL yet
         );
+        
+        // Now upload image if selected, using the real group ID
+        if (_selectedHeaderImage != null && _headerImageBytes != null) {
+          try {
+            Logger.debug('Attempting to upload header image for group: ${createdGroup.id}');
+            Logger.debug('Image file: ${_selectedHeaderImage!.name}');
+            
+            final headerImageUrl = await R2StorageService.uploadGroupImage(
+              groupId: createdGroup.id,
+              imageFile: _selectedHeaderImage!,
+              imageType: 'header',
+            );
+            
+            Logger.debug('R2 upload returned URL: $headerImageUrl');
+            
+            if (headerImageUrl != null) {
+              Logger.debug('Header image uploaded successfully: $headerImageUrl');
+              
+              // Update the group with the header image URL
+              final updatedGroup = CapoeiraGroup(
+                id: createdGroup.id,
+                name: createdGroup.name,
+                branch: createdGroup.branch,
+                displayName: createdGroup.displayName,
+                description: createdGroup.description,
+                city: createdGroup.city,
+                locationAddress: createdGroup.locationAddress,
+                locationName: createdGroup.locationName,
+                latitude: createdGroup.latitude,
+                longitude: createdGroup.longitude,
+                placeId: createdGroup.placeId,
+                teacherTitle: createdGroup.teacherTitle,
+                teacherFullName: createdGroup.teacherFullName,
+                capoeiraStyle: createdGroup.capoeiraStyle,
+                lineage: createdGroup.lineage,
+                venmoHandle: createdGroup.venmoHandle,
+                adminIds: createdGroup.adminIds,
+                teacherIds: createdGroup.teacherIds,
+                memberIds: createdGroup.memberIds,
+                createdBy: createdGroup.createdBy,
+                teacherProfilePicture: createdGroup.teacherProfilePicture,
+                headerImageUrl: headerImageUrl,
+                announcements: createdGroup.announcements,
+                createdAt: createdGroup.createdAt,
+                isActive: createdGroup.isActive,
+              );
+              
+              await groupController.updateGroup(updatedGroup);
+              Logger.debug('Group updated with header image');
+            }
+          } catch (e) {
+            Logger.debug('Image upload failed after group creation: $e');
+            // Group is already created, just continue without image
+          }
+        }
       }
 
       // Invalidate the user groups provider to force refresh
@@ -246,64 +322,31 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-        height: MediaQuery.of(context).size.height * 0.9,
-        decoration: const BoxDecoration(
-          color: RodaColors.systemBackground,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: Text(isEditMode ? 'Edit Group' : 'Create Group'),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => Navigator.pop(context),
+          child: const Icon(CupertinoIcons.back),
         ),
-        child: Column(
-        children: [
-          // Handle bar
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: RodaColors.systemGrey3,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: _isLoading ? null : _saveGroup,
+          child: _isLoading
+              ? const CupertinoActivityIndicator()
+              : Text(
+                  isEditMode ? 'Save' : 'Create',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
-                Text(
-                  isEditMode ? 'Edit Group' : 'Create Group',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: _isLoading ? null : _saveGroup,
-                  child: _isLoading
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          isEditMode ? 'Save' : 'Create',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Form content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+        ),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
                   // Header Image Upload
                   GestureDetector(
                     onTap: _pickHeaderImage,
@@ -377,10 +420,6 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Physical Location (Google Places) - MOVED TO TOP
-                  _buildLocationPicker(),
-                  const SizedBox(height: 16),
-
                   // Group Name
                   _buildTextField(
                     controller: _nameController,
@@ -409,6 +448,10 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                       UpperCaseTextFormatter(), // Custom formatter to ensure uppercase
                     ],
                   ),
+                  const SizedBox(height: 16),
+
+                  // Physical Location (Google Places)
+                  _buildLocationPicker(),
                   const SizedBox(height: 16),
 
                   // Teacher Title
@@ -448,36 +491,36 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   const SizedBox(height: 16),
 
                   // Capoeira Style
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Capoeira Style *',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: RodaColors.systemGrey,
-                        ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => _showStylePicker(),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: RodaColors.systemGrey6,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(height: 8),
-                      CupertinoSegmentedControl<CapoeiraStyle>(
-                        groupValue: _selectedStyle,
-                        onValueChanged: (value) {
-                          setState(() => _selectedStyle = value);
-                        },
-                        children: Map.fromEntries(
-                          CapoeiraStyle.values.map((style) => MapEntry(
-                            style,
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                              child: Text(
-                                style.displayName,
-                                style: const TextStyle(fontSize: 14),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(CupertinoIcons.music_note, size: 20),
+                              const SizedBox(width: 12),
+                              Text(
+                                _selectedStyle.displayName,
+                                style: const TextStyle(fontSize: 16),
                               ),
-                            ),
-                          )),
-                        ),
+                            ],
+                          ),
+                          const Icon(
+                            CupertinoIcons.chevron_down,
+                            size: 20,
+                            color: RodaColors.systemGrey,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -507,11 +550,9 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                     prefix: const Icon(CupertinoIcons.money_dollar, size: 20),
                   ),
                   const SizedBox(height: 32),
-                ],
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -563,6 +604,51 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     );
   }
 
+  void _showStylePicker() {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => Container(
+        height: 250,
+        color: RodaColors.systemBackground,
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                CupertinoButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                CupertinoButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Done'),
+                ),
+              ],
+            ),
+            Expanded(
+              child: CupertinoPicker(
+                itemExtent: 32,
+                scrollController: FixedExtentScrollController(
+                  initialItem: CapoeiraStyle.values.indexOf(_selectedStyle),
+                ),
+                onSelectedItemChanged: (index) {
+                  setState(() {
+                    _selectedStyle = CapoeiraStyle.values[index];
+                  });
+                },
+                children: CapoeiraStyle.values
+                    .map((style) => Center(
+                          child: Text(style.displayName),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
   void _showTitlePicker() {
     showCupertinoModalPopup(
       context: context,
