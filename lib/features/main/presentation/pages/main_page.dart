@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roda/core/routing/routes.dart';
@@ -17,17 +17,18 @@ class MainPage extends ConsumerWidget {
     Logger.debug('DEBUG: [MainPage.build] authState: ${authState.value != null ? "logged in" : "not logged in"}');
     Logger.debug('DEBUG: [MainPage.build] currentUser: ${currentUser.value != null ? "has profile" : "no profile"}');
     
-    return Scaffold(
-      body: SafeArea(
+    return CupertinoPageScaffold(
+      child: SafeArea(
         child: Stack(
           children: [
             // Settings icon in top right
             Positioned(
               top: 8,
               right: 8,
-              child: IconButton(
-                icon: const Icon(Icons.settings),
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
                 onPressed: () => context.push(Routes.settings),
+                child: const Icon(CupertinoIcons.settings),
               ),
             ),
             // Main content
@@ -52,7 +53,7 @@ class MainPage extends ConsumerWidget {
                   'Capoeira Class & Roda Tracker',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.grey,
+                    color: CupertinoColors.systemGrey,
                   ),
                 ),
                 const SizedBox(height: 48),
@@ -72,12 +73,12 @@ class MainPage extends ConsumerWidget {
                           Logger.debug('DEBUG: [MainPage] User has profile - showing signed in buttons');
                           return _buildSignedInButtons(context, ref, userData);
                         },
-                        loading: () => const CircularProgressIndicator(),
+                        loading: () => const CupertinoActivityIndicator(),
                         error: (error, _) => Text('Error: $error'),
                       );
                     }
                   },
-                  loading: () => const CircularProgressIndicator(),
+                  loading: () => const CupertinoActivityIndicator(),
                   error: (error, _) => Text('Error: $error'),
                     ),
                   ],
@@ -97,14 +98,14 @@ class MainPage extends ConsumerWidget {
       children: [
         _buildMainButton(
           context: context,
-          icon: Icons.login,
+          icon: CupertinoIcons.arrow_right_circle,
           label: 'Sign Up / Sign In',
           onPressed: () => context.push(Routes.signUp),
         ),
         const SizedBox(height: 16),
         _buildMainButton(
           context: context,
-          icon: Icons.map,
+          icon: CupertinoIcons.map,
           label: 'Browse Classes',
           onPressed: () => context.push(Routes.map),
         ),
@@ -115,7 +116,7 @@ class MainPage extends ConsumerWidget {
   Widget _buildSignUpButton(BuildContext context) {
     return _buildMainButton(
       context: context,
-      icon: Icons.person_add,
+      icon: CupertinoIcons.person_add,
       label: 'Complete Profile',
       onPressed: () => context.push(Routes.signUp),
     );
@@ -134,14 +135,14 @@ class MainPage extends ConsumerWidget {
         const SizedBox(height: 32),
         _buildMainButton(
           context: context,
-          icon: Icons.person,
+          icon: CupertinoIcons.person,
           label: 'My Profile',
           onPressed: () => context.push(Routes.profile),
         ),
         const SizedBox(height: 16),
         _buildMainButton(
           context: context,
-          icon: Icons.map,
+          icon: CupertinoIcons.map,
           label: 'Class Map',
           onPressed: () => context.push(Routes.map),
         ),
@@ -149,17 +150,20 @@ class MainPage extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildMainButton(
             context: context,
-            icon: Icons.dashboard,
+            icon: CupertinoIcons.square_grid_2x2,
             label: 'Teacher Dashboard',
             onPressed: () => context.push(Routes.teacherDashboard),
           ),
         ],
         const SizedBox(height: 32),
-        TextButton(
+        CupertinoButton(
           onPressed: () async {
             await ref.read(authServiceProvider).signOut();
           },
-          child: const Text('Sign Out'),
+          child: const Text(
+            'Sign Out',
+            style: TextStyle(color: CupertinoColors.destructiveRed),
+          ),
         ),
       ],
     );
@@ -174,17 +178,23 @@ class MainPage extends ConsumerWidget {
     return SizedBox(
       width: double.infinity,
       height: 56,
-      child: ElevatedButton.icon(
+      child: CupertinoButton(
+        color: CupertinoColors.activeBlue,
+        borderRadius: BorderRadius.circular(12),
         onPressed: onPressed,
-        icon: Icon(icon),
-        label: Text(
-          label,
-          style: const TextStyle(fontSize: 16),
-        ),
-        style: ElevatedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: CupertinoColors.white),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                color: CupertinoColors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show WidgetsFlutterBinding, Brightness, MediaQuery, TextScaler;
+import 'package:flutter/material.dart' show WidgetsFlutterBinding, MediaQuery, TextScaler;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:roda/core/routing/app_router.dart';
 import 'package:roda/core/theme/ios_theme.dart';

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Brightness;
 
 class IOSTheme {
   IOSTheme._();
