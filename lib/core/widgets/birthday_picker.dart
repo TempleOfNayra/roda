@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:io';
 
@@ -57,27 +56,27 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
   Future<void> _showIOSDatePicker() async {
     DateTime tempDate = _selectedDate ?? DateTime(2000, 1, 1);
     
-    await showModalBottomSheet(
+    await showCupertinoModalPopup(
       context: context,
       builder: (BuildContext context) {
         return Container(
           height: 300,
-          color: Colors.white,
+          color: CupertinoColors.systemBackground,
           child: Column(
             children: [
               // Header with Done button
               Container(
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: CupertinoColors.systemGrey6,
                   border: Border(
-                    bottom: BorderSide(color: Colors.grey[300]!),
+                    bottom: BorderSide(color: CupertinoColors.systemGrey4),
                   ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    TextButton(
+                    CupertinoButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Cancel'),
                     ),
@@ -86,10 +85,10 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
-                        color: Colors.grey[800],
+                        color: CupertinoColors.label,
                       ),
                     ),
-                    TextButton(
+                    CupertinoButton(
                       onPressed: () {
                         setState(() {
                           _selectedDate = tempDate;
@@ -99,7 +98,7 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
                         // Unfocus to prevent jumping to random field
                         FocusScope.of(context).unfocus();
                       },
-                      child: const Text('Done'),
+                      child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
@@ -125,7 +124,7 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
   
   Future<void> _showMaterialDatePicker() async {
     // Custom Material date picker with better UX
-    final DateTime? picked = await showDialog<DateTime>(
+    final DateTime? picked = await showCupertinoDialog<DateTime>(
       context: context,
       builder: (context) => _CustomDatePickerDialog(
         initialDate: _selectedDate ?? DateTime(2000, 1, 1),
@@ -142,37 +141,51 @@ class _BirthdayPickerState extends State<BirthdayPicker> {
   
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: _selectDate,
-      borderRadius: BorderRadius.circular(4),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: widget.labelText,
-          border: const OutlineInputBorder(),
-          suffixIcon: const Icon(Icons.calendar_today),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: CupertinoColors.systemGrey4),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _selectedDate != null
-                  ? _formatDate(_selectedDate!)
-                  : 'Select date',
-              style: TextStyle(
-                fontSize: 16,
-                color: _selectedDate != null 
-                    ? Theme.of(context).textTheme.bodyLarge?.color
-                    : Colors.grey[600],
+              widget.labelText,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: CupertinoColors.label,
               ),
             ),
-            if (_selectedDate != null)
-              Text(
-                'Age: ${_calculateAge(_selectedDate!)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _selectedDate != null
+                      ? _formatDate(_selectedDate!)
+                      : 'Select date',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: _selectedDate != null 
+                        ? CupertinoColors.label
+                        : CupertinoColors.secondaryLabel,
+                  ),
                 ),
-              ),
+                if (_selectedDate != null)
+                  Text(
+                    'Age: ${_calculateAge(_selectedDate!)}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: CupertinoColors.secondaryLabel,
+                    ),
+                  ),
+                const Icon(CupertinoIcons.calendar, color: CupertinoColors.systemGrey),
+              ],
+            ),
           ],
         ),
       ),
@@ -230,18 +243,16 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
       selectedDay = daysInMonth;
     }
     
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
+    return CupertinoAlertDialog(
+      content: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               'Select Birthday',
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 24),
             
@@ -254,14 +265,14 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
+                    color: CupertinoColors.secondaryLabel,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   height: 120,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: CupertinoColors.systemGrey4),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ListView.builder(
@@ -281,8 +292,8 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: isSelected 
-                                ? Theme.of(context).primaryColor 
-                                : Colors.transparent,
+                                ? CupertinoColors.activeBlue 
+                                : CupertinoColors.systemBackground,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -291,7 +302,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? Colors.white : Colors.black87,
+                              color: isSelected ? CupertinoColors.white : CupertinoColors.label,
                             ),
                           ),
                         ),
@@ -312,7 +323,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
+                    color: CupertinoColors.secondaryLabel,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -341,13 +352,13 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: isSelected 
-                                ? Theme.of(context).primaryColor 
-                                : Colors.grey[100],
+                                ? CupertinoColors.activeBlue 
+                                : CupertinoColors.systemGrey6,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isSelected 
-                                  ? Theme.of(context).primaryColor 
-                                  : Colors.grey[300]!,
+                                  ? CupertinoColors.activeBlue 
+                                  : CupertinoColors.systemGrey4,
                             ),
                           ),
                           child: Text(
@@ -355,7 +366,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? Colors.white : Colors.black87,
+                              color: isSelected ? CupertinoColors.white : CupertinoColors.label,
                             ),
                           ),
                         ),
@@ -376,7 +387,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
+                    color: CupertinoColors.secondaryLabel,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -404,13 +415,13 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: isSelected 
-                                ? Theme.of(context).primaryColor 
-                                : Colors.transparent,
+                                ? CupertinoColors.activeBlue 
+                                : CupertinoColors.systemBackground,
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isSelected 
-                                  ? Theme.of(context).primaryColor 
-                                  : Colors.grey[300]!,
+                                  ? CupertinoColors.activeBlue 
+                                  : CupertinoColors.systemGrey4,
                             ),
                           ),
                           child: Text(
@@ -418,7 +429,7 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? Colors.white : Colors.black87,
+                              color: isSelected ? CupertinoColors.white : CupertinoColors.label,
                             ),
                           ),
                         ),
@@ -434,13 +445,13 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: CupertinoColors.systemGrey6,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.cake, size: 20, color: Colors.grey),
+                  const Icon(CupertinoIcons.gift, size: 20, color: CupertinoColors.systemGrey),
                   const SizedBox(width: 8),
                   Text(
                     '${months[selectedMonth - 1]} $selectedDay, $selectedYear',
@@ -458,12 +469,12 @@ class _CustomDatePickerDialogState extends State<_CustomDatePickerDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(
+                CupertinoButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Cancel'),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton(
+                CupertinoButton.filled(
                   onPressed: () {
                     final selected = DateTime(selectedYear, selectedMonth, selectedDay);
                     Navigator.pop(context, selected);
