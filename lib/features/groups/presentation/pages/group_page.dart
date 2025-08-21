@@ -9,9 +9,12 @@ import 'package:roda/features/groups/providers/schedule_providers.dart';
 import 'package:roda/application/group_controller.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
 import 'package:roda/features/groups/presentation/widgets/group_media_tab.dart';
+import 'package:roda/features/groups/presentation/pages/schedule_roda_page.dart';
 import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/theme/roda_colors.dart';
+import 'package:roda/core/utils/logger.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:roda/core/theme/roda_theme.dart';
 import 'package:roda/core/widgets/user_avatar.dart';
 import 'package:roda/core/widgets/group_avatar.dart';
@@ -499,7 +502,16 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () {
-                  _showScheduleRodaModal(context);
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (context) => ScheduleRodaPage(
+                        groupId: widget.groupId,
+                        groupLocationAddress: group.locationAddress ?? group.locationName,
+                        groupLatitude: group.latitude,
+                        groupLongitude: group.longitude,
+                      ),
+                    ),
+                  );
                 },
                 child: Container(
                   width: 32,
@@ -524,13 +536,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                '10/10/2024',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: RodaColors.textSecondary,
-                ),
-              ),
+              _buildUpcomingRodaDate(group.id),
             ],
           ),
         ],
@@ -795,6 +801,65 @@ class _GroupPageState extends ConsumerState<GroupPage> {
         ),
       ),
     );
+  }
+  
+  Widget _buildUpcomingRodaDate(String groupId) {
+    return FutureBuilder<String>(
+      future: _getNextRodaDate(groupId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CupertinoActivityIndicator();
+        }
+        
+        final nextRodaDate = snapshot.data ?? 'No upcoming roda';
+        
+        return Text(
+          nextRodaDate,
+          style: const TextStyle(
+            fontSize: 14,
+            color: RodaColors.textSecondary,
+          ),
+        );
+      },
+    );
+  }
+  
+  Future<String> _getNextRodaDate(String groupId) async {
+    try {
+      final supabase = ref.read(supabaseClientProvider);
+      
+      // Query for next roda or batizado event
+      final response = await supabase
+          .from('class_instances')
+          .select('''
+            scheduled_date,
+            schedules!inner(
+              event_type,
+              name
+            )
+          ''')
+          .eq('schedules.group_id', groupId)
+          .inFilter('schedules.event_type', ['roda', 'batizado'])
+          .gte('scheduled_date', DateTime.now().toIso8601String().split('T')[0])
+          .eq('is_cancelled', false)
+          .order('scheduled_date', ascending: true)
+          .limit(1);
+      
+      if (response != null && response.isNotEmpty) {
+        final scheduledDate = DateTime.parse(response[0]['scheduled_date']);
+        final eventName = response[0]['schedules']['name'] ?? 
+                         (response[0]['schedules']['event_type'] == 'roda' ? 'Roda' : 'Batizado');
+        
+        // Format the date
+        final formattedDate = '${scheduledDate.month}/${scheduledDate.day}/${scheduledDate.year}';
+        return formattedDate;
+      }
+      
+      return 'No upcoming roda';
+    } catch (e) {
+      Logger.debug('Error fetching next roda date: $e');
+      return 'No upcoming roda';
+    }
   }
   
   Widget _buildDeleteGroupSection(BuildContext context, WidgetRef ref, CapoeiraGroup group) {
