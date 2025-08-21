@@ -29,7 +29,7 @@ class MainPage extends ConsumerWidget {
               child: CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: () => context.push(Routes.settings),
-                child: const Icon(CupertinoIcons.settings),
+                child: const Icon(CupertinoIcons.settings_solid, size: 26),
               ),
             ),
             // Main content

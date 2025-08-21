@@ -34,6 +34,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
   final _locationController = TextEditingController();
   final _teacherNameController = TextEditingController();
   final _lineageController = TextEditingController();
+  final _taglineController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _venmoController = TextEditingController();
   final _contactNumberController = TextEditingController();
@@ -110,6 +111,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     String nameForField = _extractNameWithoutTitle(group.teacherFullName);
     _teacherNameController.text = nameForField;
     _lineageController.text = group.lineage ?? '';
+    _taglineController.text = group.tagline ?? '';
     _descriptionController.text = group.description ?? '';
     _venmoController.text = group.venmoHandle ?? '';
     _contactNumberController.text = group.contactNumber ?? '';
@@ -135,6 +137,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     _locationController.dispose();
     _teacherNameController.dispose();
     _lineageController.dispose();
+    _taglineController.dispose();
     _descriptionController.dispose();
     _venmoController.dispose();
     _contactNumberController.dispose();
@@ -142,10 +145,50 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     super.dispose();
   }
 
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showCupertinoModalPopup<ImageSource>(
+      context: context,
+      builder: (BuildContext context) => CupertinoActionSheet(
+        title: const Text('Select Image Source'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.camera, size: 20),
+                SizedBox(width: 8),
+                Text('Take Photo'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.photo, size: 20),
+                SizedBox(width: 8),
+                Text('Choose from Gallery'),
+              ],
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
   Future<void> _pickLogoImage() async {
+    final ImageSource? source = await _showImageSourceDialog();
+    if (source == null) return;
+    
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       maxWidth: 1024,
       maxHeight: 1024,
       imageQuality: 85,
@@ -181,9 +224,12 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
   }
 
   Future<void> _pickHeaderImage() async {
+    final ImageSource? source = await _showImageSourceDialog();
+    if (source == null) return;
+    
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       maxWidth: 1920,
       maxHeight: 1080,
       imageQuality: 85,
@@ -269,6 +315,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           displayName: _branchController.text.trim().isEmpty 
               ? _nameController.text.trim()
               : '${_nameController.text.trim()} ${_branchController.text.trim()}',
+          tagline: _taglineController.text.trim().isEmpty ? null : _taglineController.text.trim(),
           description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
           city: _cityController.text.trim().toUpperCase(),
           locationAddress: _locationAddress ?? (_locationController.text.trim().isEmpty ? null : _locationController.text.trim()),
@@ -314,6 +361,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
           teacherFullName: '$_selectedTeacherTitle ${_teacherNameController.text.trim()}',
           capoeiraStyle: _selectedStyle,
           lineage: _lineageController.text.trim().isEmpty ? null : _lineageController.text.trim(),
+          tagline: _taglineController.text.trim().isEmpty ? null : _taglineController.text.trim(),
           description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
           venmoHandle: _venmoController.text.trim().isEmpty ? null : _venmoController.text.trim(),
           contactNumber: _contactNumberController.text.trim().isEmpty ? null : _contactNumberController.text.trim(),
@@ -359,6 +407,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
             name: createdGroup.name,
             branch: createdGroup.branch,
             displayName: createdGroup.displayName,
+            tagline: createdGroup.tagline,
             description: createdGroup.description,
             city: createdGroup.city,
             locationAddress: createdGroup.locationAddress,
@@ -715,10 +764,19 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Description
+                  // Tagline
+                  _buildTextField(
+                    controller: _taglineController,
+                    placeholder: 'Tagline (optional, max 64 chars)',
+                    prefix: const Icon(CupertinoIcons.quote_bubble, size: 20),
+                    maxLength: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // About Us
                   _buildTextField(
                     controller: _descriptionController,
-                    placeholder: 'Description (optional)',
+                    placeholder: 'About Us (optional)',
                     prefix: const Icon(CupertinoIcons.doc_text, size: 20),
                     maxLines: 3,
                     textCapitalization: TextCapitalization.sentences,
@@ -765,6 +823,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     required String placeholder,
     Widget? prefix,
     int maxLines = 1,
+    int? maxLength,
     TextCapitalization textCapitalization = TextCapitalization.none,
     List<TextInputFormatter>? inputFormatters,
     TextInputType? keyboardType,
@@ -773,6 +832,7 @@ class _CreateEditGroupModalState extends ConsumerState<CreateEditGroupModal> {
     return CupertinoTextField(
       controller: controller,
       placeholder: placeholder,
+      maxLength: maxLength,
       prefix: prefix != null
           ? Padding(
               padding: const EdgeInsets.only(left: 12),

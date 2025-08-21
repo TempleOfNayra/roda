@@ -8,6 +8,7 @@ import 'package:roda/features/groups/providers/supabase_group_providers.dart';
 import 'package:roda/features/groups/providers/schedule_providers.dart';
 import 'package:roda/application/group_controller.dart';
 import 'package:roda/features/groups/presentation/pages/create_edit_group_modal.dart';
+import 'package:roda/features/groups/presentation/widgets/group_media_tab.dart';
 import 'package:roda/features/teacher/presentation/pages/schedule_templates_page.dart';
 import 'package:roda/features/auth/providers/auth_provider.dart';
 import 'package:roda/core/theme/roda_colors.dart';
@@ -94,8 +95,8 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                     // Teacher Section
                     _buildTeacherSection(group),
                     
-                    // Description Section
-                    _buildDescriptionSection(group),
+                    // About Us Section
+                    _buildAboutUsSection(group),
                     
                     // Scheduled Classes Section
                     _buildScheduledClassesSection(group),
@@ -217,6 +218,17 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               color: RodaColors.textSecondary,
             ),
           ),
+          if (group.tagline != null && group.tagline!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              group.tagline!,
+              style: const TextStyle(
+                fontSize: 15,
+                color: RodaColors.textPrimary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -245,7 +257,7 @@ class _GroupPageState extends ConsumerState<GroupPage> {
     );
   }
   
-  Widget _buildDescriptionSection(CapoeiraGroup group) {
+  Widget _buildAboutUsSection(CapoeiraGroup group) {
     if (group.description == null || group.description!.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -255,7 +267,15 @@ class _GroupPageState extends ConsumerState<GroupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
+          const Text(
+            'ABOUT US',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: RodaColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             group.description!,
             style: const TextStyle(
@@ -599,15 +619,14 @@ class _GroupPageState extends ConsumerState<GroupPage> {
   }
   
   Widget _buildMediaTab(CapoeiraGroup group) {
-    return const Padding(
-      padding: EdgeInsets.all(32),
-      child: Center(
-        child: Text(
-          'No media yet',
-          style: TextStyle(
-            color: RodaColors.systemGrey,
-          ),
-        ),
+    final currentUser = ref.watch(authStateProvider).value;
+    final isAdmin = currentUser != null && group.adminIds.contains(currentUser.id);
+    
+    return SizedBox(
+      height: 500, // Fixed height to properly constrain the GridView
+      child: GroupMediaTab(
+        group: group,
+        isAdmin: isAdmin,
       ),
     );
   }

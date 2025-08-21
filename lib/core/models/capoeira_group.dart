@@ -24,6 +24,7 @@ class CapoeiraGroup {
   final String name; // Main group name (e.g., "ABADA")
   final String? branch; // Branch/location (e.g., "SF", "Oakland")
   final String displayName; // Full display (e.g., "ABADA SF")
+  final String? tagline; // Short tagline (max 64 chars)
   final String? description;
   final String city; // City where group is located
   final String? locationAddress; // Full address from Google Places
@@ -54,6 +55,7 @@ class CapoeiraGroup {
     required this.name,
     this.branch,
     required this.displayName,
+    this.tagline,
     this.description,
     required this.city,
     this.locationAddress,
@@ -92,6 +94,7 @@ class CapoeiraGroup {
       branch: map['branch'],
       adminIds: List<String>.from(map['admin_ids'] ?? []),
       displayName: map['display_name'] ?? CapoeiraGroup.createDisplayName(map['name'], map['branch']),
+      tagline: map['tagline'],
       description: map['description'],
       city: map['city'] ?? map['location'] ?? 'Unknown City',  // Fallback to location field
       locationAddress: map['location_address'],
@@ -132,6 +135,7 @@ class CapoeiraGroup {
       'name': name,
       'branch': branch,
       'display_name': displayName,
+      'tagline': tagline,
       'description': description,
       'city': city,
       'location_address': locationAddress,
