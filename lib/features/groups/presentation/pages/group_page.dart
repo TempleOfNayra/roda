@@ -48,46 +48,17 @@ class _GroupPageState extends ConsumerState<GroupPage> {
               );
             }
             
-            return CustomScrollView(
-            slivers: [
-              // Header with back button
-              CupertinoSliverNavigationBar(
-                largeTitle: Text(group.name, style: const TextStyle(color: RodaColors.neutral)),
-                backgroundColor: RodaColors.surface.withOpacity(0.95),
-                leading: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => context.pop(),
-                  child: const Icon(CupertinoIcons.back),
-                ),
-                trailing: currentUser != null && group.createdBy == currentUser.id
-                    ? CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () {
-                          showCupertinoModalPopup(
-                            context: context,
-                            builder: (context) => CreateEditGroupModal(
-                              groupId: group.id,
-                              existingGroup: group,
-                            ),
-                          ).then((result) {
-                            if (result == true) {
-                              // Group was updated successfully, refresh
-                              ref.invalidate(groupByIdProvider(widget.groupId));
-                            }
-                          });
-                        },
-                        child: const Icon(CupertinoIcons.pencil),
-                      )
-                    : null,
-              ),
-              
-              // Content
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Banner Section
-                    _buildHeaderBanner(group),
+            return Stack(
+              children: [
+                CustomScrollView(
+                  slivers: [
+                    // Content
+                    SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header Banner Section
+                          _buildHeaderBanner(group),
                     
                     // Group Info Section
                     _buildGroupInfo(group),
@@ -113,12 +84,80 @@ class _GroupPageState extends ConsumerState<GroupPage> {
                     // Delete Group Link (only for group creator)
                     if (currentUser != null && group.createdBy == currentUser.id)
                       _buildDeleteGroupSection(context, ref, group),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
-          );
-        },
+                // Floating back button
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  left: 8,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: RodaColors.white.withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: RodaColors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: CupertinoButton(
+                      padding: const EdgeInsets.all(8),
+                      onPressed: () => context.pop(),
+                      child: const Icon(
+                        CupertinoIcons.back,
+                        color: RodaColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                // Floating edit button (only for group creator)
+                if (currentUser != null && group.createdBy == currentUser.id)
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 8,
+                    right: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: RodaColors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: RodaColors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.all(8),
+                        onPressed: () {
+                          showCupertinoModalPopup(
+                            context: context,
+                            builder: (context) => CreateEditGroupModal(
+                              groupId: group.id,
+                              existingGroup: group,
+                            ),
+                          ).then((result) {
+                            if (result == true) {
+                              // Group was updated successfully, refresh
+                              ref.invalidate(groupByIdProvider(widget.groupId));
+                            }
+                          });
+                        },
+                        child: const Icon(
+                          CupertinoIcons.pencil,
+                          color: RodaColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         loading: () => const Center(
           child: CupertinoActivityIndicator(),
         ),

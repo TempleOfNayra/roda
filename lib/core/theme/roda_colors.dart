@@ -32,6 +32,7 @@ class RodaColors {
   // Additional colors for Cupertino replacements
   static const white = Color(0xFFFFFFFF);          // Pure white
   static const black = Color(0xFF000000);          // Pure black
+  static const transparent = Color(0x00000000);    // Transparent
   static const systemGrey = Color(0xFF8E8E93);     // System grey
   static const systemGrey2 = Color(0xFFAEAEB2);    // System grey 2
   static const systemGrey3 = Color(0xFFC7C7CC);    // System grey 3
